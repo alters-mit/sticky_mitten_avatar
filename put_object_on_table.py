@@ -23,6 +23,7 @@ class PutObjectOnTable(Controller):
     OUTPUT_DIR = str(OUTPUT_DIR.resolve())
 
     def __init__(self, check_version: bool = True, launch_build: bool = True):
+        print(f"Images will be saved to: {PutObjectOnTable.OUTPUT_DIR}")
         super().__init__(check_version=check_version, launch_build=launch_build)
 
         self.avatar_position: Tuple[float, float, float] = (0, 0, 0)
