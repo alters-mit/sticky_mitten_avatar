@@ -348,4 +348,4 @@ class PutObjectOnTable(Controller):
 
 
 if __name__ == "__main__":
-    PutObjectOnTable(launch_build=False, check_version=False).run()
+    PutObjectOnTable().run()
