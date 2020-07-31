@@ -271,7 +271,8 @@ class PutObjectOnTable(Controller):
             self._do_frame({"$type": "move_avatar_forward_by",
                             "avatar_id": a,
                             "magnitude": -20})
-            away_from_table = TDWUtils.get_distance(TDWUtils.array_to_vector3(self.avatar_position), table_position) > 2
+            away_from_table = TDWUtils.get_distance(TDWUtils.array_to_vector3(self.avatar_position),
+                                                    table_position) > 1.8
         # Let the joints drop.
         self._bend_arm_joints([])
 
