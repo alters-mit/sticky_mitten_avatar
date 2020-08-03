@@ -5,7 +5,6 @@ from typing import Tuple, List, Optional, Union, Dict
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
 from tdw.output_data import OutputData, AvatarChildrenNames, AvatarStickyMitten, Images, Bounds
-from arm import JointType, get_joint_type, get_angles, JOINT_LIMITS
 
 
 class PutObjectOnTable(Controller):
@@ -86,7 +85,7 @@ class PutObjectOnTable(Controller):
                           "is_left": True,
                           "avatar_id": a},
                          {"$type": "set_avatar_drag",
-                          "drag": 0.125,
+                          "drag": 1000,
                           "angular_drag": 1000,
                           "avatar_id": a},
                          {"$type": "rotate_head_by",
@@ -143,32 +142,13 @@ class PutObjectOnTable(Controller):
                 self.avatar_position = AvatarStickyMitten(r).get_position()
 
         # Pick up the object.
-        self._do_frame({"$type": "pick_up_proximity",
-                        "distance": 20,
-                        "grip": 10000,
-                        "is_left": True,
-                        "avatar_id": a})
-
-        # Move to the table.
-        move_to_table = True
-        # The position of the side of the table the avatar is aiming for.
-        table_side_position = {"x": table_position["x"], "y": 0, "z": table_position["z"] - table_size[2]}
-        while move_to_table:
-            # Stop moving if we are close enough.
-            if TDWUtils.get_distance(table_side_position, TDWUtils.array_to_vector3(self.avatar_position)) < 0.7:
-                move_to_table = False
-            # Keep moving forward.
-            else:
-                self._do_frame({"$type": "move_avatar_forward_by",
-                                "avatar_id": a,
-                                "magnitude": 20})
-        # Stop the avatar.
-        self._do_frame({"$type": "set_avatar_drag",
-                        "drag": 1000,
-                        "angular_drag": 1000,
-                        "avatar_id": a})
         # Lift up the object.
-        self._bend_arm_joints([{"$type": "rotate_head_by",
+        self._bend_arm_joints([{"$type": "pick_up_proximity",
+                                "distance": 20,
+                                "grip": 10000,
+                                "is_left": True,
+                                "avatar_id": a},
+                               {"$type": "rotate_head_by",
                                 "axis": "pitch",
                                 "angle": 20,
                                 "avatar_id": a},
@@ -192,8 +172,34 @@ class PutObjectOnTable(Controller):
                                 "joint": "elbow_left",
                                 "axis": "pitch",
                                 "avatar_id": a}])
+        # Allow the avatar to move again.
+        self._do_frame({"$type": "set_avatar_drag",
+                        "drag": 0.125,
+                        "angular_drag": 1000,
+                        "avatar_id": a})
+
+        # Move to the table.
+        move_to_table = True
+        # The position of the side of the table the avatar is aiming for.
+        table_side_position = {"x": table_position["x"], "y": 0, "z": table_position["z"] - table_size[2]}
+        while move_to_table:
+            # Stop moving if we are close enough.
+            if TDWUtils.get_distance(table_side_position, TDWUtils.array_to_vector3(self.avatar_position)) < 0.7:
+                move_to_table = False
+            # Keep moving forward.
+            else:
+                self._do_frame({"$type": "move_avatar_forward_by",
+                                "avatar_id": a,
+                                "magnitude": 20})
+        # Stop.
+        # Allow the avatar to move again.
+        self._do_frame({"$type": "set_avatar_drag",
+                        "drag": 1000,
+                        "angular_drag": 1000,
+                        "avatar_id": a})
+
         mitten_over_table = False
-        target_z = table_side_position["z"] + 0.15
+        target_z = table_side_position["z"] + 0.17
         # Keep lifting until the mitten is over the table.
         while not mitten_over_table:
             avsm = self._bend_arm_joints([{"$type": "bend_arm_joint_by",
@@ -226,9 +232,14 @@ class PutObjectOnTable(Controller):
                     # Check if the mitten very close to the table surface.
                     mitten_near_table = avsm.get_body_part_position(i)[1] - table_size[1] <= 0.1
         # Drop the object.
-        self._do_frame({"$type": "put_down",
-                        "is_left": True,
-                        "avatar_id": a})
+        # Allow the avatar to move again.
+        self._do_frame([{"$type": "put_down",
+                         "is_left": True,
+                        "avatar_id": a},
+                        {"$type": "set_avatar_drag",
+                         "drag": 0.125,
+                         "angular_drag": 1000,
+                         "avatar_id": a}])
         # Back away from the table.
         mitten_away_from_table = False
         while not mitten_away_from_table:
@@ -318,50 +329,31 @@ class PutObjectOnTable(Controller):
         """
         Send commands to bend the arm joints. Wait until the joints stop moving.
 
-        :param commands: Any commands for this frame in addition to bending joints.
+        :param commands: The commands for this frame.
 
         :return: The avatar data.
         """
 
-        target_angles: Dict[JointType, float] = dict()
-        if isinstance(commands, dict):
-            commands = [commands]
-        # Get the target angles of the bend-arm commands.
-        for cmd in commands:
-            if cmd["$type"] == "bend_arm_joint_by" or cmd["$type"] == "bend_arm_joint_to":
-                target_angles[get_joint_type(cmd)] = cmd["angle"]
-
         avsm = self._do_frame(commands)
 
+        # Get the body part rotations.
+        body_part_rotations: Dict[int, np.array] = dict()
+        for i in range(avsm.get_num_body_parts()):
+            body_part_rotations[avsm.get_body_part_id(i)] = np.array(avsm.get_body_part_rotation(i))
         # Wait for the joints to stop rotating.
         done_rotating = False
         while not done_rotating:
-            angles = get_angles(avsm)
-            done_rotating = True
-            for j in angles:
-                if j not in target_angles:
-                    continue
-                ta = target_angles[j]
-                a = angles[j]
-                if ta < a:
-                    if ta < JOINT_LIMITS[j][0]:
-                        if np.abs(a - JOINT_LIMITS[j][0]) > 0.01:
-                            done_rotating = False
-                            print(JOINT_LIMITS[j][1], a, np.abs(JOINT_LIMITS[j][1] - a))
-                    else:
-                        if np.abs(a - ta) > 0.01:
-                            done_rotating = False
-                            print(JOINT_LIMITS[j][1], a, np.abs(JOINT_LIMITS[j][1] - a))
-                else:
-                    if ta > JOINT_LIMITS[j][1]:
-                        if np.abs(JOINT_LIMITS[j][1] - a) > 0.01:
-                            done_rotating = False
-                            print(JOINT_LIMITS[j][1], a, np.abs(JOINT_LIMITS[j][1] - a))
-                    else:
-                        if np.abs(ta - a) > 0.01:
-                            done_rotating = False
-                            print(JOINT_LIMITS[j][1], a, np.abs(JOINT_LIMITS[j][1] - a))
             avsm = self._do_frame([])
+            bpr: Dict[int, np.array] = dict()
+            done_rotating = True
+            for j in range(avsm.get_num_body_parts()):
+                b_id = avsm.get_body_part_id(j)
+                bpr[b_id] = np.array(avsm.get_body_part_rotation(j))
+                if np.linalg.norm(bpr[b_id] - body_part_rotations[b_id]) > 0.01:
+                    done_rotating = False
+            body_part_rotations.clear()
+            for b_id in bpr:
+                body_part_rotations[b_id] = bpr[b_id]
         return avsm
 
 
