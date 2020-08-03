@@ -285,6 +285,7 @@ class PutObjectOnTable(Controller):
                                                     table_position) > 1.8
         # Let the joints drop.
         self._bend_arm_joints([])
+        self.communicate({"$type": "terminate"})
 
     def _do_frame(self, commands: Union[List[dict], dict]) -> AvatarStickyMitten:
         """
