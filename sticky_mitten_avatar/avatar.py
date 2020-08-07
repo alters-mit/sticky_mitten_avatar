@@ -37,6 +37,8 @@ class Avatar(Entity):
         :param avatar_id: The ID of the avatar.
         """
 
+        self.avatar_id = avatar_id
+
         if position is None:
             position = {"x": 0, "y": 0, "z": 0}
 
