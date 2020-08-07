@@ -1,6 +1,5 @@
 import numpy as np
-from enum import Enum
-from typing import List, Tuple
+from typing import Tuple
 from abc import ABC, abstractmethod
 from tdw.controller import Controller
 from sticky_mitten_avatar.avatar import Avatar

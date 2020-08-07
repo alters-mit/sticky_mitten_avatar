@@ -12,12 +12,12 @@ class StickyMittenAvatarController(Controller):
         self._entities: List[Entity] = []
         super().__init__(port=port, launch_build=launch_build, display=display)
 
-        self.initialize_scene()
+        self._initialize_scene()
 
         self.avatar = Avatar(c=self, avatar=avatar, position=position, avatar_id=avatar_id)
         self._entities.append(self.avatar)
 
-    def initialize_scene(self) -> None:
+    def _initialize_scene(self) -> None:
         """
         Initialize the scene. Override this to provide your own scene initialization.
         """
