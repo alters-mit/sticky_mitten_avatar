@@ -1,7 +1,7 @@
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 from tdw.tdw_utils import TDWUtils
 from tdw.controller import Controller
-from tdw.output_data import AvatarStickyMittenSegmentationColors
+from tdw.output_data import AvatarStickyMittenSegmentationColors, AvatarStickyMitten
 from sticky_mitten_avatar.util import get_data
 
 
@@ -48,11 +48,14 @@ class Avatar:
             raise Exception(f"Avatar type not found: {avatar}")
         # Create the avatar.
         commands = TDWUtils.create_avatar(avatar_type=at, avatar_id=avatar_id, position=position)[:]
-        # Request segmentation colors and body part names.
+        # Request segmentation colors, body part names, and dynamic avatar data.
         # Turn off the follow camera.
         commands.extend([{"$type": "send_avatar_segmentation_colors",
                           "frequency": "once",
                           "ids": [avatar_id]},
+                         {"$type": "send_avatars",
+                          "ids": [avatar_id],
+                          "frequency": "always"},
                          {"$type": "toggle_image_sensor",
                           "sensor_name": "FollowCamera",
                           "avatar_id": avatar_id}])
@@ -61,7 +64,10 @@ class Avatar:
         avsc = get_data(resp, AvatarStickyMittenSegmentationColors)[0]
 
         # Cache static data of body parts.
-        self.body_parts: Dict[int, BodyPartStatic] = dict()
+        self.body_parts_static: Dict[int, BodyPartStatic] = dict()
         for i in range(avsc.get_num_body_parts()):
-            self.body_parts[avsc.get_body_part_id(i)] = BodyPartStatic(avsc.get_body_part_id(i),
-                                                                       avsc.get_body_part_segmentation_color(i))
+            self.body_parts_static[avsc.get_body_part_id(i)] = BodyPartStatic(avsc.get_body_part_id(i),
+                                                                              avsc.get_body_part_segmentation_color(i))
+
+        # Start dynamic data.
+        self.avsm = get_data(resp, AvatarStickyMitten)[0]
