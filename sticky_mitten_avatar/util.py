@@ -1,14 +1,15 @@
 from typing import Dict, List, TypeVar, Type
-from tdw.output_data import OutputData, AvatarStickyMitten, AvatarStickyMittenSegmentationColors
+from tdw.output_data import OutputData, AvatarStickyMitten, AvatarStickyMittenSegmentationColors, Transforms
 
 
 T = TypeVar("T", bound=OutputData)
 # Output data types mapped to their IDs.
-_OUTPUT_IDS: Dict[Type[OutputData], str] = {AvatarStickyMittenSegmentationColors: "avsc",
-                                            AvatarStickyMitten: "avsm"}
+_OUTPUT_IDS: Dict[Type[OutputData], str] = {AvatarStickyMittenSegmentationColors: "smsc",
+                                            AvatarStickyMitten: "avsm",
+                                            Transforms: "tran"}
 
 
-def get_data(resp: List[bytes], o_type: Type[T]) -> List[T]:
+def get_data(resp: List[bytes], o_type: Type[T]) -> T:
     """
     Parse the output data list of byte arrays to get a single type output data object.
 
@@ -21,10 +22,7 @@ def get_data(resp: List[bytes], o_type: Type[T]) -> List[T]:
     if o_type not in _OUTPUT_IDS:
         raise Exception(f"Output data ID not defined: {o_type}")
 
-    output: List[T] = []
-
     for i in range(len(resp) - 1):
         r_id = OutputData.get_data_type_id(resp[i])
         if r_id == _OUTPUT_IDS[o_type]:
-            output.append(o_type(resp[i]))
-    return output
+            return o_type(resp[i])

@@ -3,6 +3,7 @@ from tdw.tdw_utils import TDWUtils
 from tdw.controller import Controller
 from tdw.output_data import AvatarStickyMittenSegmentationColors, AvatarStickyMitten
 from sticky_mitten_avatar.util import get_data
+from sticky_mitten_avatar.entity import Entity
 
 
 class BodyPartStatic:
@@ -20,7 +21,7 @@ class BodyPartStatic:
         self.color = color
 
 
-class Avatar:
+class Avatar(Entity):
     """
     Wrapper function for creating an avatar and storing static data.
     """
@@ -61,7 +62,7 @@ class Avatar:
                           "avatar_id": avatar_id}])
         # Send the commands. Get a response.
         resp = c.communicate(commands)
-        avsc = get_data(resp, AvatarStickyMittenSegmentationColors)[0]
+        avsc = get_data(resp, AvatarStickyMittenSegmentationColors)
 
         # Cache static data of body parts.
         self.body_parts_static: Dict[int, BodyPartStatic] = dict()
@@ -70,4 +71,18 @@ class Avatar:
                                                                               avsc.get_body_part_segmentation_color(i))
 
         # Start dynamic data.
-        self.avsm = get_data(resp, AvatarStickyMitten)[0]
+        self.avsm = self._get_avsm(resp)
+
+    def on_frame(self, resp: List[bytes]) -> None:
+        # Update dynamic data.
+        self.avsm = self._get_avsm(resp)
+
+    @staticmethod
+    def _get_avsm(resp: List[bytes]) -> AvatarStickyMitten:
+        """
+        :param resp: The response from the build.
+
+        :return: AvatarStickyMitten output data.
+        """
+
+        return get_data(resp, AvatarStickyMitten)
