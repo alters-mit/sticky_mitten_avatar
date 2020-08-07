@@ -19,7 +19,7 @@ class TurnTo(Task):
     Turn to a target position.
     """
 
-    def __init__(self, avatar: Avatar, target: Tuple[float, float, float], force: float = 15, threshold: float = 0.1):
+    def __init__(self, avatar: Avatar, target: Tuple[float, float, float], force: float = 40, threshold: float = 0.1):
         """
         :param avatar: The avatar.
         :param target: The target position.
