@@ -1,17 +1,8 @@
-from typing import Union, Dict, Tuple
-from enum import Enum
+from typing import Dict, Tuple
 from tdw.tdw_utils import TDWUtils
 from tdw.controller import Controller
 from tdw.output_data import AvatarStickyMittenSegmentationColors
 from sticky_mitten_avatar.util import get_data
-
-
-class AvatarType(Enum):
-    """
-    A type of avatar. A baby avatar is much smaller than an adult.
-    """
-    baby = 1,
-    adult = 2
 
 
 class BodyPartStatic:
@@ -22,7 +13,7 @@ class BodyPartStatic:
     def __init__(self, o_id: int, color: Tuple[float, float, float]):
         """
         :param o_id: The object ID of the part.
-        :param color: The color of the part.
+        :param color: The segmentation color of the part.
         """
 
         self.o_id = o_id
@@ -34,24 +25,27 @@ class Avatar:
     Wrapper function for creating an avatar and storing static data.
     """
 
-    def __init__(self, c: Controller, avatar: Union[AvatarType, str] = AvatarType.baby,
+    def __init__(self, c: Controller, avatar: str = "baby",
                  position: Dict[str, float] = None, avatar_id: str = "a"):
-        if isinstance(avatar, str):
-            if avatar == "baby":
-                avatar = AvatarType.baby
-            elif avatar == "adult":
-                avatar = AvatarType.adult
-            else:
-                raise Exception(f"Avatar type not found: {avatar}")
+        """
+        When this constructor is called, the controller `c` creates an avatar and steps forward 1 frame.
+
+        :param c: The controller.
+        :param avatar: The type of avatar. Options: `"baby"`, `"adult"`
+        :param position: The initial position of the avatar. If `None`, the initial position is `(0, 0, 0)`.
+        :param avatar_id: The ID of the avatar.
+        """
+
         if position is None:
             position = {"x": 0, "y": 0, "z": 0}
 
         # Get the matching TDW enum.
-        if avatar == AvatarType.baby:
+        if avatar == "baby":
             at = "A_StickyMitten_Baby"
-        else:
+        elif avatar == "adult":
             at = "A_StickyMitten_Adult"
-
+        else:
+            raise Exception(f"Avatar type not found: {avatar}")
         # Create the avatar.
         commands = TDWUtils.create_avatar(avatar_type=at, avatar_id=avatar_id, position=position)[:]
         # Request segmentation colors and body part names.

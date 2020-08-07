@@ -1,1 +1,1 @@
-from .avatar import Avatar, AvatarType
+from .avatar import Avatar
