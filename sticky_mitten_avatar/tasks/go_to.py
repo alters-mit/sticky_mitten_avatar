@@ -1,0 +1,87 @@
+import numpy as np
+from typing import Tuple, List
+from tdw.controller import Controller
+from sticky_mitten_avatar import Avatar
+from sticky_mitten_avatar.tasks import Task, TurnTo, TaskState
+
+
+class GoTo(Task):
+    """
+    Go to a target position.
+    First, turn to face the position. Then, go to it.
+    """
+
+    def __init__(self, avatar: Avatar, target: Tuple[float, float, float], turn_force: float = 40,
+                 turn_threshold: float = 0.1, move_force: float = 45, move_threshold: float = 1):
+        """
+        :param avatar: The avatar.
+        :param target: The target position.
+        :param turn_force: Turn by this much force per attempt.
+        :param move_force: Move by this much force per attempt.
+        :param turn_threshold: The angle between the object and the avatar's forward directional vector must be less
+        than this for the turn to be a success.
+        :param move_threshold: Stop moving when we are this close to the object.
+        """
+
+        self.move_force = move_force
+        self.target = np.array(target)
+        self.move_threshold = move_threshold
+
+        self.turn_task = TurnTo(avatar=avatar, target=target, force=turn_force, threshold=turn_threshold)
+
+        super().__init__(avatar=avatar)
+        self.initial_distance = np.linalg.norm(np.array(self.avatar.avsm.get_position()) - self.target)
+        self.initial_position = np.array(self.avatar.avsm.get_position())
+
+    def do(self, c: Controller) -> bool:
+        # Turn to face the object.
+        turned = self.turn_task.do(c)
+        if not turned:
+            return False
+        self.turn_task.end(c, turned)
+
+        i = 0
+        while i < 200:
+            # Start gliding.
+            t = self._move_step([{"$type": "set_avatar_drag",
+                                  "drag": 0.1,
+                                  "angular_drag": 100,
+                                  "avatar_id": self.avatar.avatar_id},
+                                 {"$type": "move_avatar_forward_by",
+                                  "magnitude": self.move_force,
+                                  "avatar_id": self.avatar.avatar_id}], c)
+            if t == TaskState.success:
+                return True
+            elif t == TaskState.failure:
+                return False
+            # Glide.
+            while np.linalg.norm(self.avatar.avsm.get_velocity()) > 0.1:
+                t = self._move_step([], c)
+                if t == TaskState.success:
+                    return True
+                elif t == TaskState.failure:
+                    return False
+            i += 1
+        return False
+
+    def end(self, c: Controller, success: bool) -> None:
+        c.communicate({"$type": "set_avatar_drag",
+                       "drag": 1000,
+                       "angular_drag": 100,
+                       "avatar_id": self.avatar.avatar_id})
+        while np.linalg.norm(self.avatar.avsm.get_velocity()) > 0.1:
+            c.communicate([])
+
+    def _move_step(self, commands: List[dict], c: Controller) -> TaskState:
+        c.communicate(commands)
+        p = np.array(self.avatar.avsm.get_position())
+        d_from_initial = np.linalg.norm(self.initial_position - p)
+        # Overshot. End.
+        if d_from_initial > self.initial_distance:
+            return TaskState.failure
+        # We're here! End.
+        d = np.linalg.norm(p - self.target)
+        if d <= self.move_threshold:
+            return TaskState.success
+        # Keep truckin' along.
+        return TaskState.ongoing

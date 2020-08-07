@@ -1,6 +1,6 @@
 from typing import Dict, List, TypeVar, Type, Tuple
 from tdw.output_data import OutputData, AvatarStickyMitten, AvatarStickyMittenSegmentationColors, Transforms,\
-    Rigidbodies
+    Rigidbodies, Bounds
 
 
 T = TypeVar("T", bound=OutputData)
@@ -8,7 +8,8 @@ T = TypeVar("T", bound=OutputData)
 _OUTPUT_IDS: Dict[Type[OutputData], str] = {AvatarStickyMittenSegmentationColors: "smsc",
                                             AvatarStickyMitten: "avsm",
                                             Transforms: "tran",
-                                            Rigidbodies: "rigi"}
+                                            Rigidbodies: "rigi",
+                                            Bounds: "boun"}
 
 
 def get_data(resp: List[bytes], o_type: Type[T]) -> T:

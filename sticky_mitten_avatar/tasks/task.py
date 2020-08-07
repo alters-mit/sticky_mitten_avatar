@@ -1,8 +1,18 @@
+from enum import Enum
 import numpy as np
 from typing import Tuple
 from abc import ABC, abstractmethod
 from tdw.controller import Controller
 from sticky_mitten_avatar.avatar import Avatar
+
+
+class TaskState(Enum):
+    """
+    Describe the current state of the task.
+    """
+    ongoing = 1,
+    success = 2,
+    failure = 4
 
 
 class Task(ABC):
