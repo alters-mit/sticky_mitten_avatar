@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Dict, List, TypeVar, Type, Tuple
 from tdw.output_data import OutputData, AvatarStickyMitten, AvatarStickyMittenSegmentationColors, Transforms,\
-    Rigidbodies, Bounds
+    Rigidbodies, Bounds, Collision
 
 
 T = TypeVar("T", bound=OutputData)
@@ -30,6 +30,22 @@ def get_data(resp: List[bytes], d_type: Type[T]) -> T:
         r_id = OutputData.get_data_type_id(resp[i])
         if r_id == _OUTPUT_IDS[d_type]:
             return d_type(resp[i])
+
+
+def get_collisions(resp: List[bytes]) -> List[Collision]:
+    """
+    Use this function instead of `get_data` for collision data (because there might be multiple collisions).
+
+    :param resp: The response from the build (a list of byte arrays).
+    :return: A list of all collisions on this frame.
+    """
+
+    collisions: List[Collision] = []
+    for i in range(len(resp) - 1):
+        r_id = OutputData.get_data_type_id(resp[i])
+        if r_id == "coll":
+            collisions.append(Collision(resp[i]))
+    return collisions
 
 
 def get_object_indices(o_id: int, resp: List[bytes]) -> Tuple[int, int]:

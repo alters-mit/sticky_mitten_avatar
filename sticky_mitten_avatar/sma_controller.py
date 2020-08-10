@@ -32,3 +32,18 @@ class StickyMittenAvatarController(Controller):
         for i in range(len(self._entities)):
             self._entities[i].on_frame(resp=resp)
         return resp
+
+    def start_simulation(self) -> None:
+        """
+        Call this function after scene setup.
+        The controller will request output data from the build.
+        """
+
+        self.communicate([{"$type": "send_rigidbodies",
+                           "frequency": "always"},
+                          {"$type": "send_transforms",
+                           "frequency": "always"},
+                          {"$type": "send_collisions",
+                           "enter": True,
+                           "stay": False,
+                           "exit": False}])

@@ -1,10 +1,92 @@
+from enum import Enum
 import numpy as np
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Union
 from tdw.tdw_utils import TDWUtils
 from tdw.controller import Controller
-from tdw.output_data import AvatarStickyMittenSegmentationColors, AvatarStickyMitten
-from sticky_mitten_avatar.util import get_data
+from tdw.output_data import AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Collision
+from sticky_mitten_avatar.util import get_data, get_collisions
 from sticky_mitten_avatar.entity import Entity
+
+
+class Axis(Enum):
+    """
+    An axis of rotation.
+    """
+
+    pitch = 1,
+    yaw = 2,
+    roll = 4
+
+
+class JointType(Enum):
+    """
+    A type of joint.
+    """
+
+    shoulder = 8,
+    elbow = 16,
+    wrist = 32
+
+
+class Joint:
+    """
+    A type of joint an an axis.
+    """
+
+    def __init__(self, joint_type: JointType, axis: Axis, left: bool):
+        """
+        :param joint_type: The type of the joint.
+        :param axis: The axis of rotation.
+        :param left: If True, this is the left arm.
+        """
+
+        self.joint_type = joint_type
+        self.axis = axis
+        self.left = left
+
+    def get_bend_by(self, angle: float, avatar_id: str) -> dict:
+        """
+        :param angle: The angle in degrees.
+        :param avatar_id: The ID of the avatar.
+
+        :return: A `bend_arm_joint_by` command.
+        """
+
+        if self.left:
+            joint = f"{self.joint_type.name}_left"
+        else:
+            joint = f"{self.joint_type.name}_right"
+
+        return {"$type": "bend_arm_joint_by",
+                "angle": angle,
+                "joint": joint,
+                "axis": self.axis.name,
+                "avatar_id": avatar_id}
+
+    def get_bend_to(self, angle: float, avatar_id: str) -> dict:
+        """
+        :param angle: The angle in degrees.
+        :param avatar_id: The ID of the avatar.
+
+        :return: A `bend_arm_joint_to` command.
+        """
+
+        if self.left:
+            joint = f"{self.joint_type.name}_left"
+        else:
+            joint = f"{self.joint_type.name}_right"
+
+        return {"$type": "bend_arm_joint_to",
+                "angle": angle,
+                "joint": joint,
+                "axis": self.axis.name,
+                "avatar_id": avatar_id}
+
+    def __eq__(self, other):
+        return isinstance(other, Joint) and self.joint_type == other.joint_type and self.axis == other.axis
+
+    def __hash__(self):
+        return hash((self.joint_type, self.axis))
 
 
 class BodyPartStatic:
@@ -110,7 +192,26 @@ class Avatar(Entity):
                           "sub_mitten": "palm",
                           "sticky": True,
                           "is_left": False,
-                          "avatar_id": avatar_id}])
+                          "avatar_id": avatar_id},
+                         {"$type": "set_avatar_collision_detection_mode",
+                          "mode": "continuous_dynamic",
+                          "avatar_id": avatar_id},
+                         {"$type": "adjust_joint_force_by",
+                          "delta": 2,
+                          "joint": "shoulder_right",
+                          "axis": "pitch"},
+                         {"$type": "adjust_joint_force_by",
+                          "delta": 20,
+                          "joint": "wrist_right",
+                          "axis": "roll"},
+                         {"$type": "adjust_joint_force_by",
+                          "delta": 2,
+                          "joint": "shoulder_left",
+                          "axis": "pitch"},
+                         {"$type": "adjust_joint_force_by",
+                          "delta": 20,
+                          "joint": "wrist_left",
+                          "axis": "roll"}])
         # Send the commands. Get a response.
         resp = c.communicate(commands)
         avsc = get_data(resp, AvatarStickyMittenSegmentationColors)
@@ -149,3 +250,42 @@ class Avatar(Entity):
         if name not in self.body_parts_static:
             raise Exception(f"Body part undefined: {name}")
         return BodyPartDynamic(b_id=self.body_parts_static[name].o_id, avsm=self.avsm)
+
+    def bend_arm_joints(self, c: Controller, commands: Union[List[dict], dict]) -> Dict[int, List[Collision]]:
+        """
+        Send commands to bend the arm joints. Wait until the joints stop moving.
+
+        :param commands: The commands for this frame.
+        :param c: The controller.
+
+        :return: A dictionary of collisions that occured while the joints moved. Key = frame.
+        """
+
+        # Do the commands.
+        resp = c.communicate(commands)
+        self.on_frame(resp=resp)
+
+        collisions: Dict[int, List[Collision]] = dict()
+        collisions[c.get_frame(resp[-1])] = get_collisions(resp=resp)
+
+        # Get the body part rotations.
+        body_part_rotations: Dict[int, np.array] = dict()
+        for i in range(self.avsm.get_num_body_parts()):
+            body_part_rotations[self.avsm.get_body_part_id(i)] = np.array(self.avsm.get_body_part_rotation(i))
+        # Wait for the joints to stop rotating.
+        done_rotating = False
+        while not done_rotating:
+            resp = c.communicate([])
+            collisions[c.get_frame(resp[-1])] = get_collisions(resp=resp)
+            self.on_frame(resp=resp)
+            bpr: Dict[int, np.array] = dict()
+            done_rotating = True
+            for j in range(self.avsm.get_num_body_parts()):
+                b_id = self.avsm.get_body_part_id(j)
+                bpr[b_id] = np.array(self.avsm.get_body_part_rotation(j))
+                if np.linalg.norm(bpr[b_id] - body_part_rotations[b_id]) > 0.001:
+                    done_rotating = False
+            body_part_rotations.clear()
+            for b_id in bpr:
+                body_part_rotations[b_id] = bpr[b_id]
+        return collisions
