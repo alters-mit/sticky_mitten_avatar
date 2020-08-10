@@ -1,3 +1,4 @@
+import numpy as np
 from typing import Dict, Tuple, List
 from tdw.tdw_utils import TDWUtils
 from tdw.controller import Controller
@@ -21,10 +22,47 @@ class BodyPartStatic:
         self.color = color
 
 
+class BodyPartDynamic:
+    """
+    Dynamic (per-frame) data for a body part.
+    """
+    def __init__(self, b_id: int, avsm: AvatarStickyMitten):
+        """
+        :param b_id: The object ID.
+        :param avsm: AvatarStickyMitten output data.
+        """
+
+        self.object_id = b_id
+
+        tr_id = None
+        ri_id = None
+        for i in range(avsm.get_num_body_parts()):
+            if avsm.get_body_part_id(i) == b_id:
+                tr_id = b_id
+            if avsm.get_rigidbody_part_id(i) == b_id:
+                ri_id = b_id
+
+        self.position = np.array(avsm.get_body_part_position(tr_id))
+        self.rotation = np.array(avsm.get_body_part_rotation(tr_id))
+        self.forward = np.array(avsm.get_body_part_forward(tr_id))
+
+        # This is a rigidbody part.
+        if ri_id is not None:
+            self.velocity = np.array(avsm.get_rigidbody_part_velocity(ri_id))
+            self.angular_velocity = np.array(avsm.get_rigidbody_part_angular_velocity(ri_id))
+        else:
+            self.velocity = None
+            self.angular_velocity = None
+
+
 class Avatar(Entity):
     """
     Wrapper function for creating an avatar and storing static data.
     """
+
+    # Approximate length of arms.
+    _ARM_LENGTH = {"baby": 0.52,
+                   "adult": 1.16}
 
     def __init__(self, c: Controller, avatar: str = "baby",
                  position: Dict[str, float] = None, avatar_id: str = "a"):
@@ -37,11 +75,6 @@ class Avatar(Entity):
         :param avatar_id: The ID of the avatar.
         """
 
-        self.avatar_id = avatar_id
-
-        if position is None:
-            position = {"x": 0, "y": 0, "z": 0}
-
         # Get the matching TDW enum.
         if avatar == "baby":
             at = "A_StickyMitten_Baby"
@@ -49,6 +82,11 @@ class Avatar(Entity):
             at = "A_StickyMitten_Adult"
         else:
             raise Exception(f"Avatar type not found: {avatar}")
+        self.avatar_id = avatar_id
+        self.arm_length = Avatar._ARM_LENGTH[avatar]
+
+        if position is None:
+            position = {"x": 0, "y": 0, "z": 0}
         # Create the avatar.
         commands = TDWUtils.create_avatar(avatar_type=at, avatar_id=avatar_id, position=position)[:]
         # Request segmentation colors, body part names, and dynamic avatar data.
@@ -67,10 +105,11 @@ class Avatar(Entity):
         avsc = get_data(resp, AvatarStickyMittenSegmentationColors)
 
         # Cache static data of body parts.
-        self.body_parts_static: Dict[int, BodyPartStatic] = dict()
+        self.body_parts_static: Dict[str, BodyPartStatic] = dict()
         for i in range(avsc.get_num_body_parts()):
-            self.body_parts_static[avsc.get_body_part_id(i)] = BodyPartStatic(avsc.get_body_part_id(i),
-                                                                              avsc.get_body_part_segmentation_color(i))
+            bps = BodyPartStatic(o_id=avsc.get_body_part_id(i),
+                                 color=avsc.get_body_part_segmentation_color(i))
+            self.body_parts_static[avsc.get_body_part_name(i)] = bps
 
         # Start dynamic data.
         self.avsm = self._get_avsm(resp)
@@ -88,3 +127,14 @@ class Avatar(Entity):
         """
 
         return get_data(resp, AvatarStickyMitten)
+
+    def get_dynamic_body_part(self, name: str) -> BodyPartDynamic:
+        """
+        :param name: The name of the part.
+
+        :return: This frame's data for the body part.
+        """
+
+        if name not in self.body_parts_static:
+            raise Exception(f"Body part undefined: {name}")
+        return BodyPartDynamic(b_id=self.body_parts_static[name].o_id, avsm=self.avsm)
