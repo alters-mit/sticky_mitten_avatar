@@ -1,8 +1,8 @@
 import numpy as np
-from typing import List, Dict
+from typing import Dict
 from tdw.controller import Controller
-from tdw.output_data import Bounds, Collision
-from sticky_mitten_avatar.avatar import Avatar, JointType, Axis, Joint
+from tdw.output_data import Bounds
+from sticky_mitten_avatar.avatar import Avatar, Joint
 from sticky_mitten_avatar.tasks import Task
 from sticky_mitten_avatar.util import get_data, get_bounds_dict, get_angle
 
@@ -20,6 +20,12 @@ class PickUp(Task):
 
         super().__init__(avatar=avatar)
         self.object_id = object_id
+        self.left = False
+        self.shoulder_pitch = Joint.shoulder_left_pitch
+        self.shoulder_roll = Joint.shoulder_left_roll
+        self.shoulder_yaw = Joint.shoulder_left_yaw
+        self.elbow_pitch = Joint.elbow_left_pitch
+        self.wrist_roll = Joint.wrist_left_roll
 
     def do(self, c: Controller) -> bool:
         # Get bounds data for the object.
@@ -44,15 +50,11 @@ class PickUp(Task):
         if d_left < d_right:
             mitten_name = "mitten_left"
             mitten = mitten_left
-            left = True
-            wrist_roll_direction = -1
-            shoulder_yaw_direction = 1
+            self.left = True
         else:
             mitten_name = "mitten_right"
             mitten = mitten_right
-            left = False
-            wrist_roll_direction = 1
-            shoulder_yaw_direction = -1
+            self.left = False
 
         # Get the position on the bounds at the greatest angle from the mitten.
         target_bounds_pos = ""
@@ -65,10 +67,24 @@ class PickUp(Task):
                 target_bounds_pos = bounds_pos
         target_pos = object_bounds[target_bounds_pos]
 
+        # Get the joints in the arm.
+        if self.left:
+            self.shoulder_pitch = Joint.shoulder_left_pitch
+            self.shoulder_yaw = Joint.shoulder_left_yaw
+            self.shoulder_roll = Joint.shoulder_left_roll
+            self.elbow_pitch = Joint.elbow_left_pitch
+            self.wrist_roll = Joint.wrist_left_roll
+        else:
+            self.shoulder_pitch = Joint.shoulder_right_pitch
+            self.shoulder_yaw = Joint.shoulder_right_yaw
+            self.shoulder_roll = Joint.shoulder_right_roll
+            self.elbow_pitch = Joint.elbow_right_pitch
+            self.wrist_roll = Joint.wrist_right_roll
+
         # Rotate the wrist.
-        wrist_roll = Joint(joint_type=JointType.wrist, axis=Axis.roll, left=left)
-        self._apply_movement(movement={wrist_roll: 45 * wrist_roll_direction},
-                             c=c)
+        if self.try_to_pick_up(c=c, movements={self.wrist_roll: 45 * -1 if self.left else 1}):
+            return True
+
         mitten = self.avatar.get_dynamic_body_part(mitten_name)
         angle = get_angle(origin=mitten.position, forward=mitten.forward, position=target_pos)
         if angle > 180:
@@ -76,9 +92,9 @@ class PickUp(Task):
         a0 = angle
         # Swing the shoulder out.
         do_shoulder_yaw = True
-        shoulder_yaw = Joint(joint_type=JointType.shoulder, axis=Axis.yaw, left=left)
         while do_shoulder_yaw:
-            self._apply_movement(movement={shoulder_yaw: 3 * shoulder_yaw_direction}, c=c)
+            if self.try_to_pick_up(c=c, movements={self.shoulder_yaw: 3 * 1 if self.left else -1}):
+                return True
             mitten = self.avatar.get_dynamic_body_part(mitten_name)
             a1 = get_angle(origin=mitten.position, forward=mitten.forward, position=target_pos)
             if a1 > 180:
@@ -86,69 +102,49 @@ class PickUp(Task):
             do_shoulder_yaw = (angle - a0) > (angle - a1)
             a0 = a1
 
-        # Pitch the shoulder and the elbow. Try to get closer.
-        elbow_pitch = Joint(joint_type=JointType.elbow, axis=Axis.pitch, left=left)
-        shoulder_pitch = Joint(joint_type=JointType.shoulder, axis=Axis.pitch, left=left)
-        movement = {shoulder_pitch: 3,
-                    elbow_pitch: 3}
+        # Pitch the shoulder and the elbow.
         do_pitch = True
         while do_pitch:
-            self._apply_movement(movement=movement, c=c)
+            if self.try_to_pick_up(c=c, movements={self.shoulder_pitch: 3, self.elbow_pitch: 3}):
+                return True
             mitten = self.avatar.get_dynamic_body_part(mitten_name)
             do_pitch = mitten.position[1] < object_bounds["top"][1] * 1.5
 
         # Swing the shoulder back in.
-        do_shoulder_yaw = True
-        while do_shoulder_yaw:
-            collisions = self._apply_movement(movement={shoulder_yaw: -1 * shoulder_yaw_direction}, c=c)
-            # If the mitten touches the object, stop moving.
-            for colls in collisions.values():
-                for coll in colls:
-                    if (self.object_id == coll.get_collidee_id() and mitten.object_id == coll.get_collider_id()) or\
-                            (self.object_id == coll.get_collider_id() and mitten.object_id == coll.get_collidee_id()):
-                        do_shoulder_yaw = False
-                        break
-        # Pick up the object.
-        c.communicate({"$type": "pick_up_proximity",
-                       "distance": 0.3,
-                       "radius": 0.3,
-                       "grip": 1000,
-                       "is_left": left,
-                       "avatar_id": self.avatar.avatar_id})
-        if self.object_id not in self.avatar.avsm.get_held_right() and \
-                self.object_id not in self.avatar.avsm.get_held_left():
-            return False
-        # Bring the arm and the object up.
-        shoulder_roll = Joint(joint_type=JointType.shoulder, axis=Axis.roll, left=left)
-        self._apply_movement(movement={shoulder_pitch: 25,
-                                       shoulder_yaw: 5 * shoulder_yaw_direction,
-                                       elbow_pitch: 100,
-                                       shoulder_roll: -5 * wrist_roll_direction,
-                                       wrist_roll: 90 * wrist_roll_direction},
-                             c=c,
-                             by=False)
-        return True
+        if self.try_to_pick_up(c=c, movements={self.shoulder_yaw: -45 * 1 if self.left else -1}):
+            return True
+
+        # Failed to pick up the object.
+        return False
 
     def end(self, c: Controller, success: bool) -> None:
-        pass
+        if success:
+            # Raise the arm.
+            self.avatar.bend_arm_joints(c=c, by=False,
+                                        movements={self.shoulder_pitch: 25,
+                                                   self.shoulder_yaw: 5 * 1 if self.left else -1,
+                                                   self.elbow_pitch: 100,
+                                                   self.shoulder_roll: -5 * -1 if self.left else 1,
+                                                   self.wrist_roll: -90 * 1 if self.left else -1})
+        else:
+            self.avatar.drop_arms(c=c)
 
-    def _apply_movement(self, movement: Dict[Joint, float], c: Controller, by: bool = True) -> \
-            Dict[int, List[Collision]]:
+    def try_to_pick_up(self, c: Controller, movements: Dict[Joint, float]) -> bool:
         """
-        Convert a dictionary of movements to a series of commands and send it to the build.
+        Bend arm joints. Per-frame, try to pick up the object.
 
-        :param movement: Movements. Key = the joint type, axis, and side (left or right). Value = angle.
         :param c: The controller.
-        :param by: If True, send bend_arm_joint_by commands. If False, send bend_arm_joint_to commands.
+        :param movements: All arm joint movements.
 
-        :return: All collisions that occurred while the arms were bending.
+        :return: True if the avatar picked up the object.
         """
 
-        commands = []
-        for j in movement:
-            if by:
-                cmd = j.get_bend_by(angle=movement[j], avatar_id=self.avatar.avatar_id)
-            else:
-                cmd = j.get_bend_to(angle=movement[j], avatar_id=self.avatar.avatar_id)
-            commands.append(cmd)
-        return self.avatar.bend_arm_joints(c=c, commands=commands)
+        # Set the pick-up command.
+        pick_up = [{"$type": "pick_up_proximity",
+                    "distance": 0.1,
+                    "radius": 0.1,
+                    "grip": 1000,
+                    "is_left": self.left,
+                    "avatar_id": self.avatar.avatar_id}]
+        self.avatar.bend_arm_joints(c=c, movements=movements, frame_commands=pick_up)
+        return self.object_id in self.avatar.avsm.get_held_right() or self.object_id in self.avatar.avsm.get_held_left()

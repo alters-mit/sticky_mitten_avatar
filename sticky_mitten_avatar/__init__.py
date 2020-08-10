@@ -1,1 +1,1 @@
-from .avatar import Avatar
+from .avatar import Avatar, Joint
