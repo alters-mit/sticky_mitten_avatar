@@ -49,21 +49,3 @@ class Task(ABC):
         """
 
         raise Exception()
-
-    def _get_angle(self, position: Tuple[float, float, float]) -> float:
-        """
-        :param position: The target position.
-
-        :return: The angle in degrees between the avatar's forward directional vector and the position.
-        """
-
-        avatar_forward = self.avatar.avsm.get_forward()
-
-        # Get the normalized directional vector to the target position.
-        d = np.array(position) - self.avatar.avsm.get_position()
-        d = d / np.linalg.norm(d)
-
-        ang1 = np.arctan2(avatar_forward[2], avatar_forward[0])
-        ang2 = np.arctan2(d[2], d[0])
-
-        return np.rad2deg((ang1 - ang2) % (2 * np.pi))

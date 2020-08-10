@@ -5,7 +5,7 @@ from tdw.controller import Controller
 from tdw.output_data import Bounds
 from sticky_mitten_avatar import Avatar
 from sticky_mitten_avatar.tasks import Task, TurnTo, TaskState
-from sticky_mitten_avatar.util import get_data, get_bounds_dict
+from sticky_mitten_avatar.util import get_data, get_closest_point_in_bounds
 
 
 class _GoTo(Task, ABC):
@@ -162,17 +162,8 @@ class GoToObject(_GoTo):
         bounds = get_data(resp=resp, d_type=Bounds)
 
         # Convert the bounds data of the object to a dictionary. We know that there is only 1 object in the bounds.
-        object_bounds = get_bounds_dict(bounds=bounds, index=0)
-        # Get the closest point on the bounds.
-        min_destination = ""
-        min_distance = 10000
-        a_pos = np.array(self.avatar.avsm.get_position())
-        for p in object_bounds:
-            d = np.linalg.norm(a_pos - object_bounds[p])
-            if d < min_distance:
-                min_distance = d
-                min_destination = p
-        self.destination = object_bounds[min_destination]
+        self.destination = get_closest_point_in_bounds(origin=np.array(self.avatar.avsm.get_position()),
+                                                       bounds=bounds, index=0)
 
         super().__init__(avatar=avatar, turn_force=turn_force, turn_threshold=turn_threshold, move_force=move_force,
                          move_threshold=move_threshold)

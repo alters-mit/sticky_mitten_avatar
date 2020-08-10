@@ -4,6 +4,7 @@ from typing import Tuple
 from tdw.controller import Controller
 from sticky_mitten_avatar.tasks.task import Task
 from sticky_mitten_avatar.avatar import Avatar
+from sticky_mitten_avatar.util import get_angle
 
 
 class _TurnState(Enum):
@@ -31,7 +32,9 @@ class TurnTo(Task):
         self.threshold = threshold
         super().__init__(avatar=avatar)
 
-        self.initial_angle = self._get_angle(target)
+        self.initial_angle = get_angle(origin=np.array(self.avatar.avsm.get_position()),
+                                       forward=np.array(self.avatar.avsm.get_forward()),
+                                       position=np.array(self.target))
         # Decide which direction to turn.
         if self.initial_angle > 180:
             self.direction = -1
@@ -96,7 +99,9 @@ class TurnTo(Task):
         :return: Whether the turn is a success, failure, or ongoing.
         """
 
-        angle = self._get_angle(self.target)
+        angle = get_angle(origin=np.array(self.avatar.avsm.get_position()),
+                          forward=np.array(self.avatar.avsm.get_forward()),
+                          position=np.array(self.target))
 
         # Failure because the avatar turned all the way around without aligning with the target.
         if angle - self.initial_angle >= 360:

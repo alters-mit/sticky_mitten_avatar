@@ -38,9 +38,9 @@ class BodyPartDynamic:
         ri_id = None
         for i in range(avsm.get_num_body_parts()):
             if avsm.get_body_part_id(i) == b_id:
-                tr_id = b_id
+                tr_id = i
             if avsm.get_rigidbody_part_id(i) == b_id:
-                ri_id = b_id
+                ri_id = i
 
         self.position = np.array(avsm.get_body_part_position(tr_id))
         self.rotation = np.array(avsm.get_body_part_rotation(tr_id))
@@ -91,6 +91,7 @@ class Avatar(Entity):
         commands = TDWUtils.create_avatar(avatar_type=at, avatar_id=avatar_id, position=position)[:]
         # Request segmentation colors, body part names, and dynamic avatar data.
         # Turn off the follow camera.
+        # Set the palms to sticky.
         commands.extend([{"$type": "send_avatar_segmentation_colors",
                           "frequency": "once",
                           "ids": [avatar_id]},
@@ -99,6 +100,16 @@ class Avatar(Entity):
                           "frequency": "always"},
                          {"$type": "toggle_image_sensor",
                           "sensor_name": "FollowCamera",
+                          "avatar_id": avatar_id},
+                         {"$type": "set_stickiness",
+                          "sub_mitten": "palm",
+                          "sticky": True,
+                          "is_left": True,
+                          "avatar_id": avatar_id},
+                         {"$type": "set_stickiness",
+                          "sub_mitten": "palm",
+                          "sticky": True,
+                          "is_left": False,
                           "avatar_id": avatar_id}])
         # Send the commands. Get a response.
         resp = c.communicate(commands)
