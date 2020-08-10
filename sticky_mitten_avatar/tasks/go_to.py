@@ -2,8 +2,10 @@ from abc import ABC, abstractmethod
 import numpy as np
 from typing import Tuple, List
 from tdw.controller import Controller
+from tdw.output_data import Bounds
 from sticky_mitten_avatar import Avatar
 from sticky_mitten_avatar.tasks import Task, TurnTo, TaskState
+from sticky_mitten_avatar.util import get_data, get_bounds_dict
 
 
 class _GoTo(Task, ABC):
@@ -124,6 +126,53 @@ class GoToPosition(_GoTo):
         """
 
         self.destination = np.array(destination)
+
+        super().__init__(avatar=avatar, turn_force=turn_force, turn_threshold=turn_threshold, move_force=move_force,
+                         move_threshold=move_threshold)
+
+    def _get_destination(self) -> np.array:
+        return self.destination
+
+
+class GoToObject(_GoTo):
+    """
+    The avatar will try go to an object in the scene.
+    The destination position is the point on the object's `Bounds` closest to the avatar.
+    First, the avatar will turn with a `TurnTo` task to face the position.
+    Then, the avatar will try to move to the destination.
+    """
+
+    def __init__(self, avatar: Avatar, object_id: int, c: Controller, turn_force: float = 40,
+                 turn_threshold: float = 0.1, move_force: float = 45, move_threshold: float = 1):
+        """
+        :param avatar: The avatar.
+        :param object_id: The ID of the target object.
+        :param turn_force: Turn by this much force per attempt.
+        :param move_force: Move by this much force per attempt.
+        :param turn_threshold: The angle between the object and the avatar's forward directional vector must be less
+        than this for the turn to be a success.
+        :param move_threshold: Stop moving when we are this close to the object.
+        :param c: The controller. Required in order to get the bounds data of the object.
+        """
+
+        # Get bounds data for the object.
+        resp = c.communicate({"$type": "send_bounds",
+                              "frequency": "once",
+                              "ids": [object_id]})
+        bounds = get_data(resp=resp, d_type=Bounds)
+
+        # Convert the bounds data of the object to a dictionary. We know that there is only 1 object in the bounds.
+        object_bounds = get_bounds_dict(bounds=bounds, index=0)
+        # Get the closest point on the bounds.
+        min_destination = ""
+        min_distance = 10000
+        a_pos = np.array(self.avatar.avsm.get_position())
+        for p in object_bounds:
+            d = np.linalg.norm(a_pos - object_bounds[p])
+            if d < min_distance:
+                min_distance = d
+                min_destination = p
+        self.destination = object_bounds[min_destination]
 
         super().__init__(avatar=avatar, turn_force=turn_force, turn_threshold=turn_threshold, move_force=move_force,
                          move_threshold=move_threshold)
