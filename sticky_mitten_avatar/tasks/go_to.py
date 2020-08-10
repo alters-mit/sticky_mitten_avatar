@@ -14,8 +14,8 @@ class _GoTo(Task, ABC):
     First, turn to face the position. Then, go to it.
     """
 
-    def __init__(self, avatar: Avatar, turn_force: float = 40,
-                 turn_threshold: float = 0.1, move_force: float = 45, move_threshold: float = 1):
+    def __init__(self, avatar: Avatar, turn_force: float, turn_threshold: float, move_force: float,
+                 move_threshold: float):
         """
         :param avatar: The avatar.
         :param turn_force: Turn by this much force per attempt.
@@ -114,7 +114,7 @@ class GoToPosition(_GoTo):
     """
 
     def __init__(self, avatar: Avatar, destination: Tuple[float, float, float], turn_force: float = 40,
-                 turn_threshold: float = 0.1, move_force: float = 45, move_threshold: float = 1):
+                 turn_threshold: float = 0.1, move_force: float = 45, move_threshold: float = 0.35):
         """
         :param avatar: The avatar.
         :param destination: The destination position of the avatar.
@@ -142,8 +142,8 @@ class GoToObject(_GoTo):
     Then, the avatar will try to move to the destination.
     """
 
-    def __init__(self, avatar: Avatar, object_id: int, c: Controller, turn_force: float = 40,
-                 turn_threshold: float = 0.1, move_force: float = 45, move_threshold: float = 1):
+    def __init__(self, avatar: Avatar, object_id: int, turn_force: float = 40,
+                 turn_threshold: float = 0.1, move_force: float = 45, move_threshold: float = 0.35):
         """
         :param avatar: The avatar.
         :param object_id: The ID of the target object.
@@ -152,21 +152,32 @@ class GoToObject(_GoTo):
         :param turn_threshold: The angle between the object and the avatar's forward directional vector must be less
         than this for the turn to be a success.
         :param move_threshold: Stop moving when we are this close to the object.
-        :param c: The controller. Required in order to get the bounds data of the object.
         """
 
+        self.destination = np.array([0, 0, 0])
+
+        self.object_id = object_id
+
+        super().__init__(avatar=avatar, turn_force=turn_force, turn_threshold=turn_threshold, move_force=move_force,
+                         move_threshold=move_threshold)
+
+    def do(self, c: Controller) -> bool:
         # Get bounds data for the object.
         resp = c.communicate({"$type": "send_bounds",
                               "frequency": "once",
-                              "ids": [object_id]})
+                              "ids": [self.object_id]})
         bounds = get_data(resp=resp, d_type=Bounds)
 
         # Convert the bounds data of the object to a dictionary. We know that there is only 1 object in the bounds.
         self.destination = get_closest_point_in_bounds(origin=np.array(self.avatar.avsm.get_position()),
                                                        bounds=bounds, index=0)
 
-        super().__init__(avatar=avatar, turn_force=turn_force, turn_threshold=turn_threshold, move_force=move_force,
-                         move_threshold=move_threshold)
+        self.initial_distance = np.linalg.norm(np.array(self.avatar.avsm.get_position()) - self.destination)
+        self.initial_position = np.array(self.avatar.avsm.get_position())
+        self.turn_task = TurnTo(avatar=self.avatar, target=self.destination,
+                                force=self.turn_task.force, threshold=self.turn_task.threshold)
+
+        return super().do(c=c)
 
     def _get_destination(self) -> np.array:
         return self.destination

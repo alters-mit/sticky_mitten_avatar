@@ -12,20 +12,20 @@ class PickUp(Task):
     Bend the arm to move one of the mittens to the target object and try to pick it up.
     """
 
-    def __init__(self, avatar: Avatar, target_id: int):
+    def __init__(self, avatar: Avatar, object_id: int):
         """
         :param avatar: The avatar.
-        :param target_id: The ID of the target object.
+        :param object_id: The ID of the target object.
         """
 
         super().__init__(avatar=avatar)
-        self.target_id = target_id
+        self.object_id = object_id
 
     def do(self, c: Controller) -> bool:
         # Get bounds data for the object.
         resp = c.communicate({"$type": "send_bounds",
                               "frequency": "once",
-                              "ids": [self.target_id]})
+                              "ids": [self.object_id]})
 
         a_pos = np.array(self.avatar.avsm.get_position())
         a_for = np.array(self.avatar.avsm.get_forward())
@@ -104,8 +104,8 @@ class PickUp(Task):
             # If the mitten touches the object, stop moving.
             for colls in collisions.values():
                 for coll in colls:
-                    if (self.target_id == coll.get_collidee_id() and mitten.object_id == coll.get_collider_id()) or\
-                            (self.target_id == coll.get_collider_id() and mitten.object_id == coll.get_collidee_id()):
+                    if (self.object_id == coll.get_collidee_id() and mitten.object_id == coll.get_collider_id()) or\
+                            (self.object_id == coll.get_collider_id() and mitten.object_id == coll.get_collidee_id()):
                         do_shoulder_yaw = False
                         break
         # Pick up the object.
@@ -115,8 +115,8 @@ class PickUp(Task):
                        "grip": 1000,
                        "is_left": left,
                        "avatar_id": self.avatar.avatar_id})
-        if self.target_id not in self.avatar.avsm.get_held_right() and \
-                self.target_id not in self.avatar.avsm.get_held_left():
+        if self.object_id not in self.avatar.avsm.get_held_right() and \
+                self.object_id not in self.avatar.avsm.get_held_left():
             return False
         # Bring the arm and the object up.
         shoulder_roll = Joint(joint_type=JointType.shoulder, axis=Axis.roll, left=left)
