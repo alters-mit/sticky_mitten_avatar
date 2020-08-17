@@ -5,7 +5,7 @@ from ikpy.chain import Chain
 from enum import Enum
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
-from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten
+from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds
 
 
 class Arm(Enum):
@@ -106,6 +106,10 @@ class _Avatar(ABC):
                          {"$type": "set_avatar_collision_detection_mode",
                           "mode": "continuous_dynamic",
                           "avatar_id": self.id},
+                         {"$type": "set_avatar_drag",
+                          "drag": 1000,
+                          "angular_drag": 1000,
+                          "avatar_id": self.id},
                          {"$type": "adjust_joint_force_by",
                           "delta": 2,
                           "joint": "shoulder_right",
@@ -146,12 +150,13 @@ class _Avatar(ABC):
         # Start dynamic data.
         self.frame = self._get_frame(resp)
 
-    def bend_arm_ik(self, arm: Arm, target: Union[np.array, list]) -> List[dict]:
+    def bend_arm_ik(self, arm: Arm, target: Union[np.array, list], target_orientation: np.array = None) -> List[dict]:
         """
         Get an IK solution to a target position.
 
         :param arm: The arm (left or right).
         :param target: The target position for the mitten.
+        :param target_orientation: Target IK orientation. Usually you should leave this as None (the default).
 
         :return: A list of commands to begin bending the arm.
         """
@@ -159,7 +164,7 @@ class _Avatar(ABC):
         self._ik_goals[arm] = _IKGoal(target=target)
 
         # Get the IK solution.
-        rotations = self._arms[arm].inverse_kinematics(target_position=target)
+        rotations = self._arms[arm].inverse_kinematics(target_position=target, target_orientation=target_orientation)
         commands = []
         a = arm.name
         for c, r in zip(self._arms[arm].links[1:], rotations[1:]):
@@ -169,6 +174,44 @@ class _Avatar(ABC):
                              "joint": f"{j[0]}_{a}",
                              "axis": j[1],
                              "avatar_id": self.id})
+        return commands
+
+    def pick_up(self, arm: Arm, object_id: int, bounds: Bounds) -> List[dict]:
+        """
+        Begin to try to pick up an object,
+        Get an IK solution to a target position.
+
+        :param arm: The arm (left or right).
+        :param object_id: The ID of the target object.
+        :param bounds: Bounds output data.
+
+        :return: A list of commands to begin bending the arm.
+        """
+
+        center: Optional[np.array] = None
+        nearest: Optional[np.array] = None
+        nearest_distance = np.inf
+
+        # Get the nearest point on the bounds.
+        for i in range(bounds.get_num()):
+            if bounds.get_id(i) == object_id:
+                center = np.array(bounds.get_center(i))
+                for p in [bounds.get_left(i), bounds.get_right(i), bounds.get_top(i), bounds.get_bottom(i),
+                          bounds.get_front(i), bounds.get_back(i)]:
+                    p = np.array(p)
+                    d = np.linalg.norm(center - p)
+                    if d < nearest_distance:
+                        nearest = p
+                        nearest_distance = d
+        assert center is not None, f"Couldn't find center of object {object_id}"
+        assert nearest is not None, f"Couldn't get nearest point of object {object_id}"
+
+        nearest[1] = center[1]
+
+        target_orientation = (nearest - nearest) / np.linalg.norm(center - nearest)
+
+        commands = self.bend_arm_ik(arm=arm, target=nearest, target_orientation=target_orientation)
+        self._ik_goals[arm].pick_up_id = object_id
         return commands
 
     def on_frame(self, resp: List[bytes]) -> List[dict]:
