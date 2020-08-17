@@ -55,7 +55,7 @@ class _Avatar(ABC):
     A sticky mitten avatar. Contains high-level "Task" API and IK system.
     """
 
-    def __init__(self, c: Controller, avatar_id: str = "a", position: Dict[str, float] = None, debug:bool = False):
+    def __init__(self, c: Controller, avatar_id: str = "a", position: Dict[str, float] = None, debug: bool = False):
         """
         Add a controller to the scene and cache the static data.
         The simulation will advance 1 frame.
@@ -109,23 +109,24 @@ class _Avatar(ABC):
                          {"$type": "set_avatar_drag",
                           "drag": 1000,
                           "angular_drag": 1000,
-                          "avatar_id": self.id},
-                         {"$type": "adjust_joint_force_by",
-                          "delta": 2,
-                          "joint": "shoulder_right",
-                          "axis": "pitch"},
-                         {"$type": "adjust_joint_force_by",
-                          "delta": 20,
-                          "joint": "wrist_right",
-                          "axis": "roll"},
-                         {"$type": "adjust_joint_force_by",
-                          "delta": 2,
-                          "joint": "shoulder_left",
-                          "axis": "pitch"},
-                         {"$type": "adjust_joint_force_by",
-                          "delta": 20,
-                          "joint": "wrist_left",
-                          "axis": "roll"}])
+                          "avatar_id": self.id}])
+        # Make the avatar stronger.
+        for arm in self._arms:
+            a = arm.name
+            for link in self._arms[arm].links[1:]:
+                j = link.name.split("_")
+                joint = f"{j[0]}_{a}"
+                axis = j[1]
+                commands.extend([{"$type": "adjust_joint_force_by",
+                                  "delta": 20,
+                                  "joint": joint,
+                                  "axis": axis,
+                                  "avatar_id": self.id},
+                                 {"$type": "adjust_joint_damper_by",
+                                  "delta": 200,
+                                  "joint": joint,
+                                  "axis": axis,
+                                  "avatar_id": self.id}])
 
         # Send the commands. Get a response.
         resp = c.communicate(commands)
@@ -150,21 +151,34 @@ class _Avatar(ABC):
         # Start dynamic data.
         self.frame = self._get_frame(resp)
 
-    def bend_arm_ik(self, arm: Arm, target: Union[np.array, list], target_orientation: np.array = None) -> List[dict]:
+    def bend_arm_ik(self, arm: Arm, target: Union[np.array, list], target_orientation: np.array = None,
+                    is_absolute: bool = True) -> List[dict]:
         """
-        Get an IK solution to a target position.
+        Get an IK solution to move a mitten to a target position.
 
         :param arm: The arm (left or right).
         :param target: The target position for the mitten.
         :param target_orientation: Target IK orientation. Usually you should leave this as None (the default).
+        :param is_absolute: If True, `target` is in absolute world coordinates.
+                            If False, `target` is relative to the mitten's current position.
 
         :return: A list of commands to begin bending the arm.
         """
 
+        if not is_absolute:
+            target = np.array(target) + self.frame.get_position()
+            if self.debug:
+                print(f"Target: {target}")
+
         self._ik_goals[arm] = _IKGoal(target=target)
 
         # Get the IK solution.
-        rotations = self._arms[arm].inverse_kinematics(target_position=target, target_orientation=target_orientation)
+        ik_target = np.array([target[0], target[2], target[1]])
+        if target_orientation is not None:
+            ik_orientation = np.array([target_orientation[0], target_orientation[2], target_orientation[1]])
+        else:
+            ik_orientation = None
+        rotations = self._arms[arm].inverse_kinematics(target_position=ik_target, target_orientation=ik_orientation)
         commands = []
         a = arm.name
         for c, r in zip(self._arms[arm].links[1:], rotations[1:]):
@@ -237,8 +251,8 @@ class _Avatar(ABC):
                 temp_goals[arm] = None
             else:
                 # Is the arm at the target?
+                mitten = f"mitten_{arm.name}"
                 for i in range(frame.get_num_rigidbody_parts()):
-                    mitten = f"mitten_{arm.name}"
                     # Get the mitten.
                     if frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
                         # If we're at the position, stop.
@@ -271,6 +285,7 @@ class _Avatar(ABC):
                             # Keep bending the arm.
                             else:
                                 temp_goals[arm] = self._ik_goals[arm]
+                                self._ik_goals[arm].previous_distance = d
         self._ik_goals = temp_goals
 
         # Check if the arms are still moving.
