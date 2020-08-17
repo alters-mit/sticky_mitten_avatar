@@ -55,7 +55,7 @@ class _Avatar(ABC):
     A sticky mitten avatar. Contains high-level "Task" API and IK system.
     """
 
-    def __init__(self, c: Controller, avatar_id: str = "a", position: Dict[str, float] = None):
+    def __init__(self, c: Controller, avatar_id: str = "a", position: Dict[str, float] = None, debug:bool = False):
         """
         Add a controller to the scene and cache the static data.
         The simulation will advance 1 frame.
@@ -63,9 +63,11 @@ class _Avatar(ABC):
         :param c: The controller.
         :param avatar_id: The ID of the avatar.
         :param position: The initial position of the avatar.
+        :param debug: If True, print debug statements.
         """
 
         self.id = avatar_id
+        self.debug = debug
         # Set the arm chains.
         self._arms: Dict[Arm, Chain] = {Arm.left: self._get_left_arm(),
                                         Arm.right: self._get_right_arm()}
@@ -123,22 +125,22 @@ class _Avatar(ABC):
 
         # Send the commands. Get a response.
         resp = c.communicate(commands)
-        avsc: Optional[AvatarStickyMittenSegmentationColors] = None
+        smsc: Optional[AvatarStickyMittenSegmentationColors] = None
         for i in range(len(resp) - 1):
             r_id = OutputData.get_data_type_id(resp[i])
-            if r_id == "avsc":
+            if r_id == "smsc":
                 q = AvatarStickyMittenSegmentationColors(resp[i])
                 if q.get_id() == self.id:
-                    avsc = q
+                    smsc = q
                     break
-        assert avsc is not None, f"No avatar segmentation colors found for {self.id}"
+        assert smsc is not None, f"No avatar segmentation colors found for {self.id}"
 
         # Cache static data of body parts.
         self.body_parts_static: Dict[str, BodyPartStatic] = dict()
-        for i in range(avsc.get_num_body_parts()):
-            bps = BodyPartStatic(o_id=avsc.get_body_part_id(i),
-                                 color=avsc.get_body_part_segmentation_color(i))
-            self.body_parts_static[avsc.get_body_part_name(i)] = bps
+        for i in range(smsc.get_num_body_parts()):
+            bps = BodyPartStatic(o_id=smsc.get_body_part_id(i),
+                                 color=smsc.get_body_part_segmentation_color(i))
+            self.body_parts_static[smsc.get_body_part_name(i)] = bps
 
         # Get data for the current frame.
         # Start dynamic data.
@@ -153,6 +155,8 @@ class _Avatar(ABC):
 
         :return: A list of commands to begin bending the arm.
         """
+
+        self._ik_goals[arm] = _IKGoal(target=target)
 
         # Get the IK solution.
         rotations = self._arms[arm].inverse_kinematics(target_position=target)
@@ -191,11 +195,14 @@ class _Avatar(ABC):
             else:
                 # Is the arm at the target?
                 for i in range(frame.get_num_rigidbody_parts()):
+                    mitten = f"mitten_{arm.name}"
                     # Get the mitten.
-                    if frame.get_body_part_id(i) == self.body_parts_static[f"mitten_{arm.name}"].o_id:
+                    if frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
                         # If we're at the position, stop.
-                        if np.linalg.norm(np.array(frame.get_body_part_position(i)) -
-                                          self._ik_goals[arm].target) <= 0.1:
+                        d = np.linalg.norm(np.array(frame.get_body_part_position(i)) - self._ik_goals[arm].target)
+                        if d <= 0.1:
+                            if self.debug:
+                                print(f"{mitten} is at target position {self._ik_goals[arm].target}. Stopping.")
                             commands.extend(self._stop_arms())
                             temp_goals[arm] = None
                         else:
@@ -204,6 +211,8 @@ class _Avatar(ABC):
                                 # Did we pick up the object in the previous frame?
                                 if self._ik_goals[arm].pick_up_id in frame.get_held_left() or self._ik_goals[arm].\
                                         pick_up_id in frame.get_held_right():
+                                    if self.debug:
+                                        print(f"{mitten} picked up {self._ik_goals[arm].pick_up_id}. Stopping.")
                                     commands.extend(self._stop_arms())
                                     temp_goals[arm] = None
                                 # Keep bending the arm and trying to pick up the object.
@@ -219,9 +228,54 @@ class _Avatar(ABC):
                             # Keep bending the arm.
                             else:
                                 temp_goals[arm] = self._ik_goals[arm]
-        # TODO check if the arm has stopped moving.
+        self._ik_goals = temp_goals
+
+        # Check if the arms are still moving.
+        temp_goals: Dict[Arm, Optional[_IKGoal]] = dict()
+        for arm in self._ik_goals:
+            # No IK goal on this arm.
+            if self._ik_goals[arm] is None:
+                temp_goals[arm] = None
+            else:
+                # Get the past and present angles.
+                if arm == Arm.left:
+                    angles_0 = self.frame.get_angles_left()
+                    angles_1 = frame.get_angles_left()
+                else:
+                    angles_0 = self.frame.get_angles_right()
+                    angles_1 = frame.get_angles_right()
+                # Is any joint still moving?
+                moving = False
+                for a0, a1 in zip(angles_0, angles_1):
+                    if np.abs(a0 - a1) > 0.01:
+                        moving = True
+                        break
+                # Keep moving.
+                if moving:
+                    temp_goals[arm] = self._ik_goals[arm]
+                else:
+                    if self.debug:
+                        print(f"{arm.name} is no longer bending. Cancelling.")
+                    temp_goals[arm] = None
+        self._ik_goals = temp_goals
         self.frame = frame
         return commands
+
+    def is_ik_done(self) -> bool:
+        """
+        :return: True if the IK goals are complete, False if the arms are still moving/trying to pick up/etc.
+        """
+
+        return self._ik_goals[Arm.left] is None and self._ik_goals[Arm.right] is None
+
+    def is_holding(self, object_id: int) -> bool:
+        """
+        :param object_id: The ID of the object.
+
+        :return: True if the avatar is holding the object in either mitten.
+        """
+
+        return object_id in self.frame.get_held_right() or object_id in self.frame.get_held_left()
 
     @abstractmethod
     def _get_avatar_type(self) -> str:
