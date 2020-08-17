@@ -222,7 +222,7 @@ class _Avatar(ABC):
 
         nearest[1] = center[1]
 
-        target_orientation = (nearest - nearest) / np.linalg.norm(center - nearest)
+        target_orientation = (center - nearest) / np.linalg.norm(center - nearest)
 
         commands = self.bend_arm_ik(arm=arm, target=nearest, target_orientation=target_orientation)
         self._ik_goals[arm].pick_up_id = object_id
