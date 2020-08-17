@@ -1,14 +1,11 @@
 import numpy as np
 from typing import Dict, List, TypeVar, Type, Tuple
-from tdw.output_data import OutputData, AvatarStickyMitten, AvatarStickyMittenSegmentationColors, Transforms,\
-    Rigidbodies, Bounds, Collision
+from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Collision
 
 
 T = TypeVar("T", bound=OutputData)
 # Output data types mapped to their IDs.
-_OUTPUT_IDS: Dict[Type[OutputData], str] = {AvatarStickyMittenSegmentationColors: "smsc",
-                                            AvatarStickyMitten: "avsm",
-                                            Transforms: "tran",
+_OUTPUT_IDS: Dict[Type[OutputData], str] = {Transforms: "tran",
                                             Rigidbodies: "rigi",
                                             Bounds: "boun"}
 
