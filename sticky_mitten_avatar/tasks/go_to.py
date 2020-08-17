@@ -171,6 +171,7 @@ class GoToObject(_GoTo):
         # Convert the bounds data of the object to a dictionary. We know that there is only 1 object in the bounds.
         self.destination = get_closest_point_in_bounds(origin=np.array(self.avatar.avsm.get_position()),
                                                        bounds=bounds, index=0)
+        print(self.destination)
 
         self.initial_distance = np.linalg.norm(np.array(self.avatar.avsm.get_position()) - self.destination)
         self.initial_position = np.array(self.avatar.avsm.get_position())
