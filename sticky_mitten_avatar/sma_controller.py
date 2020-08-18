@@ -465,6 +465,40 @@ class StickyMittenAvatarController(Controller):
                              "frequency": "always"})
         self.communicate(commands)
 
+    def put_object_in_container(self, avatar_id: str, arm: Arm, container_id: int) -> None:
+        """
+        Try to put an object held by an avatar's arm in a container.
+
+        :param avatar_id: The ID of the avatar.
+        :param arm: The arm holding the object.
+        :param container_id: The unique ID of the container.
+        """
+
+        # Start moving the arm.
+        position = self._objects[container_id].position
+
+        # TODO this is weird and wrong.
+        position = np.array([position[0], 1, position[1]])
+
+        self.bend_arm(avatar_id=avatar_id, target=position, arm=arm)
+
+        avatar = self._avatars[avatar_id]
+        mitten = f"mitten_{arm.name}"
+        done = False
+        while (not avatar.is_ik_done()) and (not done):
+            for i in range(avatar.frame.get_num_rigidbody_parts()):
+                # Get the mitten.
+                if avatar.frame.get_body_part_id(i) == avatar.body_parts_static[mitten].o_id:
+                    mitten_position = np.array(avatar.frame.get_body_part_position(i)) - avatar.mitten_offset
+                    d = np.linalg.norm(position - mitten_position)
+                    if d < 0.1:
+                        done = True
+            self.communicate([])
+        self.put_down(avatar_id=avatar_id, reset_arms=False)
+        # Let the object fall.
+        for i in range(20):
+            self.communicate([])
+
     def _get_position(self, target: Union[Tuple[float, float, float], np.array, List[float], int],
                       nearest_on_bounds: bool = False, avatar_id: str = None) -> np.array:
         """

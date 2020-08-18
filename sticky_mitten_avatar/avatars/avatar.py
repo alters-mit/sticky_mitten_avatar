@@ -97,7 +97,7 @@ class Avatar(ABC):
 
         self.id = avatar_id
         self.debug = debug
-        self._mitten_offset = self._get_mitten_offset()
+        self.mitten_offset = self._get_mitten_offset()
         # Set the arm chains.
         self._arms: Dict[Arm, Chain] = {Arm.left: self._get_arm(),
                                         Arm.right: self._get_arm()}
@@ -221,7 +221,7 @@ class Avatar(ABC):
                 for i in range(frame.get_num_rigidbody_parts()):
                     # Get the mitten.
                     if frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
-                        mitten_position = np.array(frame.get_body_part_position(i)) - self._mitten_offset
+                        mitten_position = np.array(frame.get_body_part_position(i)) - self.mitten_offset
                         # If we're at the position, stop.
                         d = np.linalg.norm(mitten_position - self._ik_goals[arm].target)
                         if d <= 0.08:
@@ -306,7 +306,6 @@ class Avatar(ABC):
         """
         Put down the object.
 
-        :pa
         :param reset_arms: If True, reset arm positions to "neutral".
 
         :return: A list of commands to put down the object.
