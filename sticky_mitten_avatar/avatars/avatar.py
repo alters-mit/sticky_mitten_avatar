@@ -124,7 +124,6 @@ class Avatar(ABC):
         # Start dynamic data.
         self.frame = self._get_frame(resp)
 
-
     def bend_arm(self, arm: Arm, target: Union[np.array, list], target_orientation: np.array = None) -> List[dict]:
         """
         Get an IK solution to move a mitten to a target position.
