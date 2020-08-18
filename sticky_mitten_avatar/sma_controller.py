@@ -2,8 +2,10 @@ import numpy as np
 from typing import Dict, List, Union
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
+from tdw.output_data import Bounds
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar
+from sticky_mitten_avatar.util import get_data
 
 
 class StickyMittenAvatarController(Controller):
@@ -116,8 +118,36 @@ class StickyMittenAvatarController(Controller):
         :param avatar_id: The unique ID of the avatar.
         """
 
-        assert avatar_id in self._avatars, f"Avatar not found: {avatar_id}"
         self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm, target=target))
+
+    def pick_up(self, avatar_id: str, arm: Arm, object_id: int) -> None:
+        """
+        Begin to bend an avatar's arm to try to pick up an object in the scene.
+        The simulation will advance 1 frame (to collect the object's bounds data).
+        The motion will continue to update per `communicate()` step.
+
+        :param arm: The arm (left or right).
+        :param object_id: The ID of the target object.
+        :param avatar_id: The unique ID of the avatar.
+        """
+
+        # Get the bounds of the object.
+        resp = self.communicate({"$type": "send_bounds",
+                                 "frequency": "once",
+                                 "ids": [object_id]})
+        bounds = get_data(resp=resp, d_type=Bounds)
+        self._avatar_commands.extend(self._avatars[avatar_id].pick_up(arm=arm, bounds=bounds, object_id=object_id))
+
+    def put_down(self, avatar_id: str, reset_arms: bool = True) -> None:
+        """
+        Begin to put down all objects.
+        The motion will continue to update per `communicate()` step.
+
+        :param avatar_id: The unique ID of the avatar.
+        :param reset_arms: If True, reset arm positions to "neutral".
+        """
+
+        self._avatar_commands.extend(self._avatars[avatar_id].put_down(reset_arms=reset_arms))
 
     def do_joint_motion(self) -> None:
         """

@@ -299,6 +299,31 @@ class Avatar(ABC):
 
         return object_id in self.frame.get_held_right() or object_id in self.frame.get_held_left()
 
+    def put_down(self, reset_arms: bool = True) -> List[dict]:
+        """
+        Put down the object.
+
+        :pa
+        :param reset_arms: If True, reset arm positions to "neutral".
+
+        :return: A list of commands to put down the object.
+        """
+
+        commands = [{"$type": "put_down",
+                     "is_left": True,
+                     "avatar_id": self.id},
+                    {"$type": "put_down",
+                     "is_left": False,
+                     "avatar_id": self.id}]
+        if reset_arms:
+            for j in self.JOINTS:
+                commands.append({"$type": "bend_arm_joint_to",
+                                 "joint": j.joint,
+                                 "axis": j.axis,
+                                 "angle": 0,
+                                 "avatar_id": self.id})
+        return commands
+
     @abstractmethod
     def _get_left_arm(self) -> Chain:
         """
