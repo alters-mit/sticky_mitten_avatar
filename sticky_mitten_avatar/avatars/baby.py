@@ -1,12 +1,9 @@
-from sticky_mitten_avatar.avatars._avatar import _Avatar
+from sticky_mitten_avatar.avatars.avatar import Avatar
 from ikpy.chain import Chain
 from ikpy.link import OriginLink, URDFLink
 
 
-class Baby(_Avatar):
-    def _get_avatar_type(self) -> str:
-        return "A_StickyMitten_Baby"
-
+class Baby(Avatar):
     def _get_left_arm(self) -> Chain:
         return Chain(name="left_arm", links=[
             OriginLink(),

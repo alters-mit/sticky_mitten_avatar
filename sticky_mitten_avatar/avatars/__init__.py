@@ -1,2 +1,2 @@
-from ._avatar import Arm
+from .avatar import Arm
 from .baby import Baby

@@ -3,8 +3,6 @@ import numpy as np
 from abc import ABC, abstractmethod
 from ikpy.chain import Chain
 from enum import Enum
-from tdw.controller import Controller
-from tdw.tdw_utils import TDWUtils
 from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds
 
 
@@ -32,6 +30,22 @@ class BodyPartStatic:
         self.color = color
 
 
+class Joint:
+    """
+    A joint, a side, and an axis.
+    """
+
+    def __init__(self, part: str, arm: str, axis: str):
+        """
+        :param part: The name of the body part.
+        :param axis: The axis of rotation.
+        :param arm: The arm that the joint is attached to.
+        """
+
+        self.joint = f"{part}_{arm}"
+        self.axis = axis
+
+
 class _IKGoal:
     """
     The goal of an IK action.
@@ -50,19 +64,31 @@ class _IKGoal:
             self.target = target
 
 
-class _Avatar(ABC):
+class Avatar(ABC):
     """
     A sticky mitten avatar. Contains high-level "Task" API and IK system.
     """
 
-    def __init__(self, c: Controller, avatar_id: str = "a", position: Dict[str, float] = None, debug: bool = False):
+    JOINTS = [Joint(arm="left", axis="pitch", part="shoulder"),
+              Joint(arm="left", axis="yaw", part="shoulder"),
+              Joint(arm="left", axis="roll", part="shoulder"),
+              Joint(arm="left", axis="pitch", part="elbow"),
+              Joint(arm="left", axis="roll", part="wrist"),
+              Joint(arm="left", axis="pitch", part="wrist"),
+              Joint(arm="right", axis="pitch", part="shoulder"),
+              Joint(arm="right", axis="yaw", part="shoulder"),
+              Joint(arm="right", axis="roll", part="shoulder"),
+              Joint(arm="right", axis="pitch", part="elbow"),
+              Joint(arm="right", axis="roll", part="wrist"),
+              Joint(arm="right", axis="pitch", part="wrist")]
+
+    def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False):
         """
         Add a controller to the scene and cache the static data.
         The simulation will advance 1 frame.
 
-        :param c: The controller.
+        :param resp: The response from the build after creating the avatar.
         :param avatar_id: The ID of the avatar.
-        :param position: The initial position of the avatar.
         :param debug: If True, print debug statements.
         """
 
@@ -74,72 +100,15 @@ class _Avatar(ABC):
         # Any current IK goals.
         self._ik_goals: Dict[Arm, Optional[_IKGoal]] = {Arm.left: None,
                                                         Arm.right: None}
-
-        if position is None:
-            position = {"x": 0, "y": 0, "z": 0}
-        # Create the avatar.
-        commands = TDWUtils.create_avatar(avatar_type=self._get_avatar_type(),
-                                          avatar_id=self.id,
-                                          position=position)[:]
-        # Request segmentation colors, body part names, and dynamic avatar data.
-        # Turn off the follow camera.
-        # Set the palms to sticky.
-        commands.extend([{"$type": "send_avatar_segmentation_colors",
-                          "frequency": "once",
-                          "ids": [self.id]},
-                         {"$type": "send_avatars",
-                          "ids": [self.id],
-                          "frequency": "always"},
-                         {"$type": "toggle_image_sensor",
-                          "sensor_name": "FollowCamera",
-                          "avatar_id": self.id},
-                         {"$type": "set_stickiness",
-                          "sub_mitten": "palm",
-                          "sticky": True,
-                          "is_left": True,
-                          "avatar_id": self.id},
-                         {"$type": "set_stickiness",
-                          "sub_mitten": "palm",
-                          "sticky": True,
-                          "is_left": False,
-                          "avatar_id": self.id},
-                         {"$type": "set_avatar_collision_detection_mode",
-                          "mode": "continuous_dynamic",
-                          "avatar_id": self.id},
-                         {"$type": "set_avatar_drag",
-                          "drag": 1000,
-                          "angular_drag": 1000,
-                          "avatar_id": self.id}])
-        # Make the avatar stronger.
-        for arm in self._arms:
-            a = arm.name
-            for link in self._arms[arm].links[1:]:
-                j = link.name.split("_")
-                joint = f"{j[0]}_{a}"
-                axis = j[1]
-                commands.extend([{"$type": "adjust_joint_force_by",
-                                  "delta": 20,
-                                  "joint": joint,
-                                  "axis": axis,
-                                  "avatar_id": self.id},
-                                 {"$type": "adjust_joint_damper_by",
-                                  "delta": 200,
-                                  "joint": joint,
-                                  "axis": axis,
-                                  "avatar_id": self.id}])
-
-        # Send the commands. Get a response.
-        resp = c.communicate(commands)
         smsc: Optional[AvatarStickyMittenSegmentationColors] = None
         for i in range(len(resp) - 1):
             r_id = OutputData.get_data_type_id(resp[i])
             if r_id == "smsc":
                 q = AvatarStickyMittenSegmentationColors(resp[i])
-                if q.get_id() == self.id:
+                if q.get_id() == avatar_id:
                     smsc = q
                     break
-        assert smsc is not None, f"No avatar segmentation colors found for {self.id}"
-
+        assert smsc is not None, f"No avatar segmentation colors found for {avatar_id}"
         # Cache static data of body parts.
         self.body_parts_static: Dict[str, BodyPartStatic] = dict()
         for i in range(smsc.get_num_body_parts()):
@@ -151,24 +120,18 @@ class _Avatar(ABC):
         # Start dynamic data.
         self.frame = self._get_frame(resp)
 
-    def bend_arm_ik(self, arm: Arm, target: Union[np.array, list], target_orientation: np.array = None,
-                    is_absolute: bool = True) -> List[dict]:
+    def bend_arm(self, arm: Arm, target: Union[np.array, list], target_orientation: np.array = None) -> List[dict]:
         """
         Get an IK solution to move a mitten to a target position.
 
         :param arm: The arm (left or right).
         :param target: The target position for the mitten.
         :param target_orientation: Target IK orientation. Usually you should leave this as None (the default).
-        :param is_absolute: If True, `target` is in absolute world coordinates.
-                            If False, `target` is relative to the mitten's current position.
 
         :return: A list of commands to begin bending the arm.
         """
 
-        if not is_absolute:
-            target = np.array(target) + self.frame.get_position()
-            if self.debug:
-                print(f"Target: {target}")
+        target = np.array(target) + self.frame.get_position()
 
         self._ik_goals[arm] = _IKGoal(target=target)
 
@@ -219,7 +182,7 @@ class _Avatar(ABC):
 
         target_orientation = (center - nearest) / np.linalg.norm(center - nearest)
 
-        commands = self.bend_arm_ik(arm=arm, target=nearest, target_orientation=target_orientation)
+        commands = self.bend_arm(arm=arm, target=nearest, target_orientation=target_orientation)
         self._ik_goals[arm].pick_up_id = object_id
         return commands
 
@@ -329,14 +292,6 @@ class _Avatar(ABC):
         """
 
         return object_id in self.frame.get_held_right() or object_id in self.frame.get_held_left()
-
-    @abstractmethod
-    def _get_avatar_type(self) -> str:
-        """
-        :return: The avatar type (used for the `create_avatar` command).
-        """
-
-        raise Exception()
 
     @abstractmethod
     def _get_left_arm(self) -> Chain:

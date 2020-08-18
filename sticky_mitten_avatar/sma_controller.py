@@ -1,49 +1,136 @@
+import numpy as np
 from typing import Dict, List, Union
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
-from sticky_mitten_avatar.avatar import Avatar
-from sticky_mitten_avatar.entity import Entity
+from sticky_mitten_avatar.avatars import Arm, Baby
+from sticky_mitten_avatar.avatars.avatar import Avatar
 
 
 class StickyMittenAvatarController(Controller):
-    def __init__(self, port: int = 1071, launch_build: bool = True, display: int = None,
-                 avatar: str = "baby", position: Dict[str, float] = None, avatar_id: str = "a"):
+    def __init__(self, port: int = 1071, launch_build: bool = True):
         # Cache the entities.
-        self._entities: List[Entity] = []
-        super().__init__(port=port, launch_build=launch_build, display=display)
+        self._avatars: Dict[str, Avatar] = dict()
+        # Commands sent by avatars.
+        self._avatar_commands: List[dict] = []
 
-        self._initialize_scene()
+        super().__init__(port=port, launch_build=launch_build)
 
-        self.avatar = Avatar(c=self, avatar=avatar, position=position, avatar_id=avatar_id)
-        self._entities.append(self.avatar)
-
-    def _initialize_scene(self) -> None:
+    def create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None,
+                      debug: bool = False) -> None:
         """
-        Initialize the scene. Override this to provide your own scene initialization.
+        Create an avatar. Set default values for the avatar. Cache its static data (segmentation colors, etc.)
+
+        :param avatar_type: The type of avatar. Options: "baby", "adult"
+        :param avatar_id: The unique ID of the avatar.
+        :param position: The initial position of the avatar.
+        :param debug: If true, print debug messages when the avatar moves.
         """
 
-        self.start()
-        self.communicate(TDWUtils.create_empty_room(30, 30))
+        if avatar_type == "baby":
+            avatar_type = "A_StickyMitten_Baby"
+        elif avatar_type == "adult":
+            avatar_type = "A_StickyMitten_Adult"
+        else:
+            raise Exception(f'Avatar type not found: {avatar_type}\nOptions: "baby", "adult"')
+
+        if position is None:
+            position = {"x": 0, "y": 0, "z": 0}
+
+        commands = TDWUtils.create_avatar(avatar_type=avatar_type,
+                                          avatar_id=avatar_id,
+                                          position=position)[:]
+        # Request segmentation colors, body part names, and dynamic avatar data.
+        # Turn off the follow camera.
+        # Set the palms to sticky.
+        commands.extend([{"$type": "send_avatar_segmentation_colors",
+                          "frequency": "once",
+                          "ids": [avatar_id]},
+                         {"$type": "send_avatars",
+                          "ids": [avatar_id],
+                          "frequency": "always"},
+                         {"$type": "toggle_image_sensor",
+                          "sensor_name": "FollowCamera",
+                          "avatar_id": avatar_id},
+                         {"$type": "set_stickiness",
+                          "sub_mitten": "palm",
+                          "sticky": True,
+                          "is_left": True,
+                          "avatar_id": avatar_id},
+                         {"$type": "set_stickiness",
+                          "sub_mitten": "palm",
+                          "sticky": True,
+                          "is_left": False,
+                          "avatar_id": avatar_id},
+                         {"$type": "set_avatar_collision_detection_mode",
+                          "mode": "continuous_dynamic",
+                          "avatar_id": avatar_id},
+                         {"$type": "set_avatar_drag",
+                          "drag": 1000,
+                          "angular_drag": 1000,
+                          "avatar_id": avatar_id}])
+        # Set the strength of the avatar.
+        for joint in Avatar.JOINTS:
+            commands.extend([{"$type": "adjust_joint_force_by",
+                              "delta": 20,
+                              "joint": joint.joint,
+                              "axis": joint.axis,
+                              "avatar_id": avatar_id},
+                             {"$type": "adjust_joint_damper_by",
+                              "delta": 200,
+                              "joint": joint.joint,
+                              "axis": joint.axis,
+                              "avatar_id": avatar_id}])
+
+        # Send the commands. Get a response.
+        resp = self.communicate(commands)
+        # Create the avatar.
+        if avatar_type == "A_StickyMitten_Baby":
+            avatar = Baby(avatar_id=avatar_id, debug=debug, resp=resp)
+        else:
+            raise Exception(f"Avatar not defined: {avatar_type}")
+        # Cache the avatar.
+        self._avatars[avatar_id] = avatar
 
     def communicate(self, commands: Union[dict, List[dict]]) -> list:
+        if not isinstance(commands, list):
+            commands = [commands]
+        # Add avatar commands from the previous frame.
+        commands.extend(self._avatar_commands[:])
+        # Clear avatar commands.
+        self._avatar_commands.clear()
+
         # Send the commands and get a response.
         resp = super().communicate(commands)
-        # Update the entities.
-        for i in range(len(self._entities)):
-            self._entities[i].on_frame(resp=resp)
+
+        # Update the avatars. Add new avatar commands for the next frame.
+        for a_id in self._avatars:
+            self._avatar_commands.extend(self._avatars[a_id].on_frame(resp=resp))
         return resp
 
-    def start_simulation(self) -> None:
+    def bend_arm(self, avatar_id: str, arm: Arm, target: Union[np.array, list]) -> None:
         """
-        Call this function after scene setup.
-        The controller will request output data from the build.
+        Begin to bend an arm of an avatar in the scene. The motion will continue to update per `communicate()` step.
+
+        :param arm: The arm (left or right).
+        :param target: The target position for the mitten.
+        :param avatar_id: The unique ID of the avatar.
         """
 
-        self.communicate([{"$type": "send_rigidbodies",
-                           "frequency": "always"},
-                          {"$type": "send_transforms",
-                           "frequency": "always"},
-                          {"$type": "send_collisions",
-                           "enter": True,
-                           "stay": False,
-                           "exit": False}])
+        assert avatar_id in self._avatars, f"Avatar not found: {avatar_id}"
+        self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm, target=target))
+
+    def do_joint_motion(self) -> None:
+        """
+        Step through the simulation until the joints of all avatars are done moving.
+        """
+
+        done = False
+        while not done:
+            done = True
+            # The loop is done if the IK goals are done.
+            for avatar in self._avatars.values():
+                if not avatar.is_ik_done():
+                    done = False
+            # Keep looping.
+            if not done:
+                self.communicate([])
