@@ -82,6 +82,9 @@ class Avatar(ABC):
               Joint(arm="right", axis="roll", part="wrist"),
               Joint(arm="right", axis="pitch", part="wrist")]
 
+    _ARM_OFFSETS = {Arm.left: np.array([-0.235, 0.565, 0.075]),
+                    Arm.right: np.array([0.235, 0.565, 0.075])}
+
     def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False):
         """
         Add a controller to the scene and cache the static data.
@@ -94,6 +97,7 @@ class Avatar(ABC):
 
         self.id = avatar_id
         self.debug = debug
+        self._mitten_offset = self._get_mitten_offset()
         # Set the arm chains.
         self._arms: Dict[Arm, Chain] = {Arm.left: self._get_left_arm(),
                                         Arm.right: self._get_right_arm()}
@@ -120,6 +124,7 @@ class Avatar(ABC):
         # Start dynamic data.
         self.frame = self._get_frame(resp)
 
+
     def bend_arm(self, arm: Arm, target: Union[np.array, list], target_orientation: np.array = None) -> List[dict]:
         """
         Get an IK solution to move a mitten to a target position.
@@ -131,15 +136,16 @@ class Avatar(ABC):
         :return: A list of commands to begin bending the arm.
         """
 
-        target = np.array(target) + self.frame.get_position()
-
+        ik_target = np.array(target) - (self.frame.get_position() + self._ARM_OFFSETS[arm])
+        if self.debug:
+            print(ik_target)
         self._ik_goals[arm] = _IKGoal(target=target)
 
         # Get the IK solution.
-        rotations = self._arms[arm].inverse_kinematics(target_position=target, target_orientation=target_orientation)
+        rotations = self._arms[arm].inverse_kinematics(target_position=ik_target, target_orientation=target_orientation)
         commands = []
         a = arm.name
-        for c, r in zip(self._arms[arm].links[1:], rotations[1:]):
+        for c, r in zip(self._arms[arm].links, rotations):
             j = c.name.split("_")
             commands.append({"$type": "bend_arm_joint_to",
                              "angle": np.rad2deg(r),
@@ -213,9 +219,10 @@ class Avatar(ABC):
                 for i in range(frame.get_num_rigidbody_parts()):
                     # Get the mitten.
                     if frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
+                        mitten_position = np.array(frame.get_body_part_position(i)) + self._mitten_offset
                         # If we're at the position, stop.
-                        d = np.linalg.norm(np.array(frame.get_body_part_position(i)) - self._ik_goals[arm].target)
-                        if d <= 0.1:
+                        d = np.linalg.norm(mitten_position - self._ik_goals[arm].target)
+                        if d <= 0.05:
                             if self.debug:
                                 print(f"{mitten} is at target position {self._ik_goals[arm].target}. Stopping.")
                             commands.extend(self._stop_arms())
@@ -309,6 +316,13 @@ class Avatar(ABC):
 
         raise Exception()
 
+    def _get_mitten_offset(self) -> np.array:
+        """
+        :return: The offset vector from the mitten position (at the wrist) to the centerpoint.
+        """
+
+        raise Exception()
+
     def _get_frame(self, resp: List[bytes]) -> AvatarStickyMitten:
         for i in range(len(resp) - 1):
             r_id = OutputData.get_data_type_id(resp[i])
@@ -324,13 +338,9 @@ class Avatar(ABC):
         """
 
         commands = []
-        for arm in self._arms:
-            a = arm.name
-            for link in self._arms[arm].links[1:]:
-                j = link.name.split("_")
-
-                commands.append({"$type": "stop_arm_joint",
-                                 "joint": f"{j[0]}_{a}",
-                                 "axis": j[1],
-                                 "avatar_id": self.id})
+        for j in self.JOINTS:
+            commands.append({"$type": "stop_arm_joint",
+                             "joint": j.joint,
+                             "axis": j.axis,
+                             "avatar_id": self.id})
         return commands
