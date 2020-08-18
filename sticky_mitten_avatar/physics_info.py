@@ -1,7 +1,5 @@
 import numpy as np
-from typing import List
 from tdw.output_data import Transforms, Rigidbodies
-from sticky_mitten_avatar.util import get_data, get_object_indices
 
 
 class PhysicsInfo:
@@ -9,19 +7,24 @@ class PhysicsInfo:
     Dynamic physics info (position, velocity, etc.) for a single object.
     """
 
-    def __init__(self, o_id: int, resp: List[bytes]):
+    def __init__(self, o_id: int, tran: Transforms, rigi: Rigidbodies, tr_index: int):
         """
         :param o_id: The ID of the object.
-        :param resp: The response from the build.
+        :param tran: Transforms data.
+        :param rigi: Rigidbodies data.
+        :param tr_index: The index of the object in the Transforms object.
         """
 
-        tr_id, ri_id = get_object_indices(o_id=o_id, resp=resp)
-        tran = get_data(resp=resp, d_type=Transforms)
-        rigi = get_data(resp=resp, d_type=Rigidbodies)
+        # Get the index in the Rigidbodies object.
+        ri_index = -1
+        for i in range(rigi.get_num()):
+            if rigi.get_id(i) == o_id:
+                ri_index = i
+                break
 
-        self.position = np.array(tran.get_position(tr_id))
-        self.forward = np.array(tran.get_forward(tr_id))
-        self.rotation = np.array(tran.get_rotation(tr_id))
-        self.velocity = np.array(rigi.get_velocity(ri_id))
-        self.angular_velocity = np.array(rigi.get_angular_velocity(ri_id))
-        self.sleeping = rigi.get_sleeping(ri_id)
+        self.position = np.array(tran.get_position(tr_index))
+        self.forward = np.array(tran.get_forward(tr_index))
+        self.rotation = np.array(tran.get_rotation(tr_index))
+        self.velocity = np.array(rigi.get_velocity(ri_index))
+        self.angular_velocity = np.array(rigi.get_angular_velocity(ri_index))
+        self.sleeping = rigi.get_sleeping(ri_index)

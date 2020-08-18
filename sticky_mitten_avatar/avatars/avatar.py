@@ -325,9 +325,9 @@ class Avatar(ABC):
                                  "axis": j.axis,
                                  "angle": 0,
                                  "avatar_id": self.id})
-            # Add some dummy IK goals.
-            for arm in self._ik_goals:
-                self._ik_goals[arm] = _IKGoal(target=None)
+        # Add some dummy IK goals.
+        for arm in self._ik_goals:
+            self._ik_goals[arm] = _IKGoal(target=None)
         return commands
 
     @abstractmethod

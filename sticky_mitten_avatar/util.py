@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Dict, List, TypeVar, Type, Tuple
+from typing import Dict, List, TypeVar, Type
 from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Collision
 
 
@@ -43,29 +43,6 @@ def get_collisions(resp: List[bytes]) -> List[Collision]:
         if r_id == "coll":
             collisions.append(Collision(resp[i]))
     return collisions
-
-
-def get_object_indices(o_id: int, resp: List[bytes]) -> Tuple[int, int]:
-    """
-    :param o_id: The ID of the object.
-    :param resp: The response from the build.
-    :return: The indices of the object in the Transforms and Rigidbodies object (in that order). -1 if not found.
-    """
-
-    tr = -1
-    ri = -1
-    tran = get_data(resp=resp, d_type=Transforms)
-    rigi = get_data(resp=resp, d_type=Rigidbodies)
-
-    for i in range(tran.get_num()):
-        if tran.get_id(i) == o_id:
-            tr = i
-            break
-    for i in range(rigi.get_num()):
-        if rigi.get_id(i) == o_id:
-            ri = i
-            break
-    return tr, ri
 
 
 def get_bounds_dict(bounds: Bounds, index: int) -> Dict[str, np.array]:
