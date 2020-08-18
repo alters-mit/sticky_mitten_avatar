@@ -99,8 +99,8 @@ class Avatar(ABC):
         self.debug = debug
         self._mitten_offset = self._get_mitten_offset()
         # Set the arm chains.
-        self._arms: Dict[Arm, Chain] = {Arm.left: self._get_left_arm(),
-                                        Arm.right: self._get_right_arm()}
+        self._arms: Dict[Arm, Chain] = {Arm.left: self._get_arm(),
+                                        Arm.right: self._get_arm()}
         # Any current IK goals.
         self._ik_goals: Dict[Arm, Optional[_IKGoal]] = {Arm.left: None,
                                                         Arm.right: None}
@@ -331,17 +331,9 @@ class Avatar(ABC):
         return commands
 
     @abstractmethod
-    def _get_left_arm(self) -> Chain:
+    def _get_arm(self) -> Chain:
         """
-        :return: The IK chain of the left arm.
-        """
-
-        raise Exception()
-
-    @abstractmethod
-    def _get_right_arm(self) -> Chain:
-        """
-        :return: The IK chain of the right arm.
+        :return: The IK chain of an arm.
         """
 
         raise Exception()
