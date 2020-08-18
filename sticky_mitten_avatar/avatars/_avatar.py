@@ -173,12 +173,7 @@ class _Avatar(ABC):
         self._ik_goals[arm] = _IKGoal(target=target)
 
         # Get the IK solution.
-        ik_target = np.array([target[0], target[2], target[1]])
-        if target_orientation is not None:
-            ik_orientation = np.array([target_orientation[0], target_orientation[2], target_orientation[1]])
-        else:
-            ik_orientation = None
-        rotations = self._arms[arm].inverse_kinematics(target_position=ik_target, target_orientation=ik_orientation)
+        rotations = self._arms[arm].inverse_kinematics(target_position=target, target_orientation=target_orientation)
         commands = []
         a = arm.name
         for c, r in zip(self._arms[arm].links[1:], rotations[1:]):
