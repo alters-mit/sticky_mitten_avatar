@@ -138,7 +138,7 @@ class Avatar(ABC):
 
         ik_target = np.array(target) - (self.frame.get_position() + self._ARM_OFFSETS[arm])
         if self.debug:
-            print(ik_target)
+            print(f"IK target: {ik_target}")
         self._ik_goals[arm] = _IKGoal(target=target)
 
         # Get the IK solution.
@@ -219,10 +219,10 @@ class Avatar(ABC):
                 for i in range(frame.get_num_rigidbody_parts()):
                     # Get the mitten.
                     if frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
-                        mitten_position = np.array(frame.get_body_part_position(i)) + self._mitten_offset
+                        mitten_position = np.array(frame.get_body_part_position(i)) - self._mitten_offset
                         # If we're at the position, stop.
                         d = np.linalg.norm(mitten_position - self._ik_goals[arm].target)
-                        if d <= 0.05:
+                        if d <= 0.08:
                             if self.debug:
                                 print(f"{mitten} is at target position {self._ik_goals[arm].target}. Stopping.")
                             commands.extend(self._stop_arms())
