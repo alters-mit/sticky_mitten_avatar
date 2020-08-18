@@ -51,14 +51,14 @@ class _IKGoal:
     The goal of an IK action.
     """
 
-    def __init__(self, target: Union[np.array, list], pick_up_id: int = None):
+    def __init__(self, target: Union[np.array, list, None], pick_up_id: int = None):
         """
         :param pick_up_id: If not None, the ID of the object to pick up.
         :param target: The target position of the mitten.
         """
 
         self.pick_up_id = pick_up_id
-        if isinstance(target, list):
+        if target is not None and isinstance(target, list):
             self.target = np.array(target)
         else:
             self.target = target
@@ -212,6 +212,9 @@ class Avatar(ABC):
             # No IK goal on this arm.
             if self._ik_goals[arm] is None:
                 temp_goals[arm] = None
+            # This is a dummy IK goal. Let it run.
+            elif self._ik_goals[arm].target is None:
+                temp_goals[arm] = self._ik_goals[arm]
             else:
                 # Is the arm at the target?
                 mitten = f"mitten_{arm.name}"
@@ -322,6 +325,9 @@ class Avatar(ABC):
                                  "axis": j.axis,
                                  "angle": 0,
                                  "avatar_id": self.id})
+            # Add some dummy IK goals.
+            for arm in self._ik_goals:
+                self._ik_goals[arm] = _IKGoal(target=None)
         return commands
 
     @abstractmethod
