@@ -428,14 +428,14 @@ class StickyMittenAvatarController(Controller):
         self.stop_avatar(avatar_id=avatar_id)
         return False
 
-    def add_overhead_camera(self, position: Dict[str, float], target_object: int = None, cam_id: str = "c",
+    def add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c",
                             images: str = "all") -> None:
         """
         Add an overhead third-person camera to the scene.
         Advances 1 frame.
 
         :param cam_id: The ID of the camera.
-        :param target_object: Always point the camera at this object.
+        :param target_object: Always point the camera at this object or avatar.
         :param position: The position of the camera.
         :param images: Image capture behavior. Choices:
                        1. `"cam"` (only this camera captures images)
@@ -447,10 +447,17 @@ class StickyMittenAvatarController(Controller):
                                           avatar_id=cam_id,
                                           position=position)
         if target_object is not None:
-            self._cam_command = {"$type": "look_at",
-                                 "object_id": target_object,
-                                 "avatar_id": cam_id,
-                                 "use_centroid": True}
+            # Get the avatar's object ID.
+            if isinstance(target_object, str):
+                self._cam_command = {"$type": "look_at_avatar",
+                                     "target_avatar_id": target_object,
+                                     "avatar_id": cam_id,
+                                     "use_centroid": True}
+            else:
+                self._cam_command = {"$type": "look_at",
+                                     "object_id": target_object,
+                                     "avatar_id": cam_id,
+                                     "use_centroid": True}
         if images != "avatars":
             commands.append({"$type": "set_pass_masks",
                              "pass_masks": ["_img"],
@@ -525,6 +532,19 @@ class StickyMittenAvatarController(Controller):
         # Let the object fall.
         for i in range(100):
             self.communicate([])
+
+    def set_cam_look_at_target(self, object_id: int, cam_id: str = "c") -> None:
+        """
+        Set the target of a third-party camera in the scene. The camera will look at that target.
+
+        :param object_id: The ID of the object.
+        :param cam_id: The ID of the camera.
+        """
+
+        self._cam_command = {"$type": "look_at",
+                             "object_id": object_id,
+                             "avatar_id": cam_id,
+                             "use_centroid": True}
 
     def _get_position(self, target: Union[Dict[str, float], np.array, int],
                       nearest_on_bounds: bool = False, avatar_id: str = None) -> np.array:
