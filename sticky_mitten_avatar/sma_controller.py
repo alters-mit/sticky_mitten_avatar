@@ -23,6 +23,8 @@ class _TaskState(Enum):
 class StickyMittenAvatarController(Controller):
     # A high drag value to stop movement.
     _STOP_DRAG = 1000
+    # Global forward directional vector.
+    _FORWARD = np.array([0, 0, 1])
 
     def __init__(self, port: int = 1071, launch_build: bool = True):
         # Cache the entities.
@@ -188,7 +190,7 @@ class StickyMittenAvatarController(Controller):
                 {"$type": "send_transforms",
                  "frequency": "always"}]
 
-    def bend_arm(self, avatar_id: str, arm: Arm, target: Union[np.array, list]) -> None:
+    def bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float]) -> None:
         """
         Begin to bend an arm of an avatar in the scene. The motion will continue to update per `communicate()` step.
 
@@ -197,7 +199,8 @@ class StickyMittenAvatarController(Controller):
         :param avatar_id: The unique ID of the avatar.
         """
 
-        self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm, target=target))
+        self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm,
+                                                                       target=TDWUtils.vector3_to_array(target)))
 
     def pick_up(self, avatar_id: str, arm: Arm, object_id: int) -> None:
         """
@@ -256,8 +259,8 @@ class StickyMittenAvatarController(Controller):
                           "angular_drag": self._STOP_DRAG,
                           "avatar_id": avatar_id})
 
-    def turn_to(self, avatar_id: str, target: Union[Tuple[float, float, float], np.array, List[float], int],
-                force: float = 120, stopping_threshold: float = 0.1) -> bool:
+    def turn_to(self, avatar_id: str, target: Union[Dict[str, float], int], force: float = 120,
+                stopping_threshold: float = 0.1) -> bool:
         """
         The avatar will turn to face a target. This will advance through many simulation frames.
 
@@ -276,7 +279,7 @@ class StickyMittenAvatarController(Controller):
 
             angle = get_angle(origin=np.array(avatar.frame.get_position()),
                               forward=np.array(avatar.frame.get_forward()),
-                              position=np.array(target))
+                              position=target)
 
             # Failure because the avatar turned all the way around without aligning with the target.
             if angle - initial_angle >= 360:
@@ -346,7 +349,7 @@ class StickyMittenAvatarController(Controller):
         self.stop_avatar(avatar_id=avatar_id)
         return False
 
-    def go_to(self, avatar_id: str, target: Union[Tuple[float, float, float], np.array, List[float], int],
+    def go_to(self, avatar_id: str, target: Union[Dict[str, float], int],
               turn_force: float = 120, turn_stopping_threshold: float = 0.1,
               move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool:
         """
@@ -424,8 +427,8 @@ class StickyMittenAvatarController(Controller):
         self.stop_avatar(avatar_id=avatar_id)
         return False
 
-    def add_overhead_camera(self, position: Union[Tuple[float, float, float], np.array, List[float]],
-                            target_object: int = None, cam_id: str = "c", images: str = "all") -> None:
+    def add_overhead_camera(self, position: Dict[str, float], target_object: int = None, cam_id: str = "c",
+                            images: str = "all") -> None:
         """
         Add an overhead third-person camera to the scene.
         Advances 1 frame.
@@ -441,7 +444,7 @@ class StickyMittenAvatarController(Controller):
 
         commands = TDWUtils.create_avatar(avatar_type="A_Img_Caps_Kinematic",
                                           avatar_id=cam_id,
-                                          position=TDWUtils.array_to_vector3(position))
+                                          position=position)
         if target_object is not None:
             self._cam_command = {"$type": "look_at",
                                  "object_id": target_object,
@@ -499,7 +502,7 @@ class StickyMittenAvatarController(Controller):
         for i in range(20):
             self.communicate([])
 
-    def _get_position(self, target: Union[Tuple[float, float, float], np.array, List[float], int],
+    def _get_position(self, target: Union[Dict[str, float], int],
                       nearest_on_bounds: bool = False, avatar_id: str = None) -> np.array:
         """
         Convert the target to a numpy array. If the target is an object ID, get the object's position.
@@ -527,7 +530,5 @@ class StickyMittenAvatarController(Controller):
                                                    index=0)
             # Get the object's position.
             return self._objects[target].position
-        elif isinstance(target, tuple) or isinstance(target, list):
-            return np.array(target)
         else:
-            return target
+            return TDWUtils.vector3_to_array(target)
