@@ -200,15 +200,16 @@ class StickyMittenAvatarController(Controller):
         self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm,
                                                                        target=TDWUtils.vector3_to_array(target)))
 
-    def pick_up(self, avatar_id: str, arm: Arm, object_id: int) -> None:
+    def pick_up(self, avatar_id: str, object_id: int) -> Arm:
         """
         Begin to bend an avatar's arm to try to pick up an object in the scene.
         The simulation will advance 1 frame (to collect the object's bounds data).
         The motion will continue to update per `communicate()` step.
 
-        :param arm: The arm (left or right).
         :param object_id: The ID of the target object.
         :param avatar_id: The unique ID of the avatar.
+
+        :return: The arm that is picking up the object.
         """
 
         # Get the bounds of the object.
@@ -216,7 +217,9 @@ class StickyMittenAvatarController(Controller):
                                  "frequency": "once",
                                  "ids": [object_id]})
         bounds = get_data(resp=resp, d_type=Bounds)
-        self._avatar_commands.extend(self._avatars[avatar_id].pick_up(arm=arm, bounds=bounds, object_id=object_id))
+        commands, arm = self._avatars[avatar_id].pick_up(bounds=bounds, object_id=object_id)
+        self._avatar_commands.extend(commands)
+        return arm
 
     def put_down(self, avatar_id: str, reset_arms: bool = True) -> None:
         """
@@ -257,7 +260,7 @@ class StickyMittenAvatarController(Controller):
                           "angular_drag": self._STOP_DRAG,
                           "avatar_id": avatar_id})
 
-    def turn_to(self, avatar_id: str, target: Union[Dict[str, float], int], force: float = 120,
+    def turn_to(self, avatar_id: str, target: Union[Dict[str, float], int], force: float = 300,
                 stopping_threshold: float = 0.1) -> bool:
         """
         The avatar will turn to face a target. This will advance through many simulation frames.
@@ -315,7 +318,7 @@ class StickyMittenAvatarController(Controller):
 
         turn_command = {"$type": "turn_avatar_by",
                         "torque": force * direction,
-                        "avatar_id": "a"}
+                        "avatar_id": avatar_id}
 
         # Begin to turn.
         self.communicate(turn_command)
@@ -348,7 +351,7 @@ class StickyMittenAvatarController(Controller):
         return False
 
     def go_to(self, avatar_id: str, target: Union[Dict[str, float], int],
-              turn_force: float = 120, turn_stopping_threshold: float = 0.1,
+              turn_force: float = 300, turn_stopping_threshold: float = 0.1,
               move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool:
         """
         Go to a target position or object.
@@ -466,24 +469,45 @@ class StickyMittenAvatarController(Controller):
                              "frequency": "always"})
         self.communicate(commands)
 
-    def put_object_in_container(self, avatar_id: str, arm: Arm, container_id: int) -> None:
+    def put_object_in_container(self, avatar_id: str, object_id: int, container_id: int) -> None:
         """
         Try to put an object held by an avatar's arm in a container.
 
         :param avatar_id: The ID of the avatar.
-        :param arm: The arm holding the object.
+        :param object_id: The ID of the object.
         :param container_id: The unique ID of the container.
         """
 
-        # Start moving the arm.
-        position = self._objects[container_id].position
-
-        obj_xz = np.array([position[0], position[2]])
-
-        self.bend_arm(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(position), arm=arm)
-
-        avatar = self._avatars[avatar_id]
+        # Go to the object.
+        self.go_to(avatar_id=avatar_id, target=object_id)
+        # Pick up the object.
+        arm = self.pick_up(avatar_id=avatar_id, object_id=object_id)
+        self.do_joint_motion()
         mitten = f"mitten_{arm.name}"
+
+        # Check if the avatar picked up the object. Otherwise, stop.
+        avatar = self._avatars[avatar_id]
+        if (object_id not in avatar.frame.get_held_left()) and (object_id not in avatar.frame.get_held_right()):
+            if avatar.debug:
+                print("Avatar failed to pick up the object.")
+            return
+
+        # Raise the arm.
+        self.bend_arm(avatar_id=avatar_id, arm=arm, target={"x": 0, "y": 0.5, "z": 0.469})
+        self.do_joint_motion()
+
+        # Go to the container.
+        self.go_to(avatar_id=avatar_id, target=container_id)
+
+        # Move the arm over the container.
+        container_position = self._objects[container_id].position
+
+        # Turn to face the object.
+        self.turn_to(avatar_id=avatar_id, target=container_position)
+
+        # Move the arm until it is over the container.
+        obj_xz = np.array([container_position[0], container_position[2]])
+        self.bend_arm(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(container_position), arm=arm)
         done = False
         while (not avatar.is_ik_done()) and (not done):
             for i in range(avatar.frame.get_num_rigidbody_parts()):
@@ -492,14 +516,14 @@ class StickyMittenAvatarController(Controller):
                     mitten_position = np.array(avatar.frame.get_body_part_position(i)) + avatar.mitten_offset
                     mitten_position = np.array([mitten_position[0], mitten_position[2]])
                     d = np.linalg.norm(obj_xz - mitten_position)
-                    if d < 0.1:
+                    if d < 0.15:
                         done = True
             self.communicate([])
         # Stop the arms.
-        self.communicate(avatar.stop_arms())
         self.put_down(avatar_id=avatar_id, reset_arms=False)
+        self.communicate(avatar.stop_arms())
         # Let the object fall.
-        for i in range(20):
+        for i in range(100):
             self.communicate([])
 
     def _get_position(self, target: Union[Dict[str, float], np.array, int],

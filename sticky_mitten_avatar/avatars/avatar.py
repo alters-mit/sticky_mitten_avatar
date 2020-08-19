@@ -160,16 +160,15 @@ class Avatar(ABC):
                              "avatar_id": self.id})
         return commands
 
-    def pick_up(self, arm: Arm, object_id: int, bounds: Bounds) -> List[dict]:
+    def pick_up(self, object_id: int, bounds: Bounds) -> (List[dict], Arm):
         """
         Begin to try to pick up an object,
         Get an IK solution to a target position.
 
-        :param arm: The arm (left or right).
         :param object_id: The ID of the target object.
         :param bounds: Bounds output data.
 
-        :return: A list of commands to begin bending the arm.
+        :return: A list of commands to begin bending the arm and the arm doing the pick-up action.
         """
 
         center: Optional[np.array] = None
@@ -192,11 +191,21 @@ class Avatar(ABC):
 
         nearest[1] = center[1]
 
+        # Get the nearest mitten.
+        left_mitten_position = self._get_mitten_position(arm=Arm.left)
+        right_mitten_position = self._get_mitten_position(arm=Arm.right)
+        d_left = np.linalg.norm(left_mitten_position - nearest)
+        d_right = np.linalg.norm(right_mitten_position - nearest)
+        if d_left <= d_right:
+            arm = Arm.left
+        else:
+            arm = Arm.right
+
         target_orientation = (center - nearest) / np.linalg.norm(center - nearest)
 
         commands = self.bend_arm(arm=arm, target=nearest, target_orientation=target_orientation)
         self._ik_goals[arm].pick_up_id = object_id
-        return commands
+        return commands, arm
 
     def on_frame(self, resp: List[bytes]) -> List[dict]:
         """
@@ -372,3 +381,17 @@ class Avatar(ABC):
                 if avsm.get_avatar_id() == self.id:
                     return avsm
         raise Exception(f"No avatar data found for {self.id}")
+
+    def _get_mitten_position(self, arm: Arm) -> np.array:
+        """
+        :param arm: The mitten's arm.
+
+        :return: The position of the mitten.
+        """
+
+        mitten = f"mitten_{arm.name}"
+        for i in range(self.frame.get_num_rigidbody_parts()):
+            # Get the mitten.
+            if self.frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
+                return np.array(self.frame.get_body_part_position(i)) + self.mitten_offset
+        raise Exception(f"Mitten {arm.name} not found.")
