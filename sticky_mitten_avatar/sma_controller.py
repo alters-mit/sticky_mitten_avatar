@@ -98,7 +98,7 @@ class StickyMittenAvatarController(Controller):
         # Set the strength of the avatar.
         for joint in Avatar.JOINTS:
             commands.extend([{"$type": "adjust_joint_force_by",
-                              "delta": 20,
+                              "delta": 80,
                               "joint": joint.joint,
                               "axis": joint.axis,
                               "avatar_id": avatar_id},
@@ -499,18 +499,13 @@ class StickyMittenAvatarController(Controller):
                 print("Avatar failed to pick up the object.")
             return
 
-        # Raise the arm.
-        self.bend_arm(avatar_id=avatar_id, arm=arm, target={"x": 0, "y": 0.5, "z": 0.469})
-        self.do_joint_motion()
-
         # Go to the container.
         self.go_to(avatar_id=avatar_id, target=container_id)
+        avatar.stop_arms()
+        self.do_joint_motion()
 
         # Move the arm over the container.
         container_position = self._objects[container_id].position
-
-        # Turn to face the object.
-        self.turn_to(avatar_id=avatar_id, target=container_position)
 
         # Move the arm until it is over the container.
         obj_xz = np.array([container_position[0], container_position[2]])
@@ -527,10 +522,9 @@ class StickyMittenAvatarController(Controller):
                         done = True
             self.communicate([])
         # Stop the arms.
-        self.put_down(avatar_id=avatar_id, reset_arms=False)
-        self.communicate(avatar.stop_arms())
+        self.put_down(avatar_id=avatar_id, reset_arms=True)
         # Let the object fall.
-        for i in range(100):
+        for i in range(200):
             self.communicate([])
 
     def set_cam_look_at_target(self, object_id: int, cam_id: str = "c") -> None:
