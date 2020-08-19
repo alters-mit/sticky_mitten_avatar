@@ -23,8 +23,6 @@ class _TaskState(Enum):
 class StickyMittenAvatarController(Controller):
     # A high drag value to stop movement.
     _STOP_DRAG = 1000
-    # Global forward directional vector.
-    _FORWARD = np.array([0, 0, 1])
 
     def __init__(self, port: int = 1071, launch_build: bool = True):
         # Cache the entities.
@@ -302,7 +300,7 @@ class StickyMittenAvatarController(Controller):
         # Get the initial angle to the target.
         initial_angle = get_angle(origin=np.array(avatar.frame.get_position()),
                                   forward=np.array(avatar.frame.get_forward()),
-                                  position=target)
+                                  position=np.array(target))
         # Decide which direction to turn.
         if initial_angle > 180:
             direction = -1
@@ -480,8 +478,7 @@ class StickyMittenAvatarController(Controller):
         # Start moving the arm.
         position = self._objects[container_id].position
 
-        # TODO this is weird and wrong.
-        position = np.array([position[0], 1, position[1]])
+        obj_xz = np.array([position[0], position[2]])
 
         self.bend_arm(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(position), arm=arm)
 
@@ -492,17 +489,20 @@ class StickyMittenAvatarController(Controller):
             for i in range(avatar.frame.get_num_rigidbody_parts()):
                 # Get the mitten.
                 if avatar.frame.get_body_part_id(i) == avatar.body_parts_static[mitten].o_id:
-                    mitten_position = np.array(avatar.frame.get_body_part_position(i)) - avatar.mitten_offset
-                    d = np.linalg.norm(position - mitten_position)
+                    mitten_position = np.array(avatar.frame.get_body_part_position(i)) + avatar.mitten_offset
+                    mitten_position = np.array([mitten_position[0], mitten_position[2]])
+                    d = np.linalg.norm(obj_xz - mitten_position)
                     if d < 0.1:
                         done = True
             self.communicate([])
+        # Stop the arms.
+        self.communicate(avatar.stop_arms())
         self.put_down(avatar_id=avatar_id, reset_arms=False)
         # Let the object fall.
         for i in range(20):
             self.communicate([])
 
-    def _get_position(self, target: Union[Dict[str, float], int],
+    def _get_position(self, target: Union[Dict[str, float], np.array, int],
                       nearest_on_bounds: bool = False, avatar_id: str = None) -> np.array:
         """
         Convert the target to a numpy array. If the target is an object ID, get the object's position.
@@ -530,5 +530,7 @@ class StickyMittenAvatarController(Controller):
                                                    index=0)
             # Get the object's position.
             return self._objects[target].position
-        else:
+        elif isinstance(target, dict):
             return TDWUtils.vector3_to_array(target)
+        else:
+            return target

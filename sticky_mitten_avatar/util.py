@@ -100,3 +100,36 @@ def get_angle(forward: np.array, origin: np.array, position: np.array) -> float:
     ang2 = np.arctan2(d[2], d[0])
 
     return np.rad2deg((ang1 - ang2) % (2 * np.pi))
+
+
+def get_angle_between(v1: np.array, v2: np.array) -> float:
+    """
+    :param v1: The first directional vector.
+    :param v2: The second directional vector.
+
+    :return: The angle in degrees between two directional vectors.
+    """
+
+    return np.rad2deg(np.arccos(np.dot(v1, v2)))
+
+
+def rotate_point_around(point: np.array, angle: float, origin: np.array = None) -> np.array:
+    """
+    Rotate a point counterclockwise by a given angle around a given origin.
+
+    :param origin: The origin position.
+    :param point: The point being rotated.
+    :param angle: The angle in degrees.
+    """
+
+    if origin is None:
+        origin = np.array([0, 0, 0])
+
+    angle = np.deg2rad(angle)
+
+    ox, oy = origin[0], origin[2]
+    px, py = point[0], point[2]
+
+    qx = ox + np.cos(angle) * (px - ox) - np.sin(angle) * (py - oy)
+    qy = oy + np.sin(angle) * (px - ox) + np.cos(angle) * (py - oy)
+    return np.array([qx, point[1], qy])

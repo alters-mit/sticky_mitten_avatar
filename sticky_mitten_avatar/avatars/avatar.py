@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from ikpy.chain import Chain
 from enum import Enum
 from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds
+from sticky_mitten_avatar.util import get_angle_between, rotate_point_around
 
 
 class Arm(Enum):
@@ -82,8 +83,11 @@ class Avatar(ABC):
               Joint(arm="right", axis="roll", part="wrist"),
               Joint(arm="right", axis="pitch", part="wrist")]
 
+    # Positional offsets for each arm from the root of the avatar.
     _ARM_OFFSETS = {Arm.left: np.array([-0.235, 0.565, 0.075]),
                     Arm.right: np.array([0.235, 0.565, 0.075])}
+    # Global forward directional vector.
+    _FORWARD = np.array([0, 0, 1])
 
     def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False):
         """
@@ -136,8 +140,11 @@ class Avatar(ABC):
         """
 
         ik_target = np.array(target) - (self.frame.get_position() + self._ARM_OFFSETS[arm])
+        # Rotate the target point to global forward.
+        ik_target = rotate_point_around(point=ik_target,
+                                        angle=get_angle_between(v1=Avatar._FORWARD, v2=self.frame.get_forward()))
         if self.debug:
-            print(f"IK target: {ik_target}")
+            print(f"Absolute target: {target}\tIK target: {ik_target}")
         self._ik_goals[arm] = _IKGoal(target=target)
 
         # Get the IK solution.
@@ -221,13 +228,13 @@ class Avatar(ABC):
                 for i in range(frame.get_num_rigidbody_parts()):
                     # Get the mitten.
                     if frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
-                        mitten_position = np.array(frame.get_body_part_position(i)) - self.mitten_offset
+                        mitten_position = np.array(frame.get_body_part_position(i)) + self.mitten_offset
                         # If we're at the position, stop.
                         d = np.linalg.norm(mitten_position - self._ik_goals[arm].target)
-                        if d <= 0.08:
+                        if d < 0.1:
                             if self.debug:
                                 print(f"{mitten} is at target position {self._ik_goals[arm].target}. Stopping.")
-                            commands.extend(self._stop_arms())
+                            commands.extend(self.stop_arms())
                             temp_goals[arm] = None
                         else:
                             # Are we trying to pick up an object?
@@ -237,7 +244,7 @@ class Avatar(ABC):
                                         pick_up_id in frame.get_held_right():
                                     if self.debug:
                                         print(f"{mitten} picked up {self._ik_goals[arm].pick_up_id}. Stopping.")
-                                    commands.extend(self._stop_arms())
+                                    commands.extend(self.stop_arms())
                                     temp_goals[arm] = None
                                 # Keep bending the arm and trying to pick up the object.
                                 else:
@@ -329,6 +336,19 @@ class Avatar(ABC):
             self._ik_goals[arm] = _IKGoal(target=None)
         return commands
 
+    def stop_arms(self) -> List[dict]:
+        """
+        :return: Commands to stop all arm movement.
+        """
+
+        commands = []
+        for j in self.JOINTS:
+            commands.append({"$type": "stop_arm_joint",
+                             "joint": j.joint,
+                             "axis": j.axis,
+                             "avatar_id": self.id})
+        return commands
+
     @abstractmethod
     def _get_arm(self) -> Chain:
         """
@@ -352,16 +372,3 @@ class Avatar(ABC):
                 if avsm.get_avatar_id() == self.id:
                     return avsm
         raise Exception(f"No avatar data found for {self.id}")
-
-    def _stop_arms(self) -> List[dict]:
-        """
-        :return: Commands to stop all arm movement.
-        """
-
-        commands = []
-        for j in self.JOINTS:
-            commands.append({"$type": "stop_arm_joint",
-                             "joint": j.joint,
-                             "axis": j.axis,
-                             "avatar_id": self.id})
-        return commands
