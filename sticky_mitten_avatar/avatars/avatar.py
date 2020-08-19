@@ -172,38 +172,29 @@ class Avatar(ABC):
         """
 
         center: Optional[np.array] = None
-        nearest: Optional[np.array] = None
-        nearest_distance = np.inf
 
         # Get the nearest point on the bounds.
         for i in range(bounds.get_num()):
             if bounds.get_id(i) == object_id:
                 center = np.array(bounds.get_center(i))
-                for p in [bounds.get_left(i), bounds.get_right(i), bounds.get_top(i), bounds.get_bottom(i),
-                          bounds.get_front(i), bounds.get_back(i)]:
-                    p = np.array(p)
-                    d = np.linalg.norm(center - p)
-                    if d < nearest_distance:
-                        nearest = p
-                        nearest_distance = d
+                break
         assert center is not None, f"Couldn't find center of object {object_id}"
-        assert nearest is not None, f"Couldn't get nearest point of object {object_id}"
-
-        nearest[1] = center[1]
 
         # Get the nearest mitten.
         left_mitten_position = self._get_mitten_position(arm=Arm.left)
         right_mitten_position = self._get_mitten_position(arm=Arm.right)
-        d_left = np.linalg.norm(left_mitten_position - nearest)
-        d_right = np.linalg.norm(right_mitten_position - nearest)
+        d_left = np.linalg.norm(left_mitten_position - center)
+        d_right = np.linalg.norm(right_mitten_position - center)
         if d_left <= d_right:
             arm = Arm.left
+            mitten = left_mitten_position
         else:
             arm = Arm.right
+            mitten = right_mitten_position
 
-        target_orientation = (center - nearest) / np.linalg.norm(center - nearest)
+        target_orientation = (mitten - center) / np.linalg.norm(mitten - center)
 
-        commands = self.bend_arm(arm=arm, target=nearest, target_orientation=target_orientation)
+        commands = self.bend_arm(arm=arm, target=center, target_orientation=target_orientation)
         self._ik_goals[arm].pick_up_id = object_id
         return commands, arm
 
