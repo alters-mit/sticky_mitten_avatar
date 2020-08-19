@@ -1,6 +1,6 @@
 from enum import Enum
 import numpy as np
-from typing import Dict, List, Union, Tuple, Optional
+from typing import Dict, List, Union, Optional
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
 from tdw.output_data import Bounds, Transforms, Rigidbodies
@@ -483,7 +483,7 @@ class StickyMittenAvatarController(Controller):
         # TODO this is weird and wrong.
         position = np.array([position[0], 1, position[1]])
 
-        self.bend_arm(avatar_id=avatar_id, target=position, arm=arm)
+        self.bend_arm(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(position), arm=arm)
 
         avatar = self._avatars[avatar_id]
         mitten = f"mitten_{arm.name}"
