@@ -45,6 +45,7 @@ class Joint:
 
         self.joint = f"{part}_{arm}"
         self.axis = axis
+        self.arm = arm
 
 
 class _IKGoal:
@@ -234,7 +235,7 @@ class Avatar(ABC):
                         if d < 0.1:
                             if self.debug:
                                 print(f"{mitten} is at target position {self._ik_goals[arm].target}. Stopping.")
-                            commands.extend(self._stop_arms())
+                            commands.extend(self._stop_arms(arm=arm))
                             temp_goals[arm] = None
                         else:
                             # Are we trying to pick up an object?
@@ -244,7 +245,7 @@ class Avatar(ABC):
                                         pick_up_id in frame.get_held_right():
                                     if self.debug:
                                         print(f"{mitten} picked up {self._ik_goals[arm].pick_up_id}. Stopping.")
-                                    commands.extend(self._stop_arms())
+                                    commands.extend(self._stop_arms(arm=arm))
                                     temp_goals[arm] = None
                                 # Keep bending the arm and trying to pick up the object.
                                 else:
@@ -336,17 +337,21 @@ class Avatar(ABC):
             self._ik_goals[arm] = _IKGoal(target=None)
         return commands
 
-    def _stop_arms(self) -> List[dict]:
+    def _stop_arms(self, arm: Arm) -> List[dict]:
         """
+        :param arm: The arm to stop.
+
         :return: Commands to stop all arm movement.
         """
 
         commands = []
         for j in self.JOINTS:
-            commands.append({"$type": "stop_arm_joint",
-                             "joint": j.joint,
-                             "axis": j.axis,
-                             "avatar_id": self.id})
+            # TODO change this to arm.name
+            if j.arm == arm:
+                commands.append({"$type": "stop_arm_joint",
+                                 "joint": j.joint,
+                                 "axis": j.axis,
+                                 "avatar_id": self.id})
         return commands
 
     @abstractmethod

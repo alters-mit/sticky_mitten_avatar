@@ -1,8 +1,6 @@
 from random import random
 import numpy as np
 from tdw.tdw_utils import TDWUtils
-from tdw.librarian import ModelLibrarian
-from sticky_mitten_avatar.avatars import Arm
 from sticky_mitten_avatar.sma_controller import StickyMittenAvatarController
 
 
@@ -20,7 +18,7 @@ if __name__ == "__main__":
     balls_origin = (1, 2)
     ball_scale = 0.15
 
-    # Get all points within the circle defined by the radius.
+    # Add small objects that the avatar will pick up.
     p0 = np.array((0, 0))
     o_id = 0
     for x in np.arange(-r, r, spacing):
@@ -43,6 +41,7 @@ if __name__ == "__main__":
                                            "b": random(),
                                            "a": 1.0},
                                  "id": o_id})
+    # Add the container.
     bowl_id = c.get_unique_id()
     bowl_position = {"x": 1.2, "y": 0, "z": 0.25}
     commands.extend(c.get_add_object("serving_bowl",
@@ -59,6 +58,7 @@ if __name__ == "__main__":
     c.create_avatar(avatar_id=avatar_id, debug=True)
 
     # Add a third-person camera.
+    # Set images="cam" to enable image capture only for the third-person camera.
     c.add_overhead_camera({"x": -0.08, "y": 1.25, "z": 1.41}, target_object=avatar_id, images="cam")
 
     # Put each object in the container.
