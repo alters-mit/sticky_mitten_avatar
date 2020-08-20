@@ -70,16 +70,6 @@ class StickyMittenAvatarController(Controller):
                           "ids": [avatar_id]},
                          {"$type": "send_avatars",
                           "frequency": "always"},
-                         {"$type": "set_stickiness",
-                          "sub_mitten": "palm",
-                          "sticky": True,
-                          "is_left": True,
-                          "avatar_id": avatar_id},
-                         {"$type": "set_stickiness",
-                          "sub_mitten": "palm",
-                          "sticky": True,
-                          "is_left": False,
-                          "avatar_id": avatar_id},
                          {"$type": "set_avatar_collision_detection_mode",
                           "mode": "continuous_dynamic",
                           "avatar_id": avatar_id},
@@ -95,10 +85,19 @@ class StickyMittenAvatarController(Controller):
                          {"$type": "toggle_image_sensor",
                           "sensor_name": "FollowCamera",
                           "avatar_id": avatar_id}])
-        # Set the strength of the avatar.
+        # Set all sides of both mittens to be sticky.
+        for sub_mitten in ["palm", "back", "side"]:
+            for is_left in [True, False]:
+                commands.append({"$type": "set_stickiness",
+                                 "sub_mitten": sub_mitten,
+                                 "sticky": True,
+                                 "is_left": is_left,
+                                 "avatar_id": avatar_id,
+                                 "show": False})
+        # Strengthen the avatar.
         for joint in Avatar.JOINTS:
             commands.extend([{"$type": "adjust_joint_force_by",
-                              "delta": 80,
+                              "delta": 20,
                               "joint": joint.joint,
                               "axis": joint.axis,
                               "avatar_id": avatar_id},
@@ -194,19 +193,23 @@ class StickyMittenAvatarController(Controller):
                 {"$type": "send_transforms",
                  "frequency": "always"}]
 
-    def bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float]) -> None:
+    def bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float], do_motion: bool = True) -> None:
         """
         Begin to bend an arm of an avatar in the scene. The motion will continue to update per `communicate()` step.
 
         :param arm: The arm (left or right).
         :param target: The target position for the mitten.
         :param avatar_id: The unique ID of the avatar.
+        :param do_motion: If True, advance simulation frames until the pick-up motion is done. See: `do_joint_motion()`
         """
 
         self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm,
                                                                        target=TDWUtils.vector3_to_array(target)))
 
-    def pick_up(self, avatar_id: str, object_id: int) -> Arm:
+        if do_motion:
+            self.do_joint_motion()
+
+    def pick_up(self, avatar_id: str, object_id: int, do_motion: bool = True) -> Arm:
         """
         Begin to bend an avatar's arm to try to pick up an object in the scene.
         The simulation will advance 1 frame (to collect the object's bounds data).
@@ -214,6 +217,7 @@ class StickyMittenAvatarController(Controller):
 
         :param object_id: The ID of the target object.
         :param avatar_id: The unique ID of the avatar.
+        :param do_motion: If True, advance simulation frames until the pick-up motion is done. See: `do_joint_motion()`
 
         :return: The arm that is picking up the object.
         """
@@ -225,6 +229,9 @@ class StickyMittenAvatarController(Controller):
         bounds = get_data(resp=resp, d_type=Bounds)
         commands, arm = self._avatars[avatar_id].pick_up(bounds=bounds, object_id=object_id)
         self._avatar_commands.extend(commands)
+
+        if do_motion:
+            self.do_joint_motion()
         return arm
 
     def put_down(self, avatar_id: str, reset_arms: bool = True) -> None:

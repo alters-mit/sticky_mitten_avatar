@@ -359,8 +359,7 @@ class Avatar(ABC):
 
         commands = []
         for j in self.JOINTS:
-            # TODO change this to arm.name
-            if j.arm == arm:
+            if j.arm == arm.name:
                 commands.append({"$type": "stop_arm_joint",
                                  "joint": j.joint,
                                  "axis": j.axis,
