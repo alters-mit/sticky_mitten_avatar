@@ -1,9 +1,12 @@
+import matplotlib.pyplot
+from mpl_toolkits.mplot3d import Axes3D
 from typing import Dict, Union, List, Tuple, Optional
 import numpy as np
 from abc import ABC, abstractmethod
 from ikpy.chain import Chain
 from enum import Enum
 from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds
+from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.util import get_angle_between, rotate_point_around
 
 
@@ -140,7 +143,8 @@ class Avatar(ABC):
         :return: A list of commands to begin bending the arm.
         """
 
-        ik_target = np.array(target) - (self.frame.get_position() + self._ARM_OFFSETS[arm])
+        ik_target = self._ARM_OFFSETS[arm] - np.array(target) - (self.frame.get_position())
+
         # Rotate the target point to global forward.
         ik_target = rotate_point_around(point=ik_target,
                                         angle=get_angle_between(v1=Avatar._FORWARD, v2=self.frame.get_forward()))
@@ -150,7 +154,16 @@ class Avatar(ABC):
 
         # Get the IK solution.
         rotations = self._arms[arm].inverse_kinematics(target_position=ik_target, target_orientation=target_orientation)
+
         commands = []
+        if self.debug:
+            print([np.rad2deg(r) for r in rotations])
+            self._plot_ik(target=ik_target, arm=arm)
+            # Show the target.
+            commands.extend([{"$type": "remove_position_markers"},
+                             {"$type": "add_position_marker",
+                              "position": TDWUtils.array_to_vector3(target)}])
+
         a = arm.name
         for c, r in zip(self._arms[arm].links, rotations):
             j = c.name.split("_")
@@ -396,3 +409,18 @@ class Avatar(ABC):
             if self.frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
                 return np.array(self.frame.get_body_part_position(i)) + self.mitten_offset
         raise Exception(f"Mitten {arm.name} not found.")
+
+    def _plot_ik(self, target: np.array, arm: Arm) -> None:
+        """
+        Debug an IK solution by creating a plot.
+
+        :param target: The target position.
+        :param arm: The arm.
+        """
+
+        chain = self._arms[arm]
+
+        ax = matplotlib.pyplot.figure().add_subplot(111, projection='3d')
+
+        chain.plot(chain.inverse_kinematics(target_position=target), ax, target=target)
+        matplotlib.pyplot.show()
