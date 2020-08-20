@@ -154,7 +154,7 @@ class StickyMittenAvatarController(Controller):
 
     def get_add_object(self, model_name: str, object_id: int, position: Dict[str, float] = None,
                        rotation: Dict[str, float] = None, library: str = "", mass: int = 1,
-                       scale: float = 1) -> List[dict]:
+                       scale: Dict[str, float] = None) -> List[dict]:
         """
         Overrides Controller.get_add_object; returns a list of commands instead of 1 command.
 
@@ -165,15 +165,18 @@ class StickyMittenAvatarController(Controller):
                         See `ModelLibrarian.get_library_filenames()` and `ModelLibrarian.get_default_library()`.
         :param object_id: The ID of the new object.
         :param mass: The mass of the object.
-        :param scale: The scale factor of the object.
+        :param scale: The scale factor of the object. If None, the scale factor is (1, 1, 1)
 
-        :return: A list of commands: `[add_object, set_mass, scale_object, send_transforms, send_rigidbodies]`
+        :return: A list of commands: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode,
+                                       send_transforms, send_rigidbodies]`
         """
 
         if position is None:
             position = {"x": 0, "y": 0, "z": 0}
         if rotation is None:
             rotation = {"x": 0, "y": 0, "z": 0}
+        if scale is None:
+            scale = {"x": 1, "y": 1, "z": 1}
 
         return [super().get_add_object(model_name=model_name, object_id=object_id, position=position,
                                        rotation=rotation, library=library),
@@ -182,7 +185,10 @@ class StickyMittenAvatarController(Controller):
                  "id": object_id},
                 {"$type": "scale_object",
                  "id": object_id,
-                 "scale_factor": {"x": scale, "y": scale, "z": scale}},
+                 "scale_factor": scale},
+                {"$type": "set_object_collision_detection_mode",
+                 "id": object_id,
+                 "mode": "continuous_dynamic"},
                 {"$type": "send_rigidbodies",
                  "frequency": "always"},
                 {"$type": "send_transforms",

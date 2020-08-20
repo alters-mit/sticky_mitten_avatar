@@ -107,8 +107,8 @@ class Avatar(ABC):
         self.debug = debug
         self.mitten_offset = self._get_mitten_offset()
         # Set the arm chains.
-        self._arms: Dict[Arm, Chain] = {Arm.left: self._get_arm(),
-                                        Arm.right: self._get_arm()}
+        self._arms: Dict[Arm, Chain] = {Arm.left: self._get_left_arm(),
+                                        Arm.right: self._get_right_arm()}
         # Any current IK goals.
         self._ik_goals: Dict[Arm, Optional[_IKGoal]] = {Arm.left: None,
                                                         Arm.right: None}
@@ -143,7 +143,7 @@ class Avatar(ABC):
         :return: A list of commands to begin bending the arm.
         """
 
-        ik_target = self._ARM_OFFSETS[arm] - np.array(target) - (self.frame.get_position())
+        ik_target = np.array(target) - (self.frame.get_position())
 
         # Rotate the target point to global forward.
         ik_target = rotate_point_around(point=ik_target,
@@ -368,9 +368,16 @@ class Avatar(ABC):
         return commands
 
     @abstractmethod
-    def _get_arm(self) -> Chain:
+    def _get_left_arm(self) -> Chain:
         """
-        :return: The IK chain of an arm.
+        :return: The IK chain of the left arm.
+        """
+
+        raise Exception()
+
+    def _get_right_arm(self) -> Chain:
+        """
+        :return: The IK chain of the right arm.
         """
 
         raise Exception()
