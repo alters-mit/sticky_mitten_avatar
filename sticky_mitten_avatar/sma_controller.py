@@ -33,7 +33,7 @@ class StickyMittenAvatarController(Controller):
         self._objects: Dict[int, PhysicsInfo] = dict()
 
         # The command for the third-person camera, if any.
-        self._cam_command: Optional[dict] = None
+        self._cam_commands: Optional[list] = None
 
         super().__init__(port=port, launch_build=launch_build)
 
@@ -124,8 +124,8 @@ class StickyMittenAvatarController(Controller):
         commands.extend(self._avatar_commands[:])
 
         # Append the third-party look-at command, if any.
-        if self._cam_command is not None:
-            commands.append(self._cam_command)
+        if self._cam_commands is not None:
+            commands.extend(self._cam_commands)
 
         # Clear avatar commands.
         self._avatar_commands.clear()
@@ -462,15 +462,19 @@ class StickyMittenAvatarController(Controller):
         if target_object is not None:
             # Get the avatar's object ID.
             if isinstance(target_object, str):
-                self._cam_command = {"$type": "look_at_avatar",
-                                     "target_avatar_id": target_object,
-                                     "avatar_id": cam_id,
-                                     "use_centroid": True}
+                self._cam_commands = [{"$type": "look_at_avatar",
+                                       "target_avatar_id": target_object,
+                                       "avatar_id": cam_id,
+                                       "use_centroid": True},
+                                      {"$type": "rotate_sensor_container_by",
+                                       "axis": "pitch",
+                                       "angle": -5,
+                                       "avatar_id": cam_id}]
             else:
-                self._cam_command = {"$type": "look_at",
-                                     "object_id": target_object,
-                                     "avatar_id": cam_id,
-                                     "use_centroid": True}
+                self._cam_commands = [{"$type": "look_at",
+                                       "object_id": target_object,
+                                       "avatar_id": cam_id,
+                                       "use_centroid": True}]
         if images != "avatars":
             commands.append({"$type": "set_pass_masks",
                              "pass_masks": ["_img"],
@@ -537,19 +541,6 @@ class StickyMittenAvatarController(Controller):
         # Let the object fall.
         for i in range(200):
             self.communicate([])
-
-    def set_cam_look_at_target(self, object_id: int, cam_id: str = "c") -> None:
-        """
-        Set the target of a third-party camera in the scene. The camera will look at that target.
-
-        :param object_id: The ID of the object.
-        :param cam_id: The ID of the camera.
-        """
-
-        self._cam_command = {"$type": "look_at",
-                             "object_id": object_id,
-                             "avatar_id": cam_id,
-                             "use_centroid": True}
 
     def _get_position(self, target: Union[Dict[str, float], np.array, int],
                       nearest_on_bounds: bool = False, avatar_id: str = None) -> np.array:

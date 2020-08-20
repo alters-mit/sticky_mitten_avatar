@@ -1,4 +1,3 @@
-import numpy as np
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.avatars import Arm
 from sticky_mitten_avatar.sma_controller import StickyMittenAvatarController
@@ -27,10 +26,10 @@ if __name__ == "__main__":
     c.communicate(commands)
 
     avatar_id = "a"
-    c.create_avatar(avatar_id=avatar_id, debug=True)
+    c.create_avatar(avatar_id=avatar_id)
 
     # Add a third-person camera.
-    c.add_overhead_camera({"x": -0.08, "y": 1.25, "z": 1.41}, target_object=o_id, images="cam")
+    c.add_overhead_camera({"x": -0.08, "y": 1.25, "z": 1.41}, target_object=avatar_id, images="cam")
 
     # Pick up the object.
     c.pick_up(avatar_id=avatar_id, object_id=o_id)
@@ -40,4 +39,7 @@ if __name__ == "__main__":
     c.go_to(avatar_id=avatar_id, target=bowl_id)
     # Lift the object up a bit.
     c.bend_arm(avatar_id=avatar_id, target={"x": 1.178, "y": 0.4, "z": 0.34}, arm=Arm.left)
-    #c.put_object_in_container(avatar_id=avatar_id, object_id=o_id, container_id=bowl_id)
+    # Drop the object in the container.
+    c.put_down(avatar_id=avatar_id)
+    for i in range(50):
+        c.communicate([])
