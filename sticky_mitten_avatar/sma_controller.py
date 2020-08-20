@@ -501,8 +501,6 @@ class StickyMittenAvatarController(Controller):
 
         # Go to the container.
         self.go_to(avatar_id=avatar_id, target=container_id)
-        avatar.stop_arms()
-        self.do_joint_motion()
 
         # Move the arm over the container.
         container_position = self._objects[container_id].position

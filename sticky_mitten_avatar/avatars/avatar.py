@@ -234,7 +234,7 @@ class Avatar(ABC):
                         if d < 0.1:
                             if self.debug:
                                 print(f"{mitten} is at target position {self._ik_goals[arm].target}. Stopping.")
-                            commands.extend(self.stop_arms())
+                            commands.extend(self._stop_arms())
                             temp_goals[arm] = None
                         else:
                             # Are we trying to pick up an object?
@@ -244,7 +244,7 @@ class Avatar(ABC):
                                         pick_up_id in frame.get_held_right():
                                     if self.debug:
                                         print(f"{mitten} picked up {self._ik_goals[arm].pick_up_id}. Stopping.")
-                                    commands.extend(self.stop_arms())
+                                    commands.extend(self._stop_arms())
                                     temp_goals[arm] = None
                                 # Keep bending the arm and trying to pick up the object.
                                 else:
@@ -336,7 +336,7 @@ class Avatar(ABC):
             self._ik_goals[arm] = _IKGoal(target=None)
         return commands
 
-    def stop_arms(self) -> List[dict]:
+    def _stop_arms(self) -> List[dict]:
         """
         :return: Commands to stop all arm movement.
         """
