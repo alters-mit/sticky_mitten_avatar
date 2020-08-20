@@ -365,6 +365,11 @@ class Avatar(ABC):
         raise Exception()
 
     def _get_frame(self, resp: List[bytes]) -> AvatarStickyMitten:
+        """
+        :param resp: The response from the build.
+
+        :return: AvatarStickyMitten output data for this avatar on this frame.
+        """
         for i in range(len(resp) - 1):
             r_id = OutputData.get_data_type_id(resp[i])
             if r_id == "avsm":
