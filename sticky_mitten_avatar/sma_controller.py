@@ -201,6 +201,9 @@ class StickyMittenAvatarController(Controller):
         tran = get_data(resp=resp, d_type=Transforms)
         rigi = get_data(resp=resp, d_type=Rigidbodies)
 
+        if tran is None or rigi is None:
+            return resp
+
         for i in range(tran.get_num()):
             o_id = tran.get_id(i)
             self._objects[o_id] = PhysicsInfo(o_id=o_id, rigi=rigi, tran=tran, tr_index=i)

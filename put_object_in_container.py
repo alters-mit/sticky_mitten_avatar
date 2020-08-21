@@ -28,6 +28,7 @@ class PutObjectInContainer(StickyMittenAvatarController):
         if not self.output_dir.exists():
             self.output_dir.mkdir(parents=True)
         self.output_dir = str(self.output_dir.resolve())
+        print(f"Images will be saved to: {self.output_dir}")
 
         super().__init__(port=port, launch_build=launch_build)
 
@@ -95,6 +96,8 @@ class PutObjectInContainer(StickyMittenAvatarController):
         self.put_down(avatar_id=avatar_id)
         for i in range(50):
             self.communicate([])
+        # Stop the build.
+        self.communicate({"$type": "terminate"})
 
 
 if __name__ == "__main__":
