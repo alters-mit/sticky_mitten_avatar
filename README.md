@@ -4,7 +4,7 @@ A high-level api for TDW TDW's [Sticky Mitten Avatar](https://github.com/threedw
 
 ## Installation
 
-1. [Install TDW](https://github.com/threedworld-mit/tdw/)
+1. [Install TDW](https://github.com/threedworld-mit/tdw/) (make sure you are using the latest version)
 2. Clone this repo
 3. `cd path/to/sticky_mitten_avatar` (replace `path/to` with the actual path)
 4. Install the local `sticky_mitten_avatar` pip module:
