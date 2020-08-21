@@ -5,6 +5,16 @@ from tdw.output_data import Transforms, Rigidbodies
 class PhysicsInfo:
     """
     Dynamic physics info (position, velocity, etc.) for a single object.
+    Contains the following information as numpy arrays:
+
+    - `position`
+    - `forward`
+    - `rotation`
+    - `velocity`
+    - `angular_velocity`
+    - `sleeping` (boolean)
+
+    This class is used in the StickyMittenAvatarController.
     """
 
     def __init__(self, o_id: int, tran: Transforms, rigi: Rigidbodies, tr_index: int):

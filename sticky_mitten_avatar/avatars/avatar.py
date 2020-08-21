@@ -71,7 +71,14 @@ class _IKGoal:
 
 class Avatar(ABC):
     """
-    A sticky mitten avatar. Contains high-level "Task" API and IK system.
+    High-level API for a sticky mitten avatar.
+    Do not use this class directly; it is an abstract class. Use the `Baby` class instead (a subclass of `Avatar`).
+
+    Fields:
+
+    - `id` The ID of the avatar.
+    - `body_parts_static` Static body parts data. Key = the name of the part. See `BodyPartsStatic`
+    - `frame` Dynamic info for the avatar on this frame, such as its position. See `tdw.output_data.AvatarStickyMitten`
     """
 
     JOINTS = [Joint(arm="left", axis="pitch", part="shoulder"),
@@ -95,17 +102,14 @@ class Avatar(ABC):
 
     def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False):
         """
-        Add a controller to the scene and cache the static data.
-        The simulation will advance 1 frame.
-
         :param resp: The response from the build after creating the avatar.
         :param avatar_id: The ID of the avatar.
         :param debug: If True, print debug statements.
         """
 
         self.id = avatar_id
-        self.debug = debug
-        self.mitten_offset = self._get_mitten_offset()
+        self._debug = debug
+        self._mitten_offset = self._get_mitten_offset()
         # Set the arm chains.
         self._arms: Dict[Arm, Chain] = {Arm.left: self._get_left_arm(),
                                         Arm.right: self._get_right_arm()}
@@ -148,14 +152,14 @@ class Avatar(ABC):
         # Rotate the target point to global forward.
         ik_target = rotate_point_around(point=ik_target,
                                         angle=get_angle_between(v1=Avatar._FORWARD, v2=self.frame.get_forward()))
-        if self.debug:
+        if self._debug:
             print(f"Absolute target: {target}\tIK target: {ik_target}")
         self._ik_goals[arm] = _IKGoal(target=target)
 
         # Get the IK solution.
         rotations = self._arms[arm].inverse_kinematics(target_position=ik_target, target_orientation=target_orientation)
         commands = []
-        if self.debug:
+        if self._debug:
             print([np.rad2deg(r) for r in rotations])
             self._plot_ik(target=ik_target, arm=arm)
             # Show the target.
@@ -241,11 +245,11 @@ class Avatar(ABC):
                 for i in range(frame.get_num_rigidbody_parts()):
                     # Get the mitten.
                     if frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
-                        mitten_position = np.array(frame.get_body_part_position(i)) + self.mitten_offset
+                        mitten_position = np.array(frame.get_body_part_position(i)) + self._mitten_offset
                         # If we're at the position, stop.
                         d = np.linalg.norm(mitten_position - self._ik_goals[arm].target)
                         if d < 0.1:
-                            if self.debug:
+                            if self._debug:
                                 print(f"{mitten} is at target position {self._ik_goals[arm].target}. Stopping.")
                             commands.extend(self._stop_arms(arm=arm))
                             temp_goals[arm] = None
@@ -255,7 +259,7 @@ class Avatar(ABC):
                                 # Did we pick up the object in the previous frame?
                                 if self._ik_goals[arm].pick_up_id in frame.get_held_left() or self._ik_goals[arm].\
                                         pick_up_id in frame.get_held_right():
-                                    if self.debug:
+                                    if self._debug:
                                         print(f"{mitten} picked up {self._ik_goals[arm].pick_up_id}. Stopping.")
                                     commands.extend(self._stop_arms(arm=arm))
                                     temp_goals[arm] = None
@@ -292,14 +296,14 @@ class Avatar(ABC):
                 # Is any joint still moving?
                 moving = False
                 for a0, a1 in zip(angles_0, angles_1):
-                    if np.abs(a0 - a1) > 0.01:
+                    if np.abs(a0 - a1) > 0.03:
                         moving = True
                         break
                 # Keep moving.
                 if moving:
                     temp_goals[arm] = self._ik_goals[arm]
                 else:
-                    if self.debug:
+                    if self._debug:
                         print(f"{arm.name} is no longer bending. Cancelling.")
                     temp_goals[arm] = None
         self._ik_goals = temp_goals
@@ -412,7 +416,7 @@ class Avatar(ABC):
         for i in range(self.frame.get_num_rigidbody_parts()):
             # Get the mitten.
             if self.frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
-                return np.array(self.frame.get_body_part_position(i)) + self.mitten_offset
+                return np.array(self.frame.get_body_part_position(i)) + self._mitten_offset
         raise Exception(f"Mitten {arm.name} not found.")
 
     def _plot_ik(self, target: np.array, arm: Arm) -> None:

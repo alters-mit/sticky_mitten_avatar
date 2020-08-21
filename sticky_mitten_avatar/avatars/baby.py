@@ -5,6 +5,12 @@ from sticky_mitten_avatar.avatars.avatar import Avatar
 
 
 class Baby(Avatar):
+    """
+    A small sticky mitten avatar.
+
+    See API documentation for `Avatar`.
+    """
+
     def _get_left_arm(self) -> Chain:
         return Chain(name="left_arm", links=[
             OriginLink(),
@@ -40,6 +46,7 @@ class Baby(Avatar):
                      bounds=(0, 1.5708))])
 
     def _get_right_arm(self) -> Chain:
+        print("The right arm is still WIP")
         return Chain(name="right_arm", links=[
             OriginLink(),
             URDFLink(name="shoulder_pitch",

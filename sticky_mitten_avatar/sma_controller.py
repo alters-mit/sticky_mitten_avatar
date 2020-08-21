@@ -44,6 +44,22 @@ class StickyMittenAvatarController(Controller):
     # Bend an arm.
     c.bend_arm(avatar_id=avatar_id, target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
     ```
+
+    ***
+
+    Fields:
+
+    - `on_resp` Default = None. Set this to a function with a `resp` argument to do something per-frame:
+
+    ```python
+    from sticky_mitten_avatar.sma_controller import StickyMittenAvatarController
+
+    def per_frame():
+        print("This will happen every frame.")
+
+    c = StickyMittenAvatarController(launch_build=False)
+    c.on_resp = per_frame
+    ```
     """
 
     # A high drag value to stop movement.
@@ -64,7 +80,7 @@ class StickyMittenAvatarController(Controller):
 
         # The command for the third-person camera, if any.
         self._cam_commands: Optional[list] = None
-        # What to do after receiving a
+        # What to do after receiving a response.
         self.on_resp = None
 
         super().__init__(port=port, launch_build=launch_build)
@@ -149,7 +165,18 @@ class StickyMittenAvatarController(Controller):
         # Cache the avatar.
         self._avatars[avatar_id] = avatar
 
-    def communicate(self, commands: Union[dict, List[dict]]) -> list:
+    def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
+        """
+        Overrides `Controller.communicate()`.
+        Before sending commands, append any automatically-added commands (such as arm-bending or arm-stopping).
+        If there is a third-person camera, append commands to look at a target (see `add_overhead_camera()`).
+        After sending the commands, update the avatar's `frame` data, and dynamic object data.
+        Then, invoke `self.on_resp()` if it is not None.
+
+        :param commands: Commands to send to the build.
+
+        :return: The response from the build.
+        """
         if not isinstance(commands, list):
             commands = [commands]
         # Add avatar commands from the previous frame.
@@ -285,6 +312,22 @@ class StickyMittenAvatarController(Controller):
     def do_joint_motion(self) -> None:
         """
         Step through the simulation until the joints of all avatars are done moving.
+        Useful when you want concurrent action (for example, multiple avatars in the same scene):
+
+        ```python
+        c = StickyMittenAvatarController()
+
+        c.create_avatar(avatar_id="a")
+        c.create_avatar(avatar_id="b")
+
+        # Tell both avatars to start bending arms to different positions.
+        # Set do_motion to False so that the avatars can act at the same time.
+        c.bend_arm(avatar_id="a", target=pos_a, arm=Arm.left, do_motion=False)
+        c.bend_arm(avatar_id="b", target=pos_b, arm=Arm.left, do_motion=False)
+
+        # Wait until both avatars are done moving.
+        self.do_joint_mothion()
+        ```
         """
 
         done = False
