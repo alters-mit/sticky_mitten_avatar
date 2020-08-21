@@ -1,23 +1,24 @@
 import numpy as np
-from typing import Dict, List, TypeVar, Type
-from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Collision
+from typing import Dict, List, TypeVar, Type, Optional
+from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Collision, Images
 
 
 T = TypeVar("T", bound=OutputData)
 # Output data types mapped to their IDs.
 _OUTPUT_IDS: Dict[Type[OutputData], str] = {Transforms: "tran",
                                             Rigidbodies: "rigi",
-                                            Bounds: "boun"}
+                                            Bounds: "boun",
+                                            Images: "imag"}
 
 
-def get_data(resp: List[bytes], d_type: Type[T]) -> T:
+def get_data(resp: List[bytes], d_type: Type[T]) -> Optional[T]:
     """
     Parse the output data list of byte arrays to get a single type output data object.
 
     :param resp: The response from the build (a list of byte arrays).
     :param d_type: The desired type of output data.
 
-    :return: A list of all objects of type `o_type`.
+    :return: An object of type `d_type` from `resp`. If there is no object, returns None.
     """
 
     if d_type not in _OUTPUT_IDS:
@@ -27,6 +28,7 @@ def get_data(resp: List[bytes], d_type: Type[T]) -> T:
         r_id = OutputData.get_data_type_id(resp[i])
         if r_id == _OUTPUT_IDS[d_type]:
             return d_type(resp[i])
+    return None
 
 
 def get_collisions(resp: List[bytes]) -> List[Collision]:

@@ -21,10 +21,40 @@ class _TaskState(Enum):
 
 
 class StickyMittenAvatarController(Controller):
+    """
+    High-level API controller for sticky mitten avatars. Use this with the `Baby` and `Adult` avatar classes.
+    This controller will cache static data for the avatars (such as segmentation colors) and automatically update
+    dynamic data (such as position). The controller also has useful wrapper functions to handle the avatar API.
+
+    ```python
+    from tdw.tdw_utils import TDWUtils
+    from sticky_mitten_avatar.avatars import Arm
+    from sticky_mitten_avatar.sma_controller import StickyMittenAvatarController
+
+    c = StickyMittenAvatarController(launch_build=False)
+
+    # Create an empty room.
+    c.start()
+    c.communicate(TDWUtils.create_empty_room(12, 12))
+
+    # Create an avatar.
+    avatar_id = "a"
+    c.create_avatar(avatar_id=avatar_id)
+
+    # Bend an arm.
+    c.bend_arm(avatar_id=avatar_id, target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
+    ```
+    """
+
     # A high drag value to stop movement.
     _STOP_DRAG = 1000
 
     def __init__(self, port: int = 1071, launch_build: bool = True):
+        """
+        :param port: The port number.
+        :param launch_build: If True, automatically launch the build.
+        """
+
         # Cache the entities.
         self._avatars: Dict[str, Avatar] = dict()
         # Commands sent by avatars.
@@ -34,6 +64,8 @@ class StickyMittenAvatarController(Controller):
 
         # The command for the third-person camera, if any.
         self._cam_commands: Optional[list] = None
+        # What to do after receiving a
+        self.on_resp = None
 
         super().__init__(port=port, launch_build=launch_build)
 
@@ -149,6 +181,11 @@ class StickyMittenAvatarController(Controller):
         # Update the avatars. Add new avatar commands for the next frame.
         for a_id in self._avatars:
             self._avatar_commands.extend(self._avatars[a_id].on_frame(resp=resp))
+
+        # Do something with the response per-frame.
+        if self.on_resp is not None:
+            self.on_resp(resp)
+
         return resp
 
     def get_add_object(self, model_name: str, object_id: int, position: Dict[str, float] = None,
@@ -492,55 +529,6 @@ class StickyMittenAvatarController(Controller):
             commands.append({"$type": "send_images",
                              "frequency": "always"})
         self.communicate(commands)
-
-    def put_object_in_container(self, avatar_id: str, object_id: int, container_id: int) -> None:
-        """
-        Try to put an object held by an avatar's arm in a container.
-
-        :param avatar_id: The ID of the avatar.
-        :param object_id: The ID of the object.
-        :param container_id: The unique ID of the container.
-        """
-
-        # Go to the object.
-        self.go_to(avatar_id=avatar_id, target=object_id)
-        # Pick up the object.
-        arm = self.pick_up(avatar_id=avatar_id, object_id=object_id)
-        self.do_joint_motion()
-        mitten = f"mitten_{arm.name}"
-
-        # Check if the avatar picked up the object. Otherwise, stop.
-        avatar = self._avatars[avatar_id]
-        if (object_id not in avatar.frame.get_held_left()) and (object_id not in avatar.frame.get_held_right()):
-            if avatar.debug:
-                print("Avatar failed to pick up the object.")
-            return
-
-        # Go to the container.
-        self.go_to(avatar_id=avatar_id, target=container_id)
-
-        # Move the arm over the container.
-        container_position = self._objects[container_id].position
-
-        # Move the arm until it is over the container.
-        obj_xz = np.array([container_position[0], container_position[2]])
-        self.bend_arm(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(container_position), arm=arm)
-        done = False
-        while (not avatar.is_ik_done()) and (not done):
-            for i in range(avatar.frame.get_num_rigidbody_parts()):
-                # Get the mitten.
-                if avatar.frame.get_body_part_id(i) == avatar.body_parts_static[mitten].o_id:
-                    mitten_position = np.array(avatar.frame.get_body_part_position(i)) + avatar.mitten_offset
-                    mitten_position = np.array([mitten_position[0], mitten_position[2]])
-                    d = np.linalg.norm(obj_xz - mitten_position)
-                    if d < 0.15:
-                        done = True
-            self.communicate([])
-        # Stop the arms.
-        self.put_down(avatar_id=avatar_id, reset_arms=True)
-        # Let the object fall.
-        for i in range(200):
-            self.communicate([])
 
     def _get_position(self, target: Union[Dict[str, float], np.array, int],
                       nearest_on_bounds: bool = False, avatar_id: str = None) -> np.array:
