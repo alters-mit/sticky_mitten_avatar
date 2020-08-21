@@ -36,20 +36,12 @@ Fields:
 ```python
 from sticky_mitten_avatar.sma_controller import StickyMittenAvatarController
 
-def per_frame():
+def _per_frame():
     print("This will happen every frame.")
 
 c = StickyMittenAvatarController(launch_build=False)
-c.on_resp = per_frame
+c.on_resp = _per_frame
 ```
-
-***
-
-#### `per_frame()`
-
-# A high drag value to stop movement.
-_STOP_DRAG = 1000
-def __init__(self, port: int = 1071, launch_build: bool = True):
 
 ***
 
