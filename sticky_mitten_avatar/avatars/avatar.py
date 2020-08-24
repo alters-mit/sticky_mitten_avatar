@@ -241,7 +241,7 @@ class Avatar(ABC):
                 for i in range(frame.get_num_rigidbody_parts()):
                     # Get the mitten.
                     if frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
-                        mitten_position = np.array(frame.get_body_part_position(i)) + self._mitten_offset
+                        mitten_position = np.array(frame.get_body_part_position(i))
                         # If we're at the position, stop.
                         d = np.linalg.norm(mitten_position - self._ik_goals[arm].target)
                         if d < 0.1:
@@ -345,9 +345,17 @@ class Avatar(ABC):
                                  "angle": 0,
                                  "avatar_id": self.id})
         # Add some dummy IK goals.
+        self.set_dummy_ik_goals()
+        return commands
+
+    def set_dummy_ik_goals(self) -> None:
+        """
+        Set "dummy" IK goals.
+        There's no target, so the avatar will just bend the arms until they stop moving.
+        """
+
         for arm in self._ik_goals:
             self._ik_goals[arm] = _IKGoal(target=None)
-        return commands
 
     def _stop_arms(self, arm: Arm) -> List[dict]:
         """

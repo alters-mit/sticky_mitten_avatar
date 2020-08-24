@@ -1,11 +1,12 @@
+import random
 from enum import Enum
 import numpy as np
-from typing import Dict, List, Union, Optional
+from typing import Dict, List, Union, Optional, Tuple
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
 from tdw.output_data import Bounds, Transforms, Rigidbodies
 from sticky_mitten_avatar.avatars import Arm, Baby
-from sticky_mitten_avatar.avatars.avatar import Avatar
+from sticky_mitten_avatar.avatars.avatar import Avatar, Joint
 from sticky_mitten_avatar.util import get_data, get_angle, get_closest_point_in_bounds
 from sticky_mitten_avatar.physics_info import PhysicsInfo
 
@@ -157,7 +158,7 @@ class StickyMittenAvatarController(Controller):
                               "axis": joint.axis,
                               "avatar_id": avatar_id},
                              {"$type": "adjust_joint_damper_by",
-                              "delta": 200,
+                              "delta": 300,
                               "joint": joint.joint,
                               "axis": joint.axis,
                               "avatar_id": avatar_id}])
@@ -530,6 +531,78 @@ class StickyMittenAvatarController(Controller):
             i += 1
         self.stop_avatar(avatar_id=avatar_id)
         return False
+
+    def shake(self, avatar_id: str, joint_name: str = "elbow_left", axis: str = "pitch",
+              angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (6, 12),
+              force: Tuple[float, float] = (400, 400)) -> None:
+        """
+        Shake a joint back and forth for multiple iterations.
+        Per iteration, the joint will bend forward by an angle and then bend back by an angle.
+        This will advance the simulation multiple frames.
+
+        :param avatar_id: The ID of the avatar.
+        :param joint_name: The name of the joint.
+        :param axis: The axis of the joint's rotation.
+        :param angle: Each shake will bend the joint by a angle in degrees within this range.
+        :param num_shakes: The avatar will shake the joint a number of times within this range.
+        :param force: The avatar will add strength to the joint by a value within this range.
+        """
+
+        # Check if the joint and axis are valid.
+        joint: Optional[Joint] = None
+        for j in Avatar.JOINTS:
+            if j.joint == joint_name and j.axis == axis:
+                joint = j
+                break
+        if joint is None:
+            return
+
+        force = random.uniform(force[0], force[1])
+        damper = 200
+        # Increase the force of the joint.
+        self.communicate([{"$type": "adjust_joint_force_by",
+                           "delta": force,
+                           "joint": joint.joint,
+                           "axis": joint.axis,
+                           "avatar_id": avatar_id},
+                          {"$type": "adjust_joint_damper_by",
+                           "delta": -damper,
+                           "joint": joint.joint,
+                           "axis": joint.axis,
+                           "avatar_id": avatar_id}])
+        # Do each iteration.
+        for i in range(random.randint(num_shakes[0], num_shakes[1])):
+            a = random.uniform(angle[0], angle[1])
+            # Start the shake.
+            self.communicate({"$type": "bend_arm_joint_by",
+                              "angle": a,
+                              "joint": joint.joint,
+                              "axis": joint.axis,
+                              "avatar_id": avatar_id})
+            for j in range(10):
+                self.communicate([])
+            # Bend the arm back.
+            self.communicate({"$type": "bend_arm_joint_by",
+                              "angle": -(a / 2),
+                              "joint": joint.joint,
+                              "axis": joint.axis,
+                              "avatar_id": avatar_id})
+            for j in range(10):
+                self.communicate([])
+            # Apply the motion.
+            self.do_joint_motion()
+        # Reset the force of the joint.
+        self.communicate([{"$type": "adjust_joint_force_by",
+                           "delta": -force,
+                           "joint": joint.joint,
+                           "axis": joint.axis,
+                           "avatar_id": avatar_id},
+                          {"$type": "adjust_joint_damper_by",
+                           "delta": damper,
+                           "joint": joint.joint,
+                           "axis": joint.axis,
+                           "avatar_id": avatar_id}])
+
 
     def add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c",
                             images: str = "all") -> None:
