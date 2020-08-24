@@ -211,6 +211,9 @@ class StickyMittenAvatarController(Controller):
         # Clear avatar commands.
         self._avatar_commands.clear()
 
+        # Add audio commands.
+        commands.extend(self._get_audio_commands())
+
         # Send the commands and get a response.
         resp = super().communicate(commands)
 
