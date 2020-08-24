@@ -1,5 +1,4 @@
 import matplotlib.pyplot
-from mpl_toolkits.mplot3d import Axes3D
 from typing import Dict, Union, List, Tuple, Optional
 import numpy as np
 from abc import ABC, abstractmethod
@@ -94,9 +93,6 @@ class Avatar(ABC):
               Joint(arm="right", axis="roll", part="wrist"),
               Joint(arm="right", axis="pitch", part="wrist")]
 
-    # Positional offsets for each arm from the root of the avatar.
-    _ARM_OFFSETS = {Arm.left: np.array([-0.235, 0.565, 0.075]),
-                    Arm.right: np.array([0.235, 0.565, 0.075])}
     # Global forward directional vector.
     _FORWARD = np.array([0, 0, 1])
 

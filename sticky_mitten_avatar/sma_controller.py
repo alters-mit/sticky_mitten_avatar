@@ -85,8 +85,8 @@ class StickyMittenAvatarController(Controller):
 
         super().__init__(port=port, launch_build=launch_build)
         # Set image encoding to jpgs.
-        self.communicate({"$type": "set_img_pass_encoding",
-                          "value": False})
+        self.communicate([{"$type": "set_img_pass_encoding",
+                          "value": False}])
 
     def create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None,
                       debug: bool = False) -> None:
@@ -135,7 +135,11 @@ class StickyMittenAvatarController(Controller):
                           "frequency": "always"},
                          {"$type": "toggle_image_sensor",
                           "sensor_name": "FollowCamera",
-                          "avatar_id": avatar_id}])
+                          "avatar_id": avatar_id},
+                         {"$type": "send_rigidbodies",
+                          "frequency": "always"},
+                         {"$type": "send_transforms",
+                          "frequency": "always"}])
         # Set all sides of both mittens to be sticky.
         for sub_mitten in ["palm", "back", "side"]:
             for is_left in [True, False]:
@@ -148,7 +152,7 @@ class StickyMittenAvatarController(Controller):
         # Strengthen the avatar.
         for joint in Avatar.JOINTS:
             commands.extend([{"$type": "adjust_joint_force_by",
-                              "delta": 20,
+                              "delta": 40,
                               "joint": joint.joint,
                               "axis": joint.axis,
                               "avatar_id": avatar_id},
