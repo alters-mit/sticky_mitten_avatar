@@ -5,10 +5,12 @@ from typing import Dict, List, Union, Optional, Tuple
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
 from tdw.output_data import Bounds, Transforms, Rigidbodies
+from tdw.py_impact import AudioMaterial
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint
 from sticky_mitten_avatar.util import get_data, get_angle, get_closest_point_in_bounds
 from sticky_mitten_avatar.physics_info import PhysicsInfo
+from sticky_mitten_avatar.frame_data import FrameData
 
 
 class _TaskState(Enum):
@@ -50,6 +52,7 @@ class StickyMittenAvatarController(Controller):
 
     Fields:
 
+    - `frame_data` This is update per frame. [Read this](frame_data.md) for a full API.
     - `on_resp` Default = None. Set this to a function with a `resp` argument to do something per-frame:
 
     ```python
@@ -66,28 +69,39 @@ class StickyMittenAvatarController(Controller):
     # A high drag value to stop movement.
     _STOP_DRAG = 1000
 
-    def __init__(self, port: int = 1071, launch_build: bool = True):
+    def __init__(self, port: int = 1071, launch_build: bool = True, audio_playback_mode: str = None):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
+        :param audio_playback_mode: How the build will play back audio. Options: None (no playback, but audio will be generated in `self.frame_data`), `"unity"` (use the standard Unity audio system), `"resonance_audio"` (use Resonance Audio).
         """
 
         # Cache the entities.
         self._avatars: Dict[str, Avatar] = dict()
         # Commands sent by avatars.
         self._avatar_commands: List[dict] = []
-        # Cached object physics info.
+        # Per-frame object physics info.
         self._objects: Dict[int, PhysicsInfo] = dict()
+        # Cache names of models.
+        self._object_names: Dict[int, str] = dict()
+        self._surface_material = AudioMaterial.hardwood
+        self._audio_playback_mode = audio_playback_mode
 
         # The command for the third-person camera, if any.
         self._cam_commands: Optional[list] = None
         # What to do after receiving a response.
         self.on_resp = None
+        self.frame_data: Optional[FrameData] = None
 
         super().__init__(port=port, launch_build=launch_build)
         # Set image encoding to jpgs.
         self.communicate([{"$type": "set_img_pass_encoding",
-                          "value": False}])
+                          "value": False},
+                          {"$type": "send_collisions",
+                           "enter": True,
+                           "stay": False,
+                           "exit": False,
+                           "collision_types": ["obj", "env"]}])
 
     def create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None,
                       debug: bool = False) -> None:
@@ -212,6 +226,9 @@ class StickyMittenAvatarController(Controller):
         if tran is None or rigi is None:
             return resp
 
+        # Update the frame data.
+        self.frame_data = FrameData(resp=resp, object_names=self._object_names, surface_material=self._surface_material)
+
         for i in range(tran.get_num()):
             o_id = tran.get_id(i)
             self._objects[o_id] = PhysicsInfo(o_id=o_id, rigi=rigi, tran=tran, tr_index=i)
@@ -251,6 +268,8 @@ class StickyMittenAvatarController(Controller):
             rotation = {"x": 0, "y": 0, "z": 0}
         if scale is None:
             scale = {"x": 1, "y": 1, "z": 1}
+
+        self._object_names[object_id] = model_name
 
         return [super().get_add_object(model_name=model_name, object_id=object_id, position=position,
                                        rotation=rotation, library=library),
@@ -603,7 +622,6 @@ class StickyMittenAvatarController(Controller):
                            "axis": joint.axis,
                            "avatar_id": avatar_id}])
 
-
     def add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c",
                             images: str = "all") -> None:
         """
@@ -688,3 +706,28 @@ class StickyMittenAvatarController(Controller):
             return TDWUtils.vector3_to_array(target)
         else:
             return target
+
+    def _get_audio_commands(self) -> List[dict]:
+        """
+        :return: A list of audio commands generated from `self.frame_data`
+        """
+
+        commands = []
+        if self._audio_playback_mode is None:
+            return commands
+        if self._audio_playback_mode == "unity":
+            cmd = "play_audio_data"
+        elif self._audio_playback_mode == "resonance_audio":
+            cmd = "play_point_source_data"
+        else:
+            raise Exception(f"Bad audio playback type: {self._audio_playback_mode}")
+
+        for audio, object_id in self.frame_data.audio:
+            commands.append({"$type": cmd,
+                             "id": object_id,
+                             "num_frames": audio.length,
+                             "num_channels": 1,
+                             "frame_rate": 44100,
+                             "wav_data": audio.wav_str,
+                             "y_pos_offset": 0.1})
+        return commands

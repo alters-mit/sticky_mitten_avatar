@@ -31,6 +31,7 @@ c.bend_arm(avatar_id=avatar_id, target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=A
 
 Fields:
 
+- `frame_data` This is update per frame. [Read this](frame_data.md) for a full API.
 - `on_resp` Default = None. Set this to a function with a `resp` argument to do something per-frame:
 
 ```python
@@ -45,13 +46,14 @@ c.on_resp = _per_frame
 
 ***
 
-#### `__init__(self, port: int = 1071, launch_build: bool = True)`
+#### `__init__(self, port: int = 1071, launch_build: bool = True, audio_playback_mode: str = None)`
 
 
 | Parameter | Description |
 | --- | --- |
 | port | The port number. |
 | launch_build | If True, automatically launch the build. |
+| audio_playback_mode | How the build will play back audio. Options: None (no playback, but audio will be generated in `self.frame_data`), `"unity"` (use the standard Unity audio system), `"resonance_audio"` (use Resonance Audio). |
 
 ***
 
@@ -215,6 +217,23 @@ _Returns:_  True if the avatar arrived at the destination.
 #### `get_state() -> _TaskState`
 
 _Returns:_  Whether the avatar is at its destination, overshot it, or still going to it.
+
+***
+
+#### `shake(self, avatar_id: str, joint_name: str = "elbow_left", axis`
+
+Shake a joint back and forth for multiple iterations.
+Per iteration, the joint will bend forward by an angle and then bend back by an angle.
+This will advance the simulation multiple frames.
+
+| Parameter | Description |
+| --- | --- |
+| avatar_id | The ID of the avatar. |
+| joint_name | The name of the joint. |
+| axis | The axis of the joint's rotation. |
+| angle | Each shake will bend the joint by a angle in degrees within this range. |
+| num_shakes | The avatar will shake the joint a number of times within this range. |
+| force | The avatar will add strength to the joint by a value within this range. |
 
 ***
 

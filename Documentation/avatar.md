@@ -156,3 +156,10 @@ _Returns:_  A list of commands to put down the object.
 
 ***
 
+#### `set_dummy_ik_goals(self) -> None`
+
+Set "dummy" IK goals.
+There's no target, so the avatar will just bend the arms until they stop moving.
+
+***
+
