@@ -93,11 +93,31 @@ class PyDocGen:
         began_desc = False
         func_desc = ""
 
+        txt = lines[start_index][:]
+        # Get the definition string across multiple lines.
+        if "__init__" in lines[start_index]:
+            match = re.search(r"def (.*)\):", txt, flags=re.MULTILINE)
+            count = 1
+            while match is None:
+                txt += lines[start_index + count]
+                match = re.search(r"def (.*)\):", txt, flags=re.MULTILINE)
+                count += 1
+            def_str = match.group(1)
+            def_str = " ".join(def_str.split()) + ")"
+        else:
+            match = re.search(r"def (.*) -> (.*):", txt, flags=re.MULTILINE)
+            count = 1
+            while match is None:
+                txt += lines[start_index + count]
+                match = re.search(r"def (.*) -> (.*):", txt, flags=re.MULTILINE)
+                count += 1
+            def_str = match.group(1) + " -> " + match.group(2)
+            def_str = " ".join(def_str.split())
+
         # Get the name of the function.
         match = re.search("def (.*):", lines[start_index])
         assert match is not None, f"Bad def:\t{lines[start_index]}"
-        # Append the name of the function.
-        func_desc += "#### `" + match.group(1) + "`\n\n"
+        func_desc += "#### `" + def_str + "`\n\n"
 
         is_static = lines[start_index - 1].strip() == "@staticmethod"
         if is_static:
@@ -176,6 +196,7 @@ class PyDocGen:
         files = ["sticky_mitten_avatar/avatars/avatar.py",
                  "sticky_mitten_avatar/avatars/baby.py",
                  "sticky_mitten_avatar/dynamic_object_info.py",
+                 "sticky_mitten_avatar/static_object_info.py",
                  "sticky_mitten_avatar/sma_controller.py",
                  "sticky_mitten_avatar/frame_data.py",
                  "sticky_mitten_avatar/util.py"]

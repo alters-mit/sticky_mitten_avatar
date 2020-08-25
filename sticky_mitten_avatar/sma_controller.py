@@ -4,12 +4,13 @@ import numpy as np
 from typing import Dict, List, Union, Optional, Tuple
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
-from tdw.output_data import Bounds, Transforms, Rigidbodies
+from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Volumes
 from tdw.py_impact import AudioMaterial
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint
 from sticky_mitten_avatar.util import get_data, get_angle, get_closest_point_in_bounds
 from sticky_mitten_avatar.dynamic_object_info import DynamicObjectInfo
+from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 
 
@@ -46,13 +47,19 @@ class StickyMittenAvatarController(Controller):
 
     # Bend an arm.
     c.bend_arm(avatar_id=avatar_id, target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
+
+    # Get the segementation color pass for the avatar after bending the arm.
+    segmentation_colors = c.frame_data.images[avatar_id][0]
     ```
 
     ***
 
     Fields:
 
-    - `frame_data` This is update per frame. [Read this](frame_data.md) for a full API.
+    - `frame_data` Dynamic data for the current frame. Overwrites itself per frame.
+                   [Read this](frame_data.md) for a full API.
+                   Note: Most of the avatar API advances the simulation multiple frames.
+    - `static_object_info`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
     - `on_resp` Default = None. Set this to a function with a `resp` argument to do something per-frame:
 
     ```python
@@ -83,7 +90,7 @@ class StickyMittenAvatarController(Controller):
         # Per-frame object physics info.
         self._dynamic_object_info: Dict[int, DynamicObjectInfo] = dict()
         # Cache names of models.
-        self._object_names: Dict[int, str] = dict()
+        self.static_object_data: Dict[int, StaticObjectInfo] = dict()
         self._surface_material = AudioMaterial.hardwood
         self._audio_playback_mode = audio_playback_mode
 
@@ -99,12 +106,14 @@ class StickyMittenAvatarController(Controller):
         """
         Call this function at the end of scene setup (after all objects and avatars have been created).
         This function will request return data (collisions, transforms, etc.) and correctly initialize image capture.
+        It will also cache [static object data](static_object_data.md)
 
         :param commands: Additional commands to send at the end of scene setup (if you are overriding this function).
         """
 
         # Set image encoding to jpgs.
         # Request Collisions, Rigidbodies, and Transforms.
+        # Request SegmentationColors, Bounds, and Volumes for this frame only.
         end_commands = [{"$type": "set_img_pass_encoding",
                          "value": False},
                         {"$type": "send_collisions",
@@ -115,10 +124,29 @@ class StickyMittenAvatarController(Controller):
                         {"$type": "send_rigidbodies",
                          "frequency": "always"},
                         {"$type": "send_transforms",
-                         "frequency": "always"}]
+                         "frequency": "always"},
+                        {"$type": "send_segmentation_colors",
+                         "frequency": "once"},
+                        {"$type": "send_bounds",
+                         "frequency": "once"},
+                        {"$type": "send_volumes",
+                         "frequency": "once"}]
         if commands is not None:
             end_commands.extend(commands)
-        self.communicate(end_commands)
+        resp = self.communicate(end_commands)
+
+        # Cache the static object data.
+        segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
+        bounds = get_data(resp=resp, d_type=Bounds)
+        volumes = get_data(resp=resp, d_type=Volumes)
+        rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
+        for i in range(segmentation_colors.get_num()):
+            static_object = StaticObjectInfo(index=i,
+                                             segmentation_colors=segmentation_colors,
+                                             rigidbodies=rigidbodies,
+                                             volumes=volumes,
+                                             bounds=bounds)
+            self.static_object_data[static_object.object_id] = static_object
 
     def create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None,
                       debug: bool = False) -> None:
@@ -243,7 +271,7 @@ class StickyMittenAvatarController(Controller):
             return resp
 
         # Update the frame data.
-        self.frame_data = FrameData(resp=resp, object_names=self._object_names, surface_material=self._surface_material)
+        self.frame_data = FrameData(resp=resp, objects=self.static_object_data, surface_material=self._surface_material)
 
         for i in range(tran.get_num()):
             o_id = tran.get_id(i)
@@ -285,8 +313,6 @@ class StickyMittenAvatarController(Controller):
         if scale is None:
             scale = {"x": 1, "y": 1, "z": 1}
 
-        self._object_names[object_id] = model_name
-
         return [super().get_add_object(model_name=model_name, object_id=object_id, position=position,
                                        rotation=rotation, library=library),
                 {"$type": "set_mass",
@@ -297,11 +323,7 @@ class StickyMittenAvatarController(Controller):
                  "scale_factor": scale},
                 {"$type": "set_object_collision_detection_mode",
                  "id": object_id,
-                 "mode": "continuous_dynamic"},
-                {"$type": "send_rigidbodies",
-                 "frequency": "always"},
-                {"$type": "send_transforms",
-                 "frequency": "always"}]
+                 "mode": "continuous_dynamic"}]
 
     def bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float], do_motion: bool = True) -> None:
         """

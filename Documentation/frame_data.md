@@ -16,13 +16,13 @@ Fields:
 
 ***
 
-#### `__init__(self, resp: List[bytes], object_names: Dict[int, str], surface_material: AudioMaterial)`
+#### `__init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], surface_material: AudioMaterial)`
 
 
 | Parameter | Description |
 | --- | --- |
 | resp | The response from the build. |
-| object_names | The model name of key object. Key = the ID of the object in the scene. |
+| objects | Static object info per object. Key = the ID of the object in the scene. |
 | surface_material | The floor's [audio material](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#audiomaterialenum). |
 
 ***

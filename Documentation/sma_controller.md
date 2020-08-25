@@ -25,13 +25,19 @@ c.create_avatar(avatar_id=avatar_id)
 
 # Bend an arm.
 c.bend_arm(avatar_id=avatar_id, target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
+
+# Get the segementation color pass for the avatar after bending the arm.
+segmentation_colors = c.frame_data.images[avatar_id][0]
 ```
 
 ***
 
 Fields:
 
-- `frame_data` This is update per frame. [Read this](frame_data.md) for a full API.
+- `frame_data` Dynamic data for the current frame. Overwrites itself per frame.
+               [Read this](frame_data.md) for a full API.
+               Note: Most of the avatar API advances the simulation multiple frames.
+- `static_object_info`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
 - `on_resp` Default = None. Set this to a function with a `resp` argument to do something per-frame:
 
 ```python
@@ -61,6 +67,7 @@ c.on_resp = _per_frame
 
 Call this function at the end of scene setup (after all objects and avatars have been created).
 This function will request return data (collisions, transforms, etc.) and correctly initialize image capture.
+It will also cache [static object data](static_object_data.md)
 
 | Parameter | Description |
 | --- | --- |
@@ -68,7 +75,7 @@ This function will request return data (collisions, transforms, etc.) and correc
 
 ***
 
-#### `create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position`
+#### `create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None, debug: bool = False) -> None`
 
 Create an avatar. Set default values for the avatar. Cache its static data (segmentation colors, etc.)
 
@@ -97,7 +104,7 @@ _Returns:_  The response from the build.
 
 ***
 
-#### `get_add_object(self, model_name: str, object_id: int, position`
+#### `get_add_object(self, model_name: str, object_id: int, position: Dict[str, float] = None, rotation: Dict[str, float] = None, library: str = "", mass: int = 1, scale: Dict[str, float] = None) -> List[dict]`
 
 Overrides Controller.get_add_object; returns a list of commands instead of 1 command.
 See `ModelLibrarian.get_library_filenames()` and `ModelLibrarian.get_default_library()`.
@@ -186,7 +193,7 @@ Advance 1 frame and stop the avatar's movement and turning.
 
 ***
 
-#### `turn_to(self, avatar_id: str, target: Union[Dict[str, float], int], force`
+#### `turn_to(self, avatar_id: str, target: Union[Dict[str, float], int], force: float = 300, stopping_threshold: float = 0.1) -> bool`
 
 The avatar will turn to face a target. This will advance through many simulation frames.
 
@@ -207,7 +214,7 @@ _Returns:_  Whether avatar succeed, failed, or is presently turning.
 
 ***
 
-#### `go_to(self, avatar_id: str, target`
+#### `go_to(self, avatar_id: str, target: Union[Dict[str, float], int], turn_force: float = 300, turn_stopping_threshold: float = 0.1, move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool`
 
 Go to a target position or object.
 If the avatar isn't facing the target, it will turn to face it (see `turn_to()`).
@@ -231,7 +238,7 @@ _Returns:_  Whether the avatar is at its destination, overshot it, or still goin
 
 ***
 
-#### `shake(self, avatar_id: str, joint_name: str = "elbow_left", axis`
+#### `shake(self, avatar_id: str, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (6, 12), force: Tuple[float, float] = (400, 400)) -> None`
 
 Shake a joint back and forth for multiple iterations.
 Per iteration, the joint will bend forward by an angle and then bend back by an angle.
@@ -248,7 +255,7 @@ This will advance the simulation multiple frames.
 
 ***
 
-#### `add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id`
+#### `add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c", images: str = "all") -> None`
 
 Add an overhead third-person camera to the scene.
 Advances 1 frame.

@@ -2,6 +2,7 @@ import numpy as np
 from typing import List, Dict, Optional, Tuple
 from tdw.output_data import OutputData, Rigidbodies, Images
 from tdw.py_impact import PyImpact, AudioMaterial, Base64Sound
+from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 
 
 class FrameData:
@@ -20,10 +21,10 @@ class FrameData:
     _P = PyImpact()
     _STATIC_AUDIO_INFO = PyImpact.get_object_info()
 
-    def __init__(self, resp: List[bytes], object_names: Dict[int, str], surface_material: AudioMaterial):
+    def __init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], surface_material: AudioMaterial):
         """
         :param resp: The response from the build.
-        :param object_names: The model name of key object. Key = the ID of the object in the scene.
+        :param objects: Static object info per object. Key = the ID of the object in the scene.
         :param surface_material: The floor's [audio material](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#audiomaterialenum).
         """
 
@@ -37,8 +38,8 @@ class FrameData:
             # Determine which object has less mass.
             collider_id = coll.get_collider_id()
             collidee_id = coll.get_collidee_id()
-            collider_info = FrameData._STATIC_AUDIO_INFO[object_names[collider_id]]
-            collidee_info = FrameData._STATIC_AUDIO_INFO[object_names[collidee_id]]
+            collider_info = FrameData._STATIC_AUDIO_INFO[objects[collider_id].model_name]
+            collidee_info = FrameData._STATIC_AUDIO_INFO[objects[collidee_id].model_name]
             if collider_info.mass < collidee_info:
                 target_id = collider_id
                 target_amp = collider_info.amp
@@ -60,7 +61,7 @@ class FrameData:
         for coll in env_collisions:
             collider_id = coll.get_object_id()
             if FrameData._get_velocity(rigidbodies, collider_id) > 0:
-                collider_info = FrameData._STATIC_AUDIO_INFO[object_names[collider_id]]
+                collider_info = FrameData._STATIC_AUDIO_INFO[objects[collider_id].model_name]
                 audio = FrameData._P.get_sound(coll, rigidbodies, 1, surface_material.name, collider_id,
                                                collider_info.material.name, 0.01 / collider_info.amp)
                 self.audio.append((audio, collider_id))

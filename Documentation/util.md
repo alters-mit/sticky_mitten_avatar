@@ -13,18 +13,6 @@ _Returns:_  An object of type `d_type` from `resp`. If there is no object, retur
 
 ***
 
-#### `get_collisions(resp: List[bytes]) -> List[Collision]`
-
-Use this function instead of `get_data` for collision data (because there might be multiple collisions).
-
-| Parameter | Description |
-| --- | --- |
-| resp | The response from the build (a list of byte arrays). |
-
-_Returns:_  A list of all collisions on this frame.
-
-***
-
 #### `get_bounds_dict(bounds: Bounds, index: int) -> Dict[str, np.array]`
 
 

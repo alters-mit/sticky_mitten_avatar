@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Dict, List, TypeVar, Type, Optional
-from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Collision, Images
+from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Images, SegmentationColors, Volumes
 
 
 T = TypeVar("T", bound=OutputData)
@@ -8,7 +8,9 @@ T = TypeVar("T", bound=OutputData)
 _OUTPUT_IDS: Dict[Type[OutputData], str] = {Transforms: "tran",
                                             Rigidbodies: "rigi",
                                             Bounds: "boun",
-                                            Images: "imag"}
+                                            Images: "imag",
+                                            SegmentationColors: "segm",
+                                            Volumes: "volu"}
 
 
 def get_data(resp: List[bytes], d_type: Type[T]) -> Optional[T]:
@@ -29,22 +31,6 @@ def get_data(resp: List[bytes], d_type: Type[T]) -> Optional[T]:
         if r_id == _OUTPUT_IDS[d_type]:
             return d_type(resp[i])
     return None
-
-
-def get_collisions(resp: List[bytes]) -> List[Collision]:
-    """
-    Use this function instead of `get_data` for collision data (because there might be multiple collisions).
-
-    :param resp: The response from the build (a list of byte arrays).
-    :return: A list of all collisions on this frame.
-    """
-
-    collisions: List[Collision] = []
-    for i in range(len(resp) - 1):
-        r_id = OutputData.get_data_type_id(resp[i])
-        if r_id == "coll":
-            collisions.append(Collision(resp[i]))
-    return collisions
 
 
 def get_bounds_dict(bounds: Bounds, index: int) -> Dict[str, np.array]:
