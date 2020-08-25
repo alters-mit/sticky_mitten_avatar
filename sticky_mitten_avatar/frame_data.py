@@ -1,7 +1,7 @@
 import numpy as np
 from typing import List, Dict, Optional, Tuple
 from tdw.output_data import OutputData, Rigidbodies, Images, Transforms
-from tdw.py_impact import PyImpact, AudioMaterial, Base64Sound
+from tdw.py_impact import PyImpact, AudioMaterial, Base64Sound, CollisionTypesOnFrame, CollisionType
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.util import get_data
 
@@ -30,19 +30,32 @@ class FrameData:
 
         self.audio: List[Tuple[Base64Sound, int]] = list()
         collisions, env_collisions, rigidbodies = FrameData._P.get_collisions(resp=resp)
+        collision_types: Dict[int, CollisionTypesOnFrame] = dict()
 
-        self.positions = Dict[int, np.array] = dict()
+        self.positions: Dict[int, np.array] = dict()
         tr = get_data(resp=resp, d_type=Transforms)
         for i in range(tr.get_num()):
-            self.positions[tr.get_id(i)] = np.array(tr.get_position(i))
+            o_id = tr.get_id(i)
+            self.positions[o_id] = np.array(tr.get_position(i))
+
+            collision_types[o_id] = CollisionTypesOnFrame(resp=resp, object_id=o_id)
 
         # Get the audio of each collision.
         for coll in collisions:
             if not FrameData._P.is_valid_collision(coll):
                 continue
-            # Determine which object has less mass.
             collider_id = coll.get_collider_id()
             collidee_id = coll.get_collidee_id()
+
+            # Skip non-impact events.
+            if collider_id not in collision_types:
+                continue
+
+            if collidee_id not in collision_types[collider_id].collisions:
+                continue
+            if collision_types[collider_id].collisions != CollisionType.impact:
+                continue
+
             collider_info = FrameData._STATIC_AUDIO_INFO[objects[collider_id].model_name]
             collidee_info = FrameData._STATIC_AUDIO_INFO[objects[collidee_id].model_name]
             if collider_info.mass < collidee_info:
@@ -65,6 +78,13 @@ class FrameData:
         # Get the audio of each environment collision.
         for coll in env_collisions:
             collider_id = coll.get_object_id()
+
+            # Skip non-impact events.
+            if collider_id not in collision_types:
+                continue
+            if collision_types[collider_id].env_collision != CollisionType.impact:
+                continue
+
             if FrameData._get_velocity(rigidbodies, collider_id) > 0:
                 collider_info = FrameData._STATIC_AUDIO_INFO[objects[collider_id].model_name]
                 audio = FrameData._P.get_sound(coll, rigidbodies, 1, surface_material.name, collider_id,
