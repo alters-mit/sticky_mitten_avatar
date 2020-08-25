@@ -84,6 +84,9 @@ class PutObjectInContainer(StickyMittenAvatarController):
         # Add a third-person camera.
         self.add_overhead_camera({"x": -0.08, "y": 1.25, "z": 1.41}, target_object=avatar_id, images="cam")
 
+        # End scene setup.
+        self.end_scene_setup()
+
         # Pick up the object.
         self.pick_up(avatar_id=avatar_id, object_id=o_id)
         # Lift the object up a bit.

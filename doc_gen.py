@@ -175,7 +175,7 @@ class PyDocGen:
     def generate() -> None:
         files = ["sticky_mitten_avatar/avatars/avatar.py",
                  "sticky_mitten_avatar/avatars/baby.py",
-                 "sticky_mitten_avatar/physics_info.py",
+                 "sticky_mitten_avatar/dynamic_object_info.py",
                  "sticky_mitten_avatar/sma_controller.py",
                  "sticky_mitten_avatar/frame_data.py",
                  "sticky_mitten_avatar/util.py"]

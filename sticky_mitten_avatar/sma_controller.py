@@ -9,7 +9,7 @@ from tdw.py_impact import AudioMaterial
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint
 from sticky_mitten_avatar.util import get_data, get_angle, get_closest_point_in_bounds
-from sticky_mitten_avatar.physics_info import PhysicsInfo
+from sticky_mitten_avatar.dynamic_object_info import DynamicObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 
 
@@ -81,7 +81,7 @@ class StickyMittenAvatarController(Controller):
         # Commands sent by avatars.
         self._avatar_commands: List[dict] = []
         # Per-frame object physics info.
-        self._objects: Dict[int, PhysicsInfo] = dict()
+        self._dynamic_object_info: Dict[int, DynamicObjectInfo] = dict()
         # Cache names of models.
         self._object_names: Dict[int, str] = dict()
         self._surface_material = AudioMaterial.hardwood
@@ -94,14 +94,31 @@ class StickyMittenAvatarController(Controller):
         self.frame_data: Optional[FrameData] = None
 
         super().__init__(port=port, launch_build=launch_build)
+
+    def end_scene_setup(self, commands: List[dict] = None) -> None:
+        """
+        Call this function at the end of scene setup (after all objects and avatars have been created).
+        This function will request return data (collisions, transforms, etc.) and correctly initialize image capture.
+
+        :param commands: Additional commands to send at the end of scene setup (if you are overriding this function).
+        """
+
         # Set image encoding to jpgs.
-        self.communicate([{"$type": "set_img_pass_encoding",
-                          "value": False},
-                          {"$type": "send_collisions",
-                           "enter": True,
-                           "stay": False,
-                           "exit": False,
-                           "collision_types": ["obj", "env"]}])
+        # Request Collisions, Rigidbodies, and Transforms.
+        end_commands = [{"$type": "set_img_pass_encoding",
+                         "value": False},
+                        {"$type": "send_collisions",
+                         "enter": True,
+                         "stay": False,
+                         "exit": False,
+                         "collision_types": ["obj", "env"]},
+                        {"$type": "send_rigidbodies",
+                         "frequency": "always"},
+                        {"$type": "send_transforms",
+                         "frequency": "always"}]
+        if commands is not None:
+            end_commands.extend(commands)
+        self.communicate(end_commands)
 
     def create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None,
                       debug: bool = False) -> None:
@@ -150,11 +167,7 @@ class StickyMittenAvatarController(Controller):
                           "frequency": "always"},
                          {"$type": "toggle_image_sensor",
                           "sensor_name": "FollowCamera",
-                          "avatar_id": avatar_id},
-                         {"$type": "send_rigidbodies",
-                          "frequency": "always"},
-                         {"$type": "send_transforms",
-                          "frequency": "always"}])
+                          "avatar_id": avatar_id}])
         # Set all sides of both mittens to be sticky.
         for sub_mitten in ["palm", "back", "side"]:
             for is_left in [True, False]:
@@ -221,7 +234,7 @@ class StickyMittenAvatarController(Controller):
             return resp
 
         # Clear object info.
-        self._objects.clear()
+        self._dynamic_object_info.clear()
         # Update object info.
         tran = get_data(resp=resp, d_type=Transforms)
         rigi = get_data(resp=resp, d_type=Rigidbodies)
@@ -234,7 +247,7 @@ class StickyMittenAvatarController(Controller):
 
         for i in range(tran.get_num()):
             o_id = tran.get_id(i)
-            self._objects[o_id] = PhysicsInfo(o_id=o_id, rigi=rigi, tran=tran, tr_index=i)
+            self._dynamic_object_info[o_id] = DynamicObjectInfo(o_id=o_id, rigi=rigi, tran=tran, tr_index=i)
 
         # Update the avatars. Add new avatar commands for the next frame.
         for a_id in self._avatars:
@@ -692,7 +705,7 @@ class StickyMittenAvatarController(Controller):
 
         # This is an object ID.
         if isinstance(target, int):
-            if target not in self._objects:
+            if target not in self._dynamic_object_info:
                 raise Exception(f"Object not found: {target}")
             # Get the nearest point from the avatar.
             if nearest_on_bounds and (avatar_id is not None):
@@ -704,7 +717,7 @@ class StickyMittenAvatarController(Controller):
                                                    origin=self._avatars[avatar_id].frame.get_position(),
                                                    index=0)
             # Get the object's position.
-            return self._objects[target].position
+            return self._dynamic_object_info[target].position
         elif isinstance(target, dict):
             return TDWUtils.vector3_to_array(target)
         else:
