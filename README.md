@@ -30,6 +30,9 @@ Use the [StickyMittenAvatarController](Documentation/sma_controller.md) to creat
 | `go_to()`               | Tell an avatar to go to a target position or object.         |
 | `stop_avatar()`         | Stop the avatar's movement and turning.                      |
 | `add_overhead_camera()` | Add a third-person camera to the scene.                      |
+| `static_object_info`    | [Static object info](Documentation/static_object_info.md) per object in the scene. |
+| `on_resp`               | Do something with the response (output data) per frame.      |
+| `frame`                 | [Frame data](Documentation/frame_data.md) for the most recent frame. |
 
 #### Mid-Level
 
@@ -62,7 +65,7 @@ The [TDW Command API](https://github.com/threedworld-mit/tdw/blob/master/Documen
 
 ## To-do
 
-- [ ] Finalize the baby's arm chain (the right arm doesn't work that well)
+- [x] Finalize the baby's arm chain (the right arm doesn't work that well)
 - [ ] Continue to adjust the IK system (it's still flaky)
 - [ ] Add the adult
 - [ ] Add more motion and movement functions to the API

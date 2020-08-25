@@ -49,26 +49,34 @@ class StickyMittenAvatarController(Controller):
     c.bend_arm(avatar_id=avatar_id, target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
 
     # Get the segementation color pass for the avatar after bending the arm.
-    segmentation_colors = c.frame_data.images[avatar_id][0]
+    segmentation_colors = c.frame.images[avatar_id][0]
     ```
 
     ***
 
     Fields:
 
-    - `frame_data` Dynamic data for the current frame. Overwrites itself per frame.
+    - `frame` Dynamic data for the current frame. Overwrites itself per frame.
                    [Read this](frame_data.md) for a full API.
                    Note: Most of the avatar API advances the simulation multiple frames.
-    - `static_object_info`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
+    ```python
+    # Get the segementation color pass for the avatar after bending the arm.
+    segmentation_colors = c.frame.images[avatar_id][0]
+    ```
+
+    - `static_object_data`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
+
+    ```python
+    # Get the segmentation color of an object.
+    segmentation_color = c.static_object_info[object_id].segmentation_color
+    ```
+
     - `on_resp` Default = None. Set this to a function with a `resp` argument to do something per-frame:
 
     ```python
-    from sticky_mitten_avatar.sma_controller import StickyMittenAvatarController
-
     def _per_frame():
         print("This will happen every frame.")
 
-    c = StickyMittenAvatarController(launch_build=False)
     c.on_resp = _per_frame
     ```
     """
@@ -90,7 +98,7 @@ class StickyMittenAvatarController(Controller):
         # Per-frame object physics info.
         self._dynamic_object_info: Dict[int, DynamicObjectInfo] = dict()
         # Cache names of models.
-        self.static_object_data: Dict[int, StaticObjectInfo] = dict()
+        self.static_object_info: Dict[int, StaticObjectInfo] = dict()
         self._surface_material = AudioMaterial.hardwood
         self._audio_playback_mode = audio_playback_mode
 
@@ -98,7 +106,7 @@ class StickyMittenAvatarController(Controller):
         self._cam_commands: Optional[list] = None
         # What to do after receiving a response.
         self.on_resp = None
-        self.frame_data: Optional[FrameData] = None
+        self.frame: Optional[FrameData] = None
 
         super().__init__(port=port, launch_build=launch_build)
 
@@ -146,7 +154,7 @@ class StickyMittenAvatarController(Controller):
                                              rigidbodies=rigidbodies,
                                              volumes=volumes,
                                              bounds=bounds)
-            self.static_object_data[static_object.object_id] = static_object
+            self.static_object_info[static_object.object_id] = static_object
 
     def create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None,
                       debug: bool = False) -> None:
@@ -271,7 +279,7 @@ class StickyMittenAvatarController(Controller):
             return resp
 
         # Update the frame data.
-        self.frame_data = FrameData(resp=resp, objects=self.static_object_data, surface_material=self._surface_material)
+        self.frame = FrameData(resp=resp, objects=self.static_object_info, surface_material=self._surface_material)
 
         for i in range(tran.get_num()):
             o_id = tran.get_id(i)
@@ -760,7 +768,7 @@ class StickyMittenAvatarController(Controller):
         else:
             raise Exception(f"Bad audio playback type: {self._audio_playback_mode}")
 
-        for audio, object_id in self.frame_data.audio:
+        for audio, object_id in self.frame.audio:
             commands.append({"$type": cmd,
                              "id": object_id,
                              "num_frames": audio.length,
