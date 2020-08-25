@@ -1,11 +1,13 @@
 import random
 from enum import Enum
 import numpy as np
+from pkg_resources import resource_filename
 from typing import Dict, List, Union, Optional, Tuple
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
+from tdw.librarian import ModelLibrarian
 from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Volumes
-from tdw.py_impact import AudioMaterial
+from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint
 from sticky_mitten_avatar.util import get_data, get_angle, get_closest_point_in_bounds
@@ -84,12 +86,28 @@ class StickyMittenAvatarController(Controller):
     # A high drag value to stop movement.
     _STOP_DRAG = 1000
 
+    _STATIC_FRICTION = {AudioMaterial.ceramic: 0.47,
+                        AudioMaterial.hardwood: 0.4,
+                        AudioMaterial.wood: 0.4,
+                        AudioMaterial.cardboard: 0.47,
+                        AudioMaterial.glass: 0.65,
+                        AudioMaterial.metal: 0.52}
+    _DYNAMIC_FRICTION = {AudioMaterial.ceramic: 0.47,
+                         AudioMaterial.hardwood: 0.35,
+                         AudioMaterial.wood: 0.35,
+                         AudioMaterial.cardboard: 0.47,
+                         AudioMaterial.glass: 0.65,
+                         AudioMaterial.metal: 0.43}
+
     def __init__(self, port: int = 1071, launch_build: bool = True, audio_playback_mode: str = None):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
         :param audio_playback_mode: How the build will play back audio. Options: None (no playback, but audio will be generated in `self.frame_data`), `"unity"` (use the standard Unity audio system), `"resonance_audio"` (use Resonance Audio).
         """
+
+        # The containers library.
+        self._lib_containers = ModelLibrarian(library=resource_filename(__name__, "metadata_libraries/containers.json"))
 
         # Cache the entities.
         self._avatars: Dict[str, Avatar] = dict()
@@ -101,6 +119,16 @@ class StickyMittenAvatarController(Controller):
         self.static_object_info: Dict[int, StaticObjectInfo] = dict()
         self._surface_material = AudioMaterial.hardwood
         self._audio_playback_mode = audio_playback_mode
+        # Load default audio values for objects.
+        self._default_audio_values = PyImpact.get_object_info()
+        # Load custom audio values.
+        custom_audio_info = PyImpact.get_object_info(resource_filename(__name__, "audio.csv"))
+        for a in custom_audio_info:
+            av = custom_audio_info[a]
+            av.library = resource_filename(__name__, av.library)
+            self._default_audio_values[a] = av
+
+        self._audio_values: Dict[int, ObjectInfo] = dict()
 
         # The command for the third-person camera, if any.
         self._cam_commands: Optional[list] = None
@@ -153,7 +181,8 @@ class StickyMittenAvatarController(Controller):
                                              segmentation_colors=segmentation_colors,
                                              rigidbodies=rigidbodies,
                                              volumes=volumes,
-                                             bounds=bounds)
+                                             bounds=bounds,
+                                             audio=self._audio_values[segmentation_colors.get_object_id(i)])
             self.static_object_info[static_object.object_id] = static_object
 
     def create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None,
@@ -225,6 +254,12 @@ class StickyMittenAvatarController(Controller):
                               "joint": joint.joint,
                               "axis": joint.axis,
                               "avatar_id": avatar_id}])
+        if self._audio_playback_mode == "unity":
+            commands.append({"$type": "add_audio_sensor",
+                             "avatar_id": avatar_id})
+        elif self._audio_playback_mode == "resonance_audio":
+            commands.append({"$type": "add_environ_audio_sensor",
+                             "avatar_id": avatar_id})
 
         # Send the commands. Get a response.
         resp = self.communicate(commands)
@@ -296,8 +331,8 @@ class StickyMittenAvatarController(Controller):
         return resp
 
     def get_add_object(self, model_name: str, object_id: int, position: Dict[str, float] = None,
-                       rotation: Dict[str, float] = None, library: str = "", mass: int = 1,
-                       scale: Dict[str, float] = None) -> List[dict]:
+                       rotation: Dict[str, float] = None, library: str = "",
+                       scale: Dict[str, float] = None, audio: ObjectInfo = None) -> List[dict]:
         """
         Overrides Controller.get_add_object; returns a list of commands instead of 1 command.
 
@@ -307,11 +342,11 @@ class StickyMittenAvatarController(Controller):
         :param library: The path to the records file. If left empty, the default library will be selected.
                         See `ModelLibrarian.get_library_filenames()` and `ModelLibrarian.get_default_library()`.
         :param object_id: The ID of the new object.
-        :param mass: The mass of the object.
         :param scale: The scale factor of the object. If None, the scale factor is (1, 1, 1)
+        :param audio: Audio values for the object. If None, use default values.
 
         :return: A list of commands: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode,
-                                       send_transforms, send_rigidbodies]`
+                                       set_physic_material]`
         """
 
         if position is None:
@@ -320,18 +355,53 @@ class StickyMittenAvatarController(Controller):
             rotation = {"x": 0, "y": 0, "z": 0}
         if scale is None:
             scale = {"x": 1, "y": 1, "z": 1}
+        if audio is None:
+            audio = self._default_audio_values[model_name]
+        self._audio_values[object_id] = audio
 
         return [super().get_add_object(model_name=model_name, object_id=object_id, position=position,
                                        rotation=rotation, library=library),
                 {"$type": "set_mass",
-                 "mass": mass,
+                 "mass": audio.mass,
                  "id": object_id},
                 {"$type": "scale_object",
                  "id": object_id,
                  "scale_factor": scale},
                 {"$type": "set_object_collision_detection_mode",
                  "id": object_id,
-                 "mode": "continuous_dynamic"}]
+                 "mode": "continuous_dynamic"},
+                {"$type": "set_physic_material",
+                 "dynamic_friction": StickyMittenAvatarController._DYNAMIC_FRICTION[audio.material],
+                 "static_friction": StickyMittenAvatarController._STATIC_FRICTION[audio.material],
+                 "bounciness": audio.bounciness,
+                 "id": object_id}]
+
+    def get_add_container(self, model_name: str, object_id: int, contents: List[str], position: Dict[str, float] = None,
+                          rotation: Dict[str, float] = None, audio: ObjectInfo = None,
+                          scale: Dict[str, float] = None) -> List[dict]:
+        record = self._lib_containers.get_record(model_name)
+        assert record is not None, f"Couldn't find container record for: {model_name}"
+
+        if position is None:
+            position = {"x": 0, "y": 0, "z": 0}
+
+        # Get commands to add the container.
+        commands = self.get_add_object(model_name=model_name, object_id=object_id, position=position, rotation=rotation,
+                                       library=self._lib_containers.library, audio=audio, scale=scale)
+        bounds = record.bounds
+        # Get the radius in which objects can reasonably be placed.
+        radius = (min(bounds['front']['z'] - bounds['back']['z'],
+                      bounds['right']['x'] - bounds['left']['x']) / 2 * record.scale_factor) - 0.03
+        # Add small objects.
+        for obj_name in contents:
+            obj = self._default_audio_values[obj_name]
+            o_pos = TDWUtils.array_to_vector3(TDWUtils.get_random_point_in_circle(
+                center=TDWUtils.vector3_to_array(position),
+                radius=radius))
+            o_pos["y"] = position["y"] + 0.01
+            commands.extend(self.get_add_object(model_name=obj.name, position=o_pos, audio=obj,
+                                                object_id=self.get_unique_id(), library=obj.library))
+        return commands
 
     def bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float], do_motion: bool = True) -> None:
         """
@@ -598,8 +668,8 @@ class StickyMittenAvatarController(Controller):
         return False
 
     def shake(self, avatar_id: str, joint_name: str = "elbow_left", axis: str = "pitch",
-              angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (6, 12),
-              force: Tuple[float, float] = (400, 400)) -> None:
+              angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (3, 5),
+              force: Tuple[float, float] = (900, 1000)) -> None:
         """
         Shake a joint back and forth for multiple iterations.
         Per iteration, the joint will bend forward by an angle and then bend back by an angle.
@@ -652,7 +722,7 @@ class StickyMittenAvatarController(Controller):
                               "joint": joint.joint,
                               "axis": joint.axis,
                               "avatar_id": avatar_id})
-            for j in range(10):
+            for j in range(50):
                 self.communicate([])
             # Apply the motion.
             self.do_joint_motion()
@@ -767,8 +837,12 @@ class StickyMittenAvatarController(Controller):
             cmd = "play_point_source_data"
         else:
             raise Exception(f"Bad audio playback type: {self._audio_playback_mode}")
+        if self.frame is None:
+            return commands
 
         for audio, object_id in self.frame.audio:
+            if audio is None:
+                continue
             commands.append({"$type": cmd,
                              "id": object_id,
                              "num_frames": audio.length,

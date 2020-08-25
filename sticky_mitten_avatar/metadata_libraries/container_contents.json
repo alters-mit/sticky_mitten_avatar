@@ -1,0 +1,431 @@
+{
+    "description": "Small objects for containers",
+    "records": {
+        "ball_cardboard": {
+            "asset_bundle_sizes": {
+                "Darwin": 70845,
+                "Linux": 106825,
+                "Windows": 37880
+            },
+            "bounds": {
+                "back": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": -0.5
+                },
+                "bottom": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "center": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "front": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "left": {
+                    "x": -0.5,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "right": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "top": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                }
+            },
+            "canonical_rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "composite_object": false,
+            "do_not_use": false,
+            "do_not_use_reason": "",
+            "flex": true,
+            "name": "ball_cardboard",
+            "physics_quality": 1,
+            "scale_factor": 0.02,
+            "substructure": [
+                {
+                    "materials": [
+                        "None"
+                    ],
+                    "name": "sphere"
+                }
+            ],
+            "urls": {
+                "Darwin": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/osx/2019.2/sphere",
+                "Linux": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/linux/2019.2/sphere",
+                "Windows": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/windows/2019.2/sphere"
+            },
+            "wcategory": "flex_primitive",
+            "wnid": ""
+        },
+        "ball_ceramic": {
+            "asset_bundle_sizes": {
+                "Darwin": 70845,
+                "Linux": 106825,
+                "Windows": 37880
+            },
+            "bounds": {
+                "back": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": -0.5
+                },
+                "bottom": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "center": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "front": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "left": {
+                    "x": -0.5,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "right": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "top": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                }
+            },
+            "canonical_rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "composite_object": false,
+            "do_not_use": false,
+            "do_not_use_reason": "",
+            "flex": true,
+            "name": "ball_ceramic",
+            "physics_quality": 1,
+            "scale_factor": 0.02,
+            "substructure": [
+                {
+                    "materials": [
+                        "None"
+                    ],
+                    "name": "sphere"
+                }
+            ],
+            "urls": {
+                "Darwin": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/osx/2019.2/sphere",
+                "Linux": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/linux/2019.2/sphere",
+                "Windows": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/windows/2019.2/sphere"
+            },
+            "wcategory": "flex_primitive",
+            "wnid": ""
+        },
+        "ball_glass": {
+            "asset_bundle_sizes": {
+                "Darwin": 70845,
+                "Linux": 106825,
+                "Windows": 37880
+            },
+            "bounds": {
+                "back": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": -0.5
+                },
+                "bottom": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "center": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "front": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "left": {
+                    "x": -0.5,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "right": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "top": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                }
+            },
+            "canonical_rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "composite_object": false,
+            "do_not_use": false,
+            "do_not_use_reason": "",
+            "flex": true,
+            "name": "ball_glass",
+            "physics_quality": 1,
+            "scale_factor": 0.02,
+            "substructure": [
+                {
+                    "materials": [
+                        "None"
+                    ],
+                    "name": "sphere"
+                }
+            ],
+            "urls": {
+                "Darwin": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/osx/2019.2/sphere",
+                "Linux": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/linux/2019.2/sphere",
+                "Windows": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/windows/2019.2/sphere"
+            },
+            "wcategory": "flex_primitive",
+            "wnid": ""
+        },
+        "ball_hardwood": {
+            "asset_bundle_sizes": {
+                "Darwin": 70845,
+                "Linux": 106825,
+                "Windows": 37880
+            },
+            "bounds": {
+                "back": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": -0.5
+                },
+                "bottom": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "center": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "front": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "left": {
+                    "x": -0.5,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "right": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "top": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                }
+            },
+            "canonical_rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "composite_object": false,
+            "do_not_use": false,
+            "do_not_use_reason": "",
+            "flex": true,
+            "name": "ball_hardwood",
+            "physics_quality": 1,
+            "scale_factor": 0.02,
+            "substructure": [
+                {
+                    "materials": [
+                        "None"
+                    ],
+                    "name": "sphere"
+                }
+            ],
+            "urls": {
+                "Darwin": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/osx/2019.2/sphere",
+                "Linux": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/linux/2019.2/sphere",
+                "Windows": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/windows/2019.2/sphere"
+            },
+            "wcategory": "flex_primitive",
+            "wnid": ""
+        },
+        "ball_metal": {
+            "asset_bundle_sizes": {
+                "Darwin": 70845,
+                "Linux": 106825,
+                "Windows": 37880
+            },
+            "bounds": {
+                "back": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": -0.5
+                },
+                "bottom": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "center": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "front": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "left": {
+                    "x": -0.5,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "right": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "top": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                }
+            },
+            "canonical_rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "composite_object": false,
+            "do_not_use": false,
+            "do_not_use_reason": "",
+            "flex": true,
+            "name": "ball_metal",
+            "physics_quality": 1,
+            "scale_factor": 0.02,
+            "substructure": [
+                {
+                    "materials": [
+                        "None"
+                    ],
+                    "name": "sphere"
+                }
+            ],
+            "urls": {
+                "Darwin": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/osx/2019.2/sphere",
+                "Linux": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/linux/2019.2/sphere",
+                "Windows": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/windows/2019.2/sphere"
+            },
+            "wcategory": "flex_primitive",
+            "wnid": ""
+        },
+        "ball_wood": {
+            "asset_bundle_sizes": {
+                "Darwin": 70845,
+                "Linux": 106825,
+                "Windows": 37880
+            },
+            "bounds": {
+                "back": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": -0.5
+                },
+                "bottom": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "center": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "front": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "left": {
+                    "x": -0.5,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "right": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "top": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                }
+            },
+            "canonical_rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "composite_object": false,
+            "do_not_use": false,
+            "do_not_use_reason": "",
+            "flex": true,
+            "name": "ball_wood",
+            "physics_quality": 1,
+            "scale_factor": 0.02,
+            "substructure": [
+                {
+                    "materials": [
+                        "None"
+                    ],
+                    "name": "sphere"
+                }
+            ],
+            "urls": {
+                "Darwin": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/osx/2019.2/sphere",
+                "Linux": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/linux/2019.2/sphere",
+                "Windows": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/windows/2019.2/sphere"
+            },
+            "wcategory": "flex_primitive",
+            "wnid": ""
+        }
+    }
+}

@@ -18,8 +18,7 @@ class FrameData:
                The images tuple is (segmentation pass, depth pass). Either can be None.
     """
 
-    _P = PyImpact()
-    _STATIC_AUDIO_INFO = PyImpact.get_object_info()
+    _P = PyImpact(initial_amp=0.03)
 
     def __init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], surface_material: AudioMaterial):
         """
@@ -38,27 +37,17 @@ class FrameData:
             o_id = tr.get_id(i)
             self.positions[o_id] = np.array(tr.get_position(i))
 
-            collision_types[o_id] = CollisionTypesOnFrame(resp=resp, object_id=o_id)
-
         # Get the audio of each collision.
         for coll in collisions:
-            if not FrameData._P.is_valid_collision(coll):
-                continue
             collider_id = coll.get_collider_id()
             collidee_id = coll.get_collidee_id()
 
-            # Skip non-impact events.
-            if collider_id not in collision_types:
+            if collider_id not in objects or collidee_id not in objects:
                 continue
 
-            if collidee_id not in collision_types[collider_id].collisions:
-                continue
-            if collision_types[collider_id].collisions != CollisionType.impact:
-                continue
-
-            collider_info = FrameData._STATIC_AUDIO_INFO[objects[collider_id].model_name]
-            collidee_info = FrameData._STATIC_AUDIO_INFO[objects[collidee_id].model_name]
-            if collider_info.mass < collidee_info:
+            collider_info = objects[collider_id].audio
+            collidee_info = objects[collidee_id].audio
+            if collider_info.mass < collidee_info.mass:
                 target_id = collider_id
                 target_amp = collider_info.amp
                 target_mat = collider_info.material.name
@@ -66,10 +55,10 @@ class FrameData:
                 other_amp = collidee_info.amp
                 other_mat = collider_info.material.name
             else:
-                target_id = collider_info
-                target_amp = collider_info.amp
-                target_mat = collider_info.material.name
-                other_id = collider_info
+                target_id = collidee_id
+                target_amp = collidee_info.amp
+                target_mat = collidee_info.material.name
+                other_id = collider_id
                 other_amp = collider_info.amp
                 other_mat = collider_info.material.name
             audio = FrameData._P.get_sound(coll, rigidbodies, other_id, other_mat, target_id, target_mat,
@@ -82,11 +71,9 @@ class FrameData:
             # Skip non-impact events.
             if collider_id not in collision_types:
                 continue
-            if collision_types[collider_id].env_collision != CollisionType.impact:
-                continue
 
             if FrameData._get_velocity(rigidbodies, collider_id) > 0:
-                collider_info = FrameData._STATIC_AUDIO_INFO[objects[collider_id].model_name]
+                collider_info = objects[collider_id].audio
                 audio = FrameData._P.get_sound(coll, rigidbodies, 1, surface_material.name, collider_id,
                                                collider_info.material.name, 0.01 / collider_info.amp)
                 self.audio.append((audio, collider_id))
