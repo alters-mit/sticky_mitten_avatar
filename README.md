@@ -53,7 +53,8 @@ The [TDW Command API](https://github.com/threedworld-mit/tdw/blob/master/Documen
 | [StickyMittenAvatarController](Documentation/sma_controller.md) | High-level API controller for sticky mitten avatars.         |
 | [Avatar](Documentation/avatar.md)                            | High-level API for a sticky mitten avatar. Do not use this class directly; it is an abstract class. Use the `Baby` class instead (a subclass of `Avatar`). |
 | [Baby](Documentation/baby.md)                                | A small sticky mitten avatar.                                |
-| [PhysicsInfo](Documentation/physics_info.md)                 | Dynamic physics info (position, velocity, etc.) for a single object. |
+| [DynamicObjectInfo](Documentation/dynamic_object_info.md)    | Dynamic physics info (position, velocity, etc.) for a single object. |
+| [StaticObjectInfo](Documentation/static_object_info.md)      | Static object info (ID, segmentation color, etc.) for a single object. |
 | [util](Documentation/util.md)                                | Utility functions.                                           |
 
 ## Examples
