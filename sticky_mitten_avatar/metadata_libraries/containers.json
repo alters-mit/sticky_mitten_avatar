@@ -64,14 +64,15 @@
                         "m2.002",
                         "m3.002"
                     ],
-                    "name": "box_00(Clone)"
+                    "name": "box_00"
                 }
             ],
             "urls": {
-                "Linux": "file:///C:\\Users\\Seth Alter\\asset_bundle_creator\\Assets\\NewAssetBundles\\box_00\\StandaloneLinux64\\box_00",
-                "Windows": "file:///C:\\Users\\Seth Alter\\asset_bundle_creator\\Assets\\NewAssetBundles\\box_00\\StandaloneWindows64\\box_00"
+                "Darwin": "../asset_bundles/Darwin/box_00",
+                "Linux": "../asset_bundles/Linux/box_00",
+                "Windows": "../asset_bundles/Windows/box_00"
             },
-            "wcategory": "box",
+            "wcategory": "container",
             "wnid": "n02886585"
         }
     }

@@ -9,9 +9,9 @@ from tdw.asset_bundle_creator import AssetBundleCreator
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--name", type=str,
+    parser.add_argument("--name", type=str, default="box_00",
                         help="The name of the prefab in ~/asset_bundle_creator/Assets/Resources/prefab")
-    parser.add_argument("--lib", type=str, default="containers.json", help="The name of the local library.")
+    parser.add_argument("--lib", type=str, default="containers", help="The name of the local library.")
     args = parser.parse_args()
 
     # Load the local library.
@@ -31,20 +31,22 @@ if __name__ == "__main__":
     urls = a.get_local_urls(src_paths)
 
     # Create the metadata record.
-    record_path = a.create_record(args.name, 2886585, "box", 1, urls)
+    record_path = a.create_record(args.name, 2886585, "container", 1, urls)
     record = ModelRecord(json.loads(record_path.read_text(encoding="utf-8")))
 
     # Add the record.
     r = lib.get_record(record.name)
-    if r is None:
-        lib.add_or_update_record(record=record, overwrite=False, write=True)
-    # Update the URLs.
+    lib.add_or_update_record(record=record, overwrite=False if r is None else True, write=True)
+    # Make the URLs relative paths.
+    temp = dict()
     for p in record.urls:
         dest_dir = f"../asset_bundles/{p}"
         dd = root_dest.joinpath(f"asset_bundles/{p}")
         if not dd.exists():
             dd.mkdir(parents=True)
-        record.urls[p] = f"../asset_bundles/{p}/{record.name}"
+        temp[p] = f"../asset_bundles/{p}/{record.name}"
+    record.urls = temp
+    lib.add_or_update_record(record=record, overwrite=True, write=True)
     # Copy the asset bundles.
     for p in UNITY_TO_SYSTEM:
         src = src_asset_bundles[p]
