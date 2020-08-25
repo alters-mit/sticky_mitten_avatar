@@ -57,6 +57,17 @@ c.on_resp = _per_frame
 
 ***
 
+#### `end_scene_setup(self, commands: List[dict] = None) -> None`
+
+Call this function at the end of scene setup (after all objects and avatars have been created).
+This function will request return data (collisions, transforms, etc.) and correctly initialize image capture.
+
+| Parameter | Description |
+| --- | --- |
+| commands | Additional commands to send at the end of scene setup (if you are overriding this function). |
+
+***
+
 #### `create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position`
 
 Create an avatar. Set default values for the avatar. Cache its static data (segmentation colors, etc.)

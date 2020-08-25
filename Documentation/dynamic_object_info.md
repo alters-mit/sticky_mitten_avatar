@@ -1,8 +1,8 @@
-# `sticky_mitten_avatar/physics_info.py`
+# `sticky_mitten_avatar/dynamic_object_info.py`
 
-## `PhysicsInfo`
+## `DynamicObjectInfo`
 
-`from tdw.sticky_mitten_avatar.physics_info import PhysicsInfo`
+`from tdw.sticky_mitten_avatar.dynamic_object_info import DynamicObjectInfo`
 
 Dynamic physics info (position, velocity, etc.) for a single object.
 Contains the following information as numpy arrays:
