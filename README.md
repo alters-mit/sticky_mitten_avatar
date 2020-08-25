@@ -64,12 +64,20 @@ The [TDW Command API](https://github.com/threedworld-mit/tdw/blob/master/Documen
 | `put_object_in_container.py` | Put an object in a container.                                |
 | `put_object_on_table.py`     | _Obsolete._ Put an object on a table using a simple "aiming" algorithm to bend the arm. |
 
-## To-do
+## Changelog
 
-- [x] Finalize the baby's arm chain (the right arm doesn't work that well)
-- [ ] Continue to adjust the IK system (it's still flaky)
-- [ ] Add the adult
-- [ ] Add more motion and movement functions to the API
-- [ ] Add a function to estimate the negative volume of a container
-- [ ] Add more example controllers
-- [ ] Add pre-scripted scene setup recipes
+### 0.2.0
+
+- Added: `Avatar.set_dummy_ik_goals()` Set "dummy" IK goals with no targets.
+- Renamed: `PhysicsInfo` to `DynamicObjectInfo`
+- Added new fields to `StickyMittenAvatarController`:
+  - `frame` Current frame data. 
+  - `static_object_info` Static object info per object.
+- Added parameter to `StickyMittenAvatarController` constructor: `audio_playback_mode`
+- Added: `StickyMittenAvatarController.end_scene_setup()` End scene setup. Cache data. Request output data.
+- Added: `StickyMittenAvatarController.shake()` Shake an avatar's joint.
+- Added: `StaticObjectInfo`
+- Added: `FrameData` **Contains image and audio data.**
+- Removed: `util.get_collisions()`
+- Fixed: `def` headers in documentation.
+- Fixed: Bad IK chains for the baby avatar.
