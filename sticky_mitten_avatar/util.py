@@ -11,6 +11,8 @@ _OUTPUT_IDS: Dict[Type[OutputData], str] = {Transforms: "tran",
                                             Images: "imag",
                                             SegmentationColors: "segm",
                                             Volumes: "volu"}
+# Global forward directional vector.
+FORWARD = np.array([0, 0, 1])
 
 
 def get_data(resp: List[bytes], d_type: Type[T]) -> Optional[T]:

@@ -3,7 +3,7 @@ from typing import List
 from tdw.tdw_utils import TDWUtils
 from tdw.output_data import Images
 from sticky_mitten_avatar.avatars import Arm
-from sticky_mitten_avatar.sma_controller import StickyMittenAvatarController
+from sticky_mitten_avatar import StickyMittenAvatarController
 from sticky_mitten_avatar.util import get_data
 
 

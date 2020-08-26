@@ -6,7 +6,7 @@ from ikpy.chain import Chain
 from enum import Enum
 from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds
 from tdw.tdw_utils import TDWUtils
-from sticky_mitten_avatar.util import get_angle_between, rotate_point_around
+from sticky_mitten_avatar.util import get_angle_between, rotate_point_around, FORWARD
 
 
 class Arm(Enum):
@@ -93,9 +93,6 @@ class Avatar(ABC):
               Joint(arm="right", axis="roll", part="wrist"),
               Joint(arm="right", axis="pitch", part="wrist")]
 
-    # Global forward directional vector.
-    _FORWARD = np.array([0, 0, 1])
-
     def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False):
         """
         :param resp: The response from the build after creating the avatar.
@@ -147,7 +144,7 @@ class Avatar(ABC):
 
         # Rotate the target point to global forward.
         ik_target = rotate_point_around(point=ik_target,
-                                        angle=get_angle_between(v1=Avatar._FORWARD, v2=self.frame.get_forward()))
+                                        angle=get_angle_between(v1=FORWARD, v2=self.frame.get_forward()))
         if self._debug:
             print(f"Absolute target: {target}\tIK target: {ik_target}")
         self._ik_goals[arm] = _IKGoal(target=target)
@@ -261,13 +258,18 @@ class Avatar(ABC):
                                     temp_goals[arm] = None
                                 # Keep bending the arm and trying to pick up the object.
                                 else:
-                                    commands.append({"$type": "pick_up_proximity",
-                                                     "distance": 0.1,
-                                                     "radius": 0.1,
-                                                     "grip": 1000,
-                                                     "is_left": arm == Arm.left,
-                                                     "avatar_id": self.id,
-                                                     "object_ids": [self._ik_goals[arm].pick_up_id]})
+                                    commands.extend([{"$type": "pick_up_proximity",
+                                                      "distance": 0.1,
+                                                      "radius": 0.1,
+                                                      "grip": 1000,
+                                                      "is_left": arm == Arm.left,
+                                                      "avatar_id": self.id,
+                                                      "object_ids": [self._ik_goals[arm].pick_up_id]},
+                                                     {"$type": "pick_up",
+                                                      "grip": 1000,
+                                                      "is_left": arm == Arm.left,
+                                                      "object_ids": [self._ik_goals[arm].pick_up_id],
+                                                      "avatar_id": self.id}])
                                     temp_goals[arm] = self._ik_goals[arm]
                             # Keep bending the arm.
                             else:

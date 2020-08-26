@@ -35,7 +35,7 @@ class StickyMittenAvatarController(Controller):
     ```python
     from tdw.tdw_utils import TDWUtils
     from sticky_mitten_avatar.avatars import Arm
-    from sticky_mitten_avatar.sma_controller import StickyMittenAvatarController
+    from sticky_mitten_avatar import StickyMittenAvatarController
 
     c = StickyMittenAvatarController(launch_build=False)
 
@@ -108,6 +108,8 @@ class StickyMittenAvatarController(Controller):
 
         # The containers library.
         self._lib_containers = ModelLibrarian(library=resource_filename(__name__, "metadata_libraries/containers.json"))
+        # Cached core model library.
+        self._lib_core = ModelLibrarian()
 
         # Cache the entities.
         self._avatars: Dict[str, Avatar] = dict()
@@ -186,13 +188,14 @@ class StickyMittenAvatarController(Controller):
             self.static_object_info[static_object.object_id] = static_object
 
     def create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None,
-                      debug: bool = False) -> None:
+                      rotation: float = 0, debug: bool = False) -> None:
         """
         Create an avatar. Set default values for the avatar. Cache its static data (segmentation colors, etc.)
 
         :param avatar_type: The type of avatar. Options: "baby", "adult"
         :param avatar_id: The unique ID of the avatar.
         :param position: The initial position of the avatar.
+        :param rotation: The initial rotation of the avatar in degrees.
         :param debug: If true, print debug messages when the avatar moves.
         """
 
@@ -209,11 +212,17 @@ class StickyMittenAvatarController(Controller):
         commands = TDWUtils.create_avatar(avatar_type=avatar_type,
                                           avatar_id=avatar_id,
                                           position=position)[:]
+        # Rotate the avatar.
         # Request segmentation colors, body part names, and dynamic avatar data.
         # Turn off the follow camera.
         # Set the palms to sticky.
         # Enable image capture.
-        commands.extend([{"$type": "send_avatar_segmentation_colors",
+        commands.extend([{"$type": "rotate_avatar_by",
+                          "angle": rotation,
+                          "axis": "yaw",
+                          "is_world": True,
+                          "avatar_id": avatar_id},
+                         {"$type": "send_avatar_segmentation_colors",
                           "frequency": "once",
                           "ids": [avatar_id]},
                          {"$type": "send_avatars",
@@ -245,7 +254,7 @@ class StickyMittenAvatarController(Controller):
         # Strengthen the avatar.
         for joint in Avatar.JOINTS:
             commands.extend([{"$type": "adjust_joint_force_by",
-                              "delta": 40,
+                              "delta": 80,
                               "joint": joint.joint,
                               "axis": joint.axis,
                               "avatar_id": avatar_id},
@@ -421,9 +430,11 @@ class StickyMittenAvatarController(Controller):
             o_pos["y"] = position["y"] + 0.01
             commands.extend(self.get_add_object(model_name=obj.name, position=o_pos, audio=obj,
                                                 object_id=self.get_unique_id(), library=obj.library))
+        self.model_librarian = self._lib_core
         return commands
 
-    def bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float], do_motion: bool = True) -> None:
+    def bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float], do_motion: bool = True,
+                 absolute=True) -> None:
         """
         Begin to bend an arm of an avatar in the scene. The motion will continue to update per `communicate()` step.
 
@@ -431,10 +442,14 @@ class StickyMittenAvatarController(Controller):
         :param target: The target position for the mitten.
         :param avatar_id: The unique ID of the avatar.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done. See: `do_joint_motion()`
+        :param absolute: If True, the target position is in world coordinates. If False, it is relative to the avatar.
         """
 
+        target = TDWUtils.vector3_to_array(target)
+        if not absolute:
+            target = self._avatars[avatar_id].frame.get_position() + target
         self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm,
-                                                                       target=TDWUtils.vector3_to_array(target)))
+                                                                       target=target))
 
         if do_motion:
             self.do_joint_motion()
