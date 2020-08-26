@@ -5,7 +5,7 @@ from pkg_resources import resource_filename
 from typing import Dict, List, Union, Optional, Tuple
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
-from tdw.librarian import ModelLibrarian
+from tdw.librarian import ModelLibrarian, ModelRecord
 from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Volumes
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from sticky_mitten_avatar.avatars import Arm, Baby
@@ -345,8 +345,7 @@ class StickyMittenAvatarController(Controller):
         :param scale: The scale factor of the object. If None, the scale factor is (1, 1, 1)
         :param audio: Audio values for the object. If None, use default values.
 
-        :return: A list of commands: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode,
-                                       set_physic_material]`
+        :return: A list of commands: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode, set_physic_material]`
         """
 
         if position is None:
@@ -376,9 +375,30 @@ class StickyMittenAvatarController(Controller):
                  "bounciness": audio.bounciness,
                  "id": object_id}]
 
+    def get_container_records(self) -> List[ModelRecord]:
+        """
+        :return: A list of container [model records](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/librarian/model_librarian.md#modelrecord-api).
+        """
+
+        return self._lib_containers.records
+
     def get_add_container(self, model_name: str, object_id: int, contents: List[str], position: Dict[str, float] = None,
                           rotation: Dict[str, float] = None, audio: ObjectInfo = None,
                           scale: Dict[str, float] = None) -> List[dict]:
+        """
+        Add a container to the scene. A container is an object that can hold other objects in it.
+
+        :param model_name: The name of the container. Must be from the "containers" library. See `get_container_records()`.
+        :param object_id: The ID of the container.
+        :param contents: The model names of objects that will be put in the container. They will be assigned random positions and object IDs and default audio and physics values.
+        :param position: The position of the container.
+        :param rotation: The rotation of the container.
+        :param audio: Audio values for the container. If None, use default values.
+        :param scale: The scale of the container.
+
+        :return: A list of commands per object added: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode, set_physic_material]`
+        """
+
         record = self._lib_containers.get_record(model_name)
         assert record is not None, f"Couldn't find container record for: {model_name}"
 

@@ -112,11 +112,10 @@ _Returns:_  The response from the build.
 
 ***
 
-#### `get_add_object(self, model_name: str, object_id: int, position: Dict[str, float] = None, rotation: Dict[str, float] = None, library: str = "", mass: int = 1, scale: Dict[str, float] = None) -> List[dict]`
+#### `get_add_object(self, model_name: str, object_id: int, position: Dict[str, float] = None, rotation: Dict[str, float] = None, library: str = "", scale: Dict[str, float] = None, audio: ObjectInfo = None) -> List[dict]`
 
 Overrides Controller.get_add_object; returns a list of commands instead of 1 command.
 See `ModelLibrarian.get_library_filenames()` and `ModelLibrarian.get_default_library()`.
-send_transforms, send_rigidbodies]`
 
 | Parameter | Description |
 | --- | --- |
@@ -125,10 +124,34 @@ send_transforms, send_rigidbodies]`
 | rotation | The starting rotation of the model, in Euler angles. |
 | library | The path to the records file. If left empty, the default library will be selected. |
 | object_id | The ID of the new object. |
-| mass | The mass of the object. |
 | scale | The scale factor of the object. If None, the scale factor is (1, 1, 1) |
+| audio | Audio values for the object. If None, use default values. |
 
-_Returns:_  A list of commands: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode,
+_Returns:_  A list of commands: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode, set_physic_material]`
+
+***
+
+#### `get_container_records(self) -> List[ModelRecord]`
+
+_Returns:_  A list of container [model records](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/librarian/model_librarian.md#modelrecord-api).
+
+***
+
+#### `get_add_container(self, model_name: str, object_id: int, contents: List[str], position: Dict[str, float] = None, rotation: Dict[str, float] = None, audio: ObjectInfo = None, scale: Dict[str, float] = None) -> List[dict]`
+
+Add a container to the scene. A container is an object that can hold other objects in it.
+
+| Parameter | Description |
+| --- | --- |
+| model_name | The name of the container. Must be from the "containers" library. See `get_container_records()`. |
+| object_id | The ID of the container. |
+| contents | The model names of objects that will be put in the container. They will be assigned random positions and object IDs and default audio and physics values. |
+| position | The position of the container. |
+| rotation | The rotation of the container. |
+| audio | Audio values for the container. If None, use default values. |
+| scale | The scale of the container. |
+
+_Returns:_  A list of commands per object added: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode, set_physic_material]`
 
 ***
 
@@ -246,7 +269,7 @@ _Returns:_  Whether the avatar is at its destination, overshot it, or still goin
 
 ***
 
-#### `shake(self, avatar_id: str, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (6, 12), force: Tuple[float, float] = (400, 400)) -> None`
+#### `shake(self, avatar_id: str, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> None`
 
 Shake a joint back and forth for multiple iterations.
 Per iteration, the joint will bend forward by an angle and then bend back by an angle.

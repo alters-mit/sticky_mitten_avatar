@@ -14,10 +14,11 @@ Fields:
 - `model_name`: The name of the object's [model](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/librarian/model_librarian.md)
 - `volume`: The "naive" volume: length * width * height, assuming the object was brick-shaped.
 - `hollowness`: The percentage (between 0 and 1) of the object's volume that is empty space.
+- `audio`: Audio properties.
 
 ***
 
-#### `__init__(self, index: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors, bounds: Bounds, volumes: Volumes)`
+#### `__init__(self, index: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors, bounds: Bounds, volumes: Volumes, audio: ObjectInfo)`
 
 
 | Parameter | Description |
