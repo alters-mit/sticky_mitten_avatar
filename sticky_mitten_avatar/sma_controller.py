@@ -179,12 +179,13 @@ class StickyMittenAvatarController(Controller):
         volumes = get_data(resp=resp, d_type=Volumes)
         rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
         for i in range(segmentation_colors.get_num()):
+            object_id = segmentation_colors.get_object_id(i)
             static_object = StaticObjectInfo(index=i,
                                              segmentation_colors=segmentation_colors,
                                              rigidbodies=rigidbodies,
                                              volumes=volumes,
                                              bounds=bounds,
-                                             audio=self._audio_values[segmentation_colors.get_object_id(i)])
+                                             audio=self._audio_values[object_id])
             self.static_object_info[static_object.object_id] = static_object
 
     def create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None,
@@ -263,6 +264,10 @@ class StickyMittenAvatarController(Controller):
                               "joint": joint.joint,
                               "axis": joint.axis,
                               "avatar_id": avatar_id}])
+        if self._audio_playback_mode is not None:
+            commands.append({"$type": "set_target_framerate",
+                             "framerate": 30})
+
         if self._audio_playback_mode == "unity":
             commands.append({"$type": "add_audio_sensor",
                              "avatar_id": avatar_id})
@@ -396,8 +401,9 @@ class StickyMittenAvatarController(Controller):
                           scale: Dict[str, float] = None) -> List[dict]:
         """
         Add a container to the scene. A container is an object that can hold other objects in it.
+        Containers must be from the "containers" library. See `get_container_records()`.
 
-        :param model_name: The name of the container. Must be from the "containers" library. See `get_container_records()`.
+        :param model_name: The name of the container.
         :param object_id: The ID of the container.
         :param contents: The model names of objects that will be put in the container. They will be assigned random positions and object IDs and default audio and physics values.
         :param position: The position of the container.

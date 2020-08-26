@@ -1,47 +1,47 @@
 {
     "description": "A library of containers (models with a hollow interior).",
     "records": {
-        "box_00": {
+        "shoebox_fused": {
             "asset_bundle_sizes": {
-                "Darwin": 198700,
-                "Linux": 234651,
-                "Windows": 165794
+                "Darwin": 2255365,
+                "Linux": 2481558,
+                "Windows": 2081817
             },
             "bounds": {
                 "back": {
-                    "x": 0,
-                    "y": 0.13461,
-                    "z": -0.194219
+                    "x": 4.723668e-06,
+                    "y": 0.07922205,
+                    "z": -0.1592964
                 },
                 "bottom": {
-                    "x": 0,
+                    "x": 4.723668e-06,
                     "y": 0,
-                    "z": 0
+                    "z": -0.0003212094
                 },
                 "center": {
-                    "x": 0,
-                    "y": 0.13461,
-                    "z": 0
+                    "x": 4.723668e-06,
+                    "y": 0.07922205,
+                    "z": -0.0003212094
                 },
                 "front": {
-                    "x": 0,
-                    "y": 0.13461,
-                    "z": 0.194219
+                    "x": 4.723668e-06,
+                    "y": 0.07922205,
+                    "z": 0.158654
                 },
                 "left": {
-                    "x": -0.189844,
-                    "y": 0.13461,
-                    "z": 0
+                    "x": -0.1022515,
+                    "y": 0.07922205,
+                    "z": -0.0003212094
                 },
                 "right": {
-                    "x": 0.189844,
-                    "y": 0.13461,
-                    "z": 0
+                    "x": 0.1022609,
+                    "y": 0.07922205,
+                    "z": -0.0003212094
                 },
                 "top": {
-                    "x": 0,
-                    "y": 0.26922,
-                    "z": 0
+                    "x": 4.723668e-06,
+                    "y": 0.1584441,
+                    "z": -0.0003212094
                 }
             },
             "canonical_rotation": {
@@ -53,24 +53,21 @@
             "do_not_use": false,
             "do_not_use_reason": "",
             "flex": true,
-            "name": "box_00",
+            "name": "shoebox_fused",
             "physics_quality": -1,
-            "scale_factor": 0.5,
+            "scale_factor": 1,
             "substructure": [
                 {
                     "materials": [
-                        "m0.002",
-                        "m1.002",
-                        "m2.002",
-                        "m3.002"
+                        "cardboard_corrugated"
                     ],
-                    "name": "box_00"
+                    "name": "shoebox_fused"
                 }
             ],
             "urls": {
-                "Darwin": "../asset_bundles/Darwin/box_00",
-                "Linux": "../asset_bundles/Linux/box_00",
-                "Windows": "../asset_bundles/Windows/box_00"
+                "Darwin": "../asset_bundles/Darwin/shoebox_fused",
+                "Linux": "../asset_bundles/Linux/shoebox_fused",
+                "Windows": "../asset_bundles/Windows/shoebox_fused"
             },
             "wcategory": "container",
             "wnid": "n02886585"

@@ -1,10 +1,5 @@
-from pathlib import Path
-from typing import List
-from tdw.tdw_utils import TDWUtils
-from tdw.output_data import Images
 from sticky_mitten_avatar.avatars import Arm
 from sticky_mitten_avatar import StickyMittenAvatarController
-from sticky_mitten_avatar.util import get_data
 
 
 class ShakeContainer(StickyMittenAvatarController):
@@ -28,7 +23,7 @@ class ShakeContainer(StickyMittenAvatarController):
         sofa_id = self.get_unique_id()
         container_id = self.get_unique_id()
         # Add the container.
-        commands.extend(self.get_add_container(model_name="box_00",
+        commands.extend(self.get_add_container(model_name="shoebox_fused",
                                                object_id=container_id,
                                                contents=["ball_wood", "ball_wood"],
                                                position={"x": -3.068, "y": 0, "z": 0.764},
