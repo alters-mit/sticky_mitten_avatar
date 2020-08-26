@@ -70,7 +70,7 @@ class ShakeContainer(StickyMittenAvatarController):
         avatar_id = "a"
         self.create_avatar(avatar_id=avatar_id,
                            position={"x": -3.661998, "y": 0, "z": 0.507},
-                           rotation=60, debug=True)
+                           rotation=60)
         # Low-level
         cam_id = "c"
         self.add_overhead_camera(position={"x": -2.369, "y": 0.582, "z": 1.651},
@@ -81,28 +81,32 @@ class ShakeContainer(StickyMittenAvatarController):
         self.end_scene_setup()
 
         # Pick up the first container. Shake it, and put it down.
-        self.go_to(avatar_id=avatar_id, object_id=container_id_0)
+        self.go_to(avatar_id=avatar_id, target=container_id_0)
         self.pick_up(avatar_id=avatar_id, object_id=container_id_0)
         self.bend_arm(avatar_id=avatar_id, target={"x": 0.3, "y": 0.4, "z": 0.285}, arm=Arm.left, absolute=False)
         self.shake(avatar_id=avatar_id, joint_name=f"elbow_left")
         self.put_down(avatar_id=avatar_id, do_motion=False)
 
         # Pick up the second container. Shake it, and put it down.
-        self.go_to(avatar_id=avatar_id, object_id=container_id_1)
+        self.go_to(avatar_id=avatar_id, target=container_id_1)
         self.pick_up(avatar_id=avatar_id, object_id=container_id_1)
         self.bend_arm(avatar_id=avatar_id, target={"x": -0.3, "y": 0.4, "z": 0.285}, arm=Arm.right, absolute=False)
         self.shake(avatar_id=avatar_id, joint_name=f"elbow_right")
         self.put_down(avatar_id=avatar_id, do_motion=False)
 
         # Pick up the first container again.
-        self.go_to(avatar_id=avatar_id, object_id=container_id_0)
+        self.go_to(avatar_id=avatar_id, target=container_id_0)
         self.pick_up(avatar_id=avatar_id, object_id=container_id_0)
         self.bend_arm(avatar_id=avatar_id, target={"x": 0.3, "y": 0.4, "z": 0.285}, arm=Arm.left, absolute=False)
-        self.shake(avatar_id=avatar_id, joint_name=f"elbow_left")
-        self.put_down(avatar_id=avatar_id, do_motion=False)
 
-        self.go_to(avatar_id=avatar_id, object_id=sofa_id)
-        self.bend_arm(avatar_id=avatar_id, target={"x": 0.3, "y": 0.4, "z": 0.285}, arm=Arm.left, absolute=False)
+        # Go to the sofa.
+        self.go_to(avatar_id=avatar_id, target={"x": -4.475, "y": 0, "z": 2.132})
+
+        # Put the container on the sofa.
+        self.bend_arm(avatar_id=avatar_id, target={"x": -4.75, "y": 0.9, "z": 1.885}, arm=Arm.left, absolute=True)
+        self.put_down(avatar_id=avatar_id, do_motion=False)
+        for i in range(100):
+            self.communicate([])
 
 
 if __name__ == "__main__":

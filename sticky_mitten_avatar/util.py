@@ -100,7 +100,10 @@ def get_angle_between(v1: np.array, v2: np.array) -> float:
     :return: The angle in degrees between two directional vectors.
     """
 
-    return np.rad2deg(np.arccos(np.dot(v1, v2)))
+    ang1 = np.arctan2(v1[2], v1[0])
+    ang2 = np.arctan2(v2[2], v2[0])
+
+    return np.rad2deg((ang1 - ang2) % (2 * np.pi))
 
 
 def rotate_point_around(point: np.array, angle: float, origin: np.array = None) -> np.array:

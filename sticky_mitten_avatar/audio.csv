@@ -1,10 +1,10 @@
 name,amp,mass,material,library,bounciness
-shoebox_fused,0.2,0.1,cardboard,metadata_libraries/containers.json,0.2
-sphere,0.01,0.1,hardwood,metadata_libraries/container_contents.json,0.2
-cone,0.5,0.08,metal,metadata_libraries/container_contents.json,0.4
+shoebox_fused,0.01,0.1,cardboard,metadata_libraries/containers.json,0.2
+sphere,0.01,0.1,cardboard,metadata_libraries/container_contents.json,0.2
+cone,0.01,0.08,metal,metadata_libraries/container_contents.json,0.4
 napoleon_iii_sofa,0.01,90,cardboard,models_core.json,0.2
 blue_side_chair,0.1,20,wood,models_core.json,0.6
 rh10,0.1,4,wood,models_full.json,0.58
 sm_table_white,0.1,130,ceramic,models_core.json,0.625
 vitra_meda_chair,0.02,35,wood,models_core.json,0.58
-macbook_air,1,0.2,cardboard,models_core.json,0.7
+macbook_air,0.01,0.2,cardboard,models_core.json,0.7

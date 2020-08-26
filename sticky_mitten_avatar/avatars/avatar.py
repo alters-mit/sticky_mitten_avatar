@@ -144,7 +144,6 @@ class Avatar(ABC):
 
         # Rotate the target point to global forward.
         angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
-        print(angle, np.rad2deg(np.arccos(np.dot(self.frame.get_forward(), FORWARD))))
 
         ik_target = rotate_point_around(point=ik_target, angle=angle)
         if self._debug:
@@ -261,7 +260,7 @@ class Avatar(ABC):
                                 # Keep bending the arm and trying to pick up the object.
                                 else:
                                     commands.extend([{"$type": "pick_up_proximity",
-                                                      "distance": 0.1,
+                                                      "distance": 0.15,
                                                       "radius": 0.1,
                                                       "grip": 1000,
                                                       "is_left": arm == Arm.left,

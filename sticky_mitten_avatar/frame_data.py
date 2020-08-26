@@ -29,7 +29,6 @@ class FrameData:
 
         self.audio: List[Tuple[Base64Sound, int]] = list()
         collisions, env_collisions, rigidbodies = FrameData._P.get_collisions(resp=resp)
-        collision_types: Dict[int, CollisionTypesOnFrame] = dict()
 
         self.positions: Dict[int, np.array] = dict()
         tr = get_data(resp=resp, d_type=Transforms)
@@ -43,6 +42,8 @@ class FrameData:
             collidee_id = coll.get_collidee_id()
 
             if collider_id not in objects or collidee_id not in objects:
+                continue
+            if not FrameData._P.is_valid_collision(coll):
                 continue
 
             collider_info = objects[collider_id].audio
@@ -67,12 +68,8 @@ class FrameData:
         # Get the audio of each environment collision.
         for coll in env_collisions:
             collider_id = coll.get_object_id()
-
-            # Skip non-impact events.
-            if collider_id not in collision_types:
-                continue
-
-            if FrameData._get_velocity(rigidbodies, collider_id) > 0:
+            v = FrameData._get_velocity(rigidbodies, collider_id)
+            if (v is not None) and (v > 0):
                 collider_info = objects[collider_id].audio
                 audio = FrameData._P.get_sound(coll, rigidbodies, 1, surface_material.name, collider_id,
                                                collider_info.material.name, 0.01 / collider_info.amp)

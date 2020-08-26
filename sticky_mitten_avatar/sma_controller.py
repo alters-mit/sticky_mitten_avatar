@@ -649,7 +649,7 @@ class StickyMittenAvatarController(Controller):
         self.stop_avatar(avatar_id=avatar_id)
         return False
 
-    def go_to(self, avatar_id: str, object_id: Union[Dict[str, float], int],
+    def go_to(self, avatar_id: str, target: Union[Dict[str, float], int],
               turn_force: float = 300, turn_stopping_threshold: float = 0.1,
               move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool:
         """
@@ -658,7 +658,7 @@ class StickyMittenAvatarController(Controller):
 
         :param avatar_id: The ID of the avatar.
         :param avatar_id: The unique ID of the avatar.
-        :param object_id: The target position or object ID.
+        :param target: The target position or object ID.
         :param turn_force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param turn_stopping_threshold: Stop when the avatar is within this many degrees of the target.
         :param move_force: The force at which the avatar will move. More force = faster, but might overshoot the target.
@@ -678,7 +678,7 @@ class StickyMittenAvatarController(Controller):
             if d_from_initial > initial_distance:
                 return _TaskState.failure
             # We're here! End.
-            d = np.linalg.norm(p - object_id)
+            d = np.linalg.norm(p - target)
             if d <= move_stopping_threshold:
                 return _TaskState.success
             # Keep truckin' along.
@@ -688,12 +688,12 @@ class StickyMittenAvatarController(Controller):
         initial_position = avatar.frame.get_position()
 
         # Set the target. If it's an object, the target is the nearest point on the bounds.
-        object_id = self._get_position(target=object_id, nearest_on_bounds=True, avatar_id=avatar_id)
+        target = self._get_position(target=target, nearest_on_bounds=True, avatar_id=avatar_id)
         # Get the distance to the target.
-        initial_distance = np.linalg.norm(np.array(initial_position) - object_id)
+        initial_distance = np.linalg.norm(np.array(initial_position) - target)
 
         # Turn to the target.
-        self.turn_to(avatar_id=avatar_id, target=object_id, force=turn_force, stopping_threshold=turn_stopping_threshold)
+        self.turn_to(avatar_id=avatar_id, target=target, force=turn_force, stopping_threshold=turn_stopping_threshold)
 
         # Go to the target.
         self.communicate({"$type": "set_avatar_drag",
