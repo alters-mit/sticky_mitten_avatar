@@ -102,13 +102,13 @@ class Avatar(ABC):
 
         self.id = avatar_id
         self._debug = debug
-        self._mitten_offset = self._get_mitten_offset()
         # Set the arm chains.
         self._arms: Dict[Arm, Chain] = {Arm.left: self._get_left_arm(),
                                         Arm.right: self._get_right_arm()}
         # Any current IK goals.
         self._ik_goals: Dict[Arm, Optional[_IKGoal]] = {Arm.left: None,
                                                         Arm.right: None}
+        self._look_at_target: Optional[int] = None
         smsc: Optional[AvatarStickyMittenSegmentationColors] = None
         for i in range(len(resp) - 1):
             r_id = OutputData.get_data_type_id(resp[i])
@@ -143,8 +143,10 @@ class Avatar(ABC):
         ik_target = np.array(target) - (self.frame.get_position())
 
         # Rotate the target point to global forward.
-        ik_target = rotate_point_around(point=ik_target,
-                                        angle=get_angle_between(v1=FORWARD, v2=self.frame.get_forward()))
+        angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
+        print(angle, np.rad2deg(np.arccos(np.dot(self.frame.get_forward(), FORWARD))))
+
+        ik_target = rotate_point_around(point=ik_target, angle=angle)
         if self._debug:
             print(f"Absolute target: {target}\tIK target: {ik_target}")
         self._ik_goals[arm] = _IKGoal(target=target)
@@ -306,6 +308,14 @@ class Avatar(ABC):
                     temp_goals[arm] = None
         self._ik_goals = temp_goals
         self.frame = frame
+
+        # Set the head rotation.
+        if self._look_at_target is not None:
+            commands.append({"$type": "head_look_at",
+                             "object_id": self._look_at_target,
+                             "avatar_id": self.id,
+                             "use_centroid": True})
+
         return commands
 
     def is_ik_done(self) -> bool:
@@ -359,6 +369,15 @@ class Avatar(ABC):
         for arm in self._ik_goals:
             self._ik_goals[arm] = _IKGoal(target=None)
 
+    def look_at(self, object_id: int = None) -> None:
+        """
+        Set a target object to look at per frame. If None, the avatar's head will stop tracking the object.
+
+        :param object_id: The target object.
+        """
+
+        self._look_at_target = object_id
+
     def _stop_arms(self, arm: Arm) -> List[dict]:
         """
         :param arm: The arm to stop.
@@ -390,13 +409,6 @@ class Avatar(ABC):
 
         raise Exception()
 
-    def _get_mitten_offset(self) -> np.array:
-        """
-        :return: The offset vector from the mitten position (at the wrist) to the centerpoint.
-        """
-
-        raise Exception()
-
     def _get_frame(self, resp: List[bytes]) -> AvatarStickyMitten:
         """
         :param resp: The response from the build.
@@ -422,7 +434,7 @@ class Avatar(ABC):
         for i in range(self.frame.get_num_rigidbody_parts()):
             # Get the mitten.
             if self.frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
-                return np.array(self.frame.get_body_part_position(i)) + self._mitten_offset
+                return np.array(self.frame.get_body_part_position(i))
         raise Exception(f"Mitten {arm.name} not found.")
 
     def _plot_ik(self, target: np.array, arm: Arm) -> None:

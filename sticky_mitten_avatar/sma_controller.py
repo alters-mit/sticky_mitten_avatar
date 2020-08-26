@@ -140,6 +140,28 @@ class StickyMittenAvatarController(Controller):
 
         super().__init__(port=port, launch_build=launch_build)
 
+        # Set image encoding to .jpg
+        # Set the highest render quality.
+        # Set global physics values.
+        commands = [{"$type": "set_img_pass_encoding",
+                     "value": False},
+                    {"$type": "set_render_quality",
+                     "render_quality": 5},
+                    {"$type": "set_physics_solver_iterations",
+                     "iterations": 32},
+                    {"$type": "set_vignette",
+                     "enabled": False},
+                    {"$type": "set_shadow_strength",
+                     "strength": 1.0},
+                    {"$type": "set_sleep_threshold",
+                     "sleep_threshold": 0.1}]
+        # Set the frame rate and timestep for audio.
+        if self._audio_playback_mode is not None:
+            commands.extend([{"$type": "set_target_framerate",
+                             "framerate": 30},
+                             {"$type": "set_time_step",
+                              "time_step": 0.02}])
+
     def end_scene_setup(self, commands: List[dict] = None) -> None:
         """
         Call this function at the end of scene setup (after all objects and avatars have been created).
@@ -149,12 +171,9 @@ class StickyMittenAvatarController(Controller):
         :param commands: Additional commands to send at the end of scene setup (if you are overriding this function).
         """
 
-        # Set image encoding to jpgs.
         # Request Collisions, Rigidbodies, and Transforms.
         # Request SegmentationColors, Bounds, and Volumes for this frame only.
-        end_commands = [{"$type": "set_img_pass_encoding",
-                         "value": False},
-                        {"$type": "send_collisions",
+        end_commands = [{"$type": "send_collisions",
                          "enter": True,
                          "stay": False,
                          "exit": False,
@@ -264,9 +283,6 @@ class StickyMittenAvatarController(Controller):
                               "joint": joint.joint,
                               "axis": joint.axis,
                               "avatar_id": avatar_id}])
-        if self._audio_playback_mode is not None:
-            commands.append({"$type": "set_target_framerate",
-                             "framerate": 30})
 
         if self._audio_playback_mode == "unity":
             commands.append({"$type": "add_audio_sensor",
@@ -454,8 +470,7 @@ class StickyMittenAvatarController(Controller):
         target = TDWUtils.vector3_to_array(target)
         if not absolute:
             target = self._avatars[avatar_id].frame.get_position() + target
-        self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm,
-                                                                       target=target))
+        self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm, target=target))
 
         if do_motion:
             self.do_joint_motion()
@@ -485,16 +500,20 @@ class StickyMittenAvatarController(Controller):
             self.do_joint_motion()
         return arm
 
-    def put_down(self, avatar_id: str, reset_arms: bool = True) -> None:
+    def put_down(self, avatar_id: str, reset_arms: bool = True, do_motion: bool = True) -> None:
         """
         Begin to put down all objects.
         The motion will continue to update per `communicate()` step.
 
         :param avatar_id: The unique ID of the avatar.
         :param reset_arms: If True, reset arm positions to "neutral".
+        :param do_motion: If True, advance simulation frames until the pick-up motion is done. See: `do_joint_motion()`
+
         """
 
         self._avatar_commands.extend(self._avatars[avatar_id].put_down(reset_arms=reset_arms))
+        if do_motion:
+            self.do_joint_motion()
 
     def do_joint_motion(self) -> None:
         """
@@ -630,7 +649,7 @@ class StickyMittenAvatarController(Controller):
         self.stop_avatar(avatar_id=avatar_id)
         return False
 
-    def go_to(self, avatar_id: str, target: Union[Dict[str, float], int],
+    def go_to(self, avatar_id: str, object_id: Union[Dict[str, float], int],
               turn_force: float = 300, turn_stopping_threshold: float = 0.1,
               move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool:
         """
@@ -639,7 +658,7 @@ class StickyMittenAvatarController(Controller):
 
         :param avatar_id: The ID of the avatar.
         :param avatar_id: The unique ID of the avatar.
-        :param target: The target position or object ID.
+        :param object_id: The target position or object ID.
         :param turn_force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param turn_stopping_threshold: Stop when the avatar is within this many degrees of the target.
         :param move_force: The force at which the avatar will move. More force = faster, but might overshoot the target.
@@ -659,7 +678,7 @@ class StickyMittenAvatarController(Controller):
             if d_from_initial > initial_distance:
                 return _TaskState.failure
             # We're here! End.
-            d = np.linalg.norm(p - target)
+            d = np.linalg.norm(p - object_id)
             if d <= move_stopping_threshold:
                 return _TaskState.success
             # Keep truckin' along.
@@ -669,12 +688,12 @@ class StickyMittenAvatarController(Controller):
         initial_position = avatar.frame.get_position()
 
         # Set the target. If it's an object, the target is the nearest point on the bounds.
-        target = self._get_position(target=target, nearest_on_bounds=True, avatar_id=avatar_id)
+        object_id = self._get_position(target=object_id, nearest_on_bounds=True, avatar_id=avatar_id)
         # Get the distance to the target.
-        initial_distance = np.linalg.norm(np.array(initial_position) - target)
+        initial_distance = np.linalg.norm(np.array(initial_position) - object_id)
 
         # Turn to the target.
-        self.turn_to(avatar_id=avatar_id, target=target, force=turn_force, stopping_threshold=turn_stopping_threshold)
+        self.turn_to(avatar_id=avatar_id, target=object_id, force=turn_force, stopping_threshold=turn_stopping_threshold)
 
         # Go to the target.
         self.communicate({"$type": "set_avatar_drag",

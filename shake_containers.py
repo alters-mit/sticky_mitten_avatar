@@ -21,13 +21,19 @@ class ShakeContainer(StickyMittenAvatarController):
                      "thickness": 3.5}]
         # Add the objects.
         sofa_id = self.get_unique_id()
-        container_id = self.get_unique_id()
-        # Add the container.
+        container_id_0 = self.get_unique_id()
+        container_id_1 = self.get_unique_id()
+        # Add the containers.
         commands.extend(self.get_add_container(model_name="shoebox_fused",
-                                               object_id=container_id,
-                                               contents=["ball_wood", "ball_wood"],
+                                               object_id=container_id_0,
+                                               contents=["sphere", "sphere"],
                                                position={"x": -3.068, "y": 0, "z": 0.764},
                                                rotation={"x": 0, "y": 13, "z": 0}))
+        commands.extend(self.get_add_container(model_name="shoebox_fused",
+                                               object_id=container_id_1,
+                                               contents=["cone", "cone", "cone", "cone"],
+                                               position={"x": -4.033, "y": 0, "z": 1.228},
+                                               rotation={"x": 0, "y": 55, "z": 0}))
         # Add the sofa.
         commands.extend(self.get_add_object(model_name="napoleon_iii_sofa",
                                             object_id=sofa_id,
@@ -64,22 +70,39 @@ class ShakeContainer(StickyMittenAvatarController):
         avatar_id = "a"
         self.create_avatar(avatar_id=avatar_id,
                            position={"x": -3.661998, "y": 0, "z": 0.507},
-                           rotation=60)
+                           rotation=60, debug=True)
         # Low-level
         cam_id = "c"
-        self.add_overhead_camera(position={"x": -1.838, "y": 0.582, "z": 0.729},
+        self.add_overhead_camera(position={"x": -2.369, "y": 0.582, "z": 1.651},
                                  target_object=avatar_id,
                                  images="cam",
                                  cam_id=cam_id)
 
         self.end_scene_setup()
 
-        # Pick up the container.
-        self.go_to(avatar_id=avatar_id, target=container_id)
-        self.pick_up(avatar_id=avatar_id, object_id=container_id)
+        # Pick up the first container. Shake it, and put it down.
+        self.go_to(avatar_id=avatar_id, object_id=container_id_0)
+        self.pick_up(avatar_id=avatar_id, object_id=container_id_0)
         self.bend_arm(avatar_id=avatar_id, target={"x": 0.3, "y": 0.4, "z": 0.285}, arm=Arm.left, absolute=False)
-        # Shake the container.
-        self.shake(avatar_id=avatar_id)
+        self.shake(avatar_id=avatar_id, joint_name=f"elbow_left")
+        self.put_down(avatar_id=avatar_id, do_motion=False)
+
+        # Pick up the second container. Shake it, and put it down.
+        self.go_to(avatar_id=avatar_id, object_id=container_id_1)
+        self.pick_up(avatar_id=avatar_id, object_id=container_id_1)
+        self.bend_arm(avatar_id=avatar_id, target={"x": -0.3, "y": 0.4, "z": 0.285}, arm=Arm.right, absolute=False)
+        self.shake(avatar_id=avatar_id, joint_name=f"elbow_right")
+        self.put_down(avatar_id=avatar_id, do_motion=False)
+
+        # Pick up the first container again.
+        self.go_to(avatar_id=avatar_id, object_id=container_id_0)
+        self.pick_up(avatar_id=avatar_id, object_id=container_id_0)
+        self.bend_arm(avatar_id=avatar_id, target={"x": 0.3, "y": 0.4, "z": 0.285}, arm=Arm.left, absolute=False)
+        self.shake(avatar_id=avatar_id, joint_name=f"elbow_left")
+        self.put_down(avatar_id=avatar_id, do_motion=False)
+
+        self.go_to(avatar_id=avatar_id, object_id=sofa_id)
+        self.bend_arm(avatar_id=avatar_id, target={"x": 0.3, "y": 0.4, "z": 0.285}, arm=Arm.left, absolute=False)
 
 
 if __name__ == "__main__":

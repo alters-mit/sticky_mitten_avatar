@@ -15,5 +15,6 @@ if __name__ == "__main__":
 
     avatar_id = "a"
     c.create_avatar(avatar_id=avatar_id, debug=True)
+    c.end_scene_setup()
     c.bend_arm(avatar_id=avatar_id, target={"x": -0.2, "y": 0.4, "z": 0.385}, arm=Arm.left)
     c.bend_arm(avatar_id=avatar_id, target={"x": 0.2, "y": 0.4, "z": 0.385}, arm=Arm.right)

@@ -22,7 +22,7 @@ class Baby(Avatar):
             URDFLink(name="shoulder_yaw",
                      translation_vector=[0, 0, 0],
                      orientation=[0, 0, 0],
-                     rotation=[0, 1, 0],
+                     rotation=[0, -1, 0],
                      bounds=(-1.5708, 1.5708)),
             URDFLink(name="shoulder_roll",
                      translation_vector=[0, 0, 0],
