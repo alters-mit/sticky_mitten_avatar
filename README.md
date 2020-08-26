@@ -23,6 +23,7 @@ Use the [StickyMittenAvatarController](Documentation/sma_controller.md) to creat
 | ----------------------- | ------------------------------------------------------------ |
 | `create_avatar()`       | Create an avatar.                                            |
 | `get_add_object()`      | Returns a list of commands to add an object to the scene and to set its position, mass, etc. Overrides [`Controller.get_add_object()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md#get_add_objectself-model_name-str-object_id-int-positionx-0-y-0-z-0-rotationx-0-y-0-z-0-library-str-----dict); returns a list of commands instead of just 1 command. |
+| `get_add_container()`   | Similar to `get_add_object()` except that it adds a specialized "container" object and puts small objects in the container. |
 | `bend_arm()`            | Tell an avatar to bend the arm of an avatar to a target position. |
 | `pick_up()`             | Tell an avatar to try to pick up an object.                  |
 | `put_down()`            | Tell an avatar to put down all held objects.                 |
@@ -30,6 +31,9 @@ Use the [StickyMittenAvatarController](Documentation/sma_controller.md) to creat
 | `go_to()`               | Tell an avatar to go to a target position or object.         |
 | `stop_avatar()`         | Stop the avatar's movement and turning.                      |
 | `add_overhead_camera()` | Add a third-person camera to the scene.                      |
+
+| Field | Description |
+| ----- | ----------- |
 | `static_object_info`    | [Static object info](Documentation/static_object_info.md) per object in the scene. |
 | `on_resp`               | Do something with the response (output data) per frame.      |
 | `frame`                 | [Frame data](Documentation/frame_data.md) for the most recent frame. |
