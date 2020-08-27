@@ -15,7 +15,7 @@ if __name__ == "__main__":
     c.create_avatar(avatar_id=avatar_id, debug=True)
     c.end_scene_setup()
     d_theta = 15
-    theta = 30
+    theta = 15
     while theta < 360:
         c.communicate({"$type": "rotate_avatar_by",
                        "angle": theta,

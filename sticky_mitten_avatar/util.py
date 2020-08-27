@@ -128,6 +128,4 @@ def rotate_point_around(point: np.array, angle: float, origin: np.array = None) 
     qx = offset_x + cos_rad * adjusted_x + sin_rad * adjusted_y
     qy = offset_y + -sin_rad * adjusted_x + cos_rad * adjusted_y
 
-    print(angle)
-
     return np.array([qx, point[1], qy])
