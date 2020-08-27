@@ -874,6 +874,13 @@ class StickyMittenAvatarController(Controller):
         if avatar_id in self._avatars:
             self._avatars.pop(avatar_id)
 
+    def end(self) -> None:
+        """
+        End the simulation. Terminate the build process.
+        """
+
+        self.communicate({"$type": "terminate"})
+
     def _get_position(self, target: Union[Dict[str, float], np.array, int],
                       nearest_on_bounds: bool = False, avatar_id: str = None) -> np.array:
         """
