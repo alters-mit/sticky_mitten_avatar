@@ -515,6 +515,18 @@ class StickyMittenAvatarController(Controller):
         if do_motion:
             self.do_joint_motion()
 
+    def reset_arms(self, avatar_id: str, do_motion: bool = True) -> None:
+        """
+        Reset the avatar's arm joints to their starting positions.
+
+        :param avatar_id: The ID of the avatar.
+        :param do_motion: If True, advance simulation frames until the pick-up motion is done. See: `do_joint_motion()`
+        """
+
+        self._avatar_commands.extend(self._avatars[avatar_id].reset_arms())
+        if do_motion:
+            self.do_joint_motion()
+
     def do_joint_motion(self) -> None:
         """
         Step through the simulation until the joints of all avatars are done moving.

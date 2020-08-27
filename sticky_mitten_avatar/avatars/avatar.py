@@ -349,12 +349,21 @@ class Avatar(ABC):
                      "is_left": False,
                      "avatar_id": self.id}]
         if reset_arms:
-            for j in self.JOINTS:
-                commands.append({"$type": "bend_arm_joint_to",
-                                 "joint": j.joint,
-                                 "axis": j.axis,
-                                 "angle": 0,
-                                 "avatar_id": self.id})
+            commands.extend(self.reset_arms())
+        return commands
+
+    def reset_arms(self) -> List[dict]:
+        """
+        :return: A list of commands to drop arms to their starting positions.
+        """
+
+        commands = []
+        for j in self.JOINTS:
+            commands.append({"$type": "bend_arm_joint_to",
+                             "joint": j.joint,
+                             "axis": j.axis,
+                             "angle": 0,
+                             "avatar_id": self.id})
         # Add some dummy IK goals.
         self.set_dummy_ik_goals()
         return commands

@@ -118,11 +118,14 @@ def rotate_point_around(point: np.array, angle: float, origin: np.array = None) 
     if origin is None:
         origin = np.array([0, 0, 0])
 
-    angle = np.deg2rad(angle)
+    radians = np.deg2rad(angle)
+    x, y = point[0], point[2]
+    offset_x, offset_y = origin[0], origin[2]
+    adjusted_x = (x - offset_x)
+    adjusted_y = (y - offset_y)
+    cos_rad = np.cos(radians)
+    sin_rad = np.sin(radians)
+    qx = offset_x + cos_rad * adjusted_x + sin_rad * adjusted_y
+    qy = offset_y + -sin_rad * adjusted_x + cos_rad * adjusted_y
 
-    ox, oy = origin[0], origin[2]
-    px, py = point[0], point[2]
-
-    qx = ox + np.cos(angle) * (px - ox) - np.sin(angle) * (py - oy)
-    qy = oy + np.sin(angle) * (px - ox) + np.cos(angle) * (py - oy)
     return np.array([qx, point[1], qy])
