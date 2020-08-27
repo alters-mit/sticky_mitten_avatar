@@ -49,6 +49,9 @@ class Joint:
         self.axis = axis
         self.arm = arm
 
+    def __str__(self):
+        return self.joint + " " + self.axis
+
 
 class _IKGoal:
     """
@@ -80,18 +83,18 @@ class Avatar(ABC):
     - `frame` Dynamic info for the avatar on this frame, such as its position. See `tdw.output_data.AvatarStickyMitten`
     """
 
-    JOINTS = [Joint(arm="left", axis="pitch", part="shoulder"),
-              Joint(arm="left", axis="yaw", part="shoulder"),
-              Joint(arm="left", axis="roll", part="shoulder"),
-              Joint(arm="left", axis="pitch", part="elbow"),
-              Joint(arm="left", axis="roll", part="wrist"),
-              Joint(arm="left", axis="pitch", part="wrist"),
-              Joint(arm="right", axis="pitch", part="shoulder"),
-              Joint(arm="right", axis="yaw", part="shoulder"),
-              Joint(arm="right", axis="roll", part="shoulder"),
-              Joint(arm="right", axis="pitch", part="elbow"),
-              Joint(arm="right", axis="roll", part="wrist"),
-              Joint(arm="right", axis="pitch", part="wrist")]
+    JOINTS: List[Joint] = [Joint(arm="left", axis="pitch", part="shoulder"),
+                           Joint(arm="left", axis="yaw", part="shoulder"),
+                           Joint(arm="left", axis="roll", part="shoulder"),
+                           Joint(arm="left", axis="pitch", part="elbow"),
+                           Joint(arm="left", axis="roll", part="wrist"),
+                           Joint(arm="left", axis="pitch", part="wrist"),
+                           Joint(arm="right", axis="pitch", part="shoulder"),
+                           Joint(arm="right", axis="yaw", part="shoulder"),
+                           Joint(arm="right", axis="roll", part="shoulder"),
+                           Joint(arm="right", axis="pitch", part="elbow"),
+                           Joint(arm="right", axis="roll", part="wrist"),
+                           Joint(arm="right", axis="pitch", part="wrist")]
 
     def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False):
         """
@@ -394,13 +397,24 @@ class Avatar(ABC):
         :return: Commands to stop all arm movement.
         """
 
+        if arm == Arm.left:
+            joints = Avatar.JOINTS[:6]
+            angles = self.frame.get_angles_left()
+        else:
+            joints = Avatar.JOINTS[6:]
+            angles = self.frame.get_angles_right()
+
         commands = []
-        for j in self.JOINTS:
-            if j.arm == arm.name:
-                commands.append({"$type": "stop_arm_joint",
-                                 "joint": j.joint,
-                                 "axis": j.axis,
-                                 "avatar_id": self.id})
+        # Get the current angle and bend the joint to that angle.
+        for j, a in zip(joints, angles):
+            theta = float(a)
+            if theta > 90:
+                theta = 180 - theta
+            commands.append({"$type": "bend_arm_joint_to",
+                             "angle": theta,
+                             "joint": j.joint,
+                             "axis": j.axis,
+                             "avatar_id": self.id})
         return commands
 
     @abstractmethod
