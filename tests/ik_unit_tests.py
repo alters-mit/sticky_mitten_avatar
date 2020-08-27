@@ -73,3 +73,4 @@ if __name__ == "__main__":
     c.do_test(c.symmetry)
     c.do_test(c.rotation)
     c.do_test(c.position)
+    c.end()
