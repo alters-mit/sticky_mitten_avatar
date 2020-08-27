@@ -77,7 +77,7 @@ class IKUnitTests(StickyMittenAvatarController):
                            "position": {"x": 1.1, "y": 0.0, "z": 1},
                            "avatar_id": self.id},
                           {"$type": "rotate_avatar_by",
-                           "angle": -15,
+                           "angle": -45,
                            "axis": "yaw",
                            "is_world": True,
                            "avatar_id": self.id}])
@@ -86,13 +86,13 @@ class IKUnitTests(StickyMittenAvatarController):
                                              object_id=o_id,
                                              scale={"x": 0.8, "y": 0.8, "z": 0.8}))
         self.pick_up(avatar_id=self.id, object_id=o_id)
-        assert o_id in self._avatars[self.id].frame.get_held_left()
+        assert o_id in self._avatars[self.id].frame.get_held_right()
 
 
 if __name__ == "__main__":
     c = IKUnitTests()
-    c.do_test(c.pick_up_test)
     c.do_test(c.symmetry)
     c.do_test(c.rotation)
     c.do_test(c.position)
+    c.do_test(c.pick_up_test)
     c.end()

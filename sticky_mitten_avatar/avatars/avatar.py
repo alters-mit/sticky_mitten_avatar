@@ -205,8 +205,11 @@ class Avatar(ABC):
             mitten = right_mitten_position
 
         target_orientation = (mitten - center) / np.linalg.norm(mitten - center)
+        angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
 
-        commands = self.bend_arm(arm=arm, target=center, target_orientation=target_orientation)
+        target = rotate_point_around(point=center - self.frame.get_position(), angle=-angle)
+
+        commands = self.bend_arm(arm=arm, target=target, target_orientation=target_orientation)
         self._ik_goals[arm].pick_up_id = object_id
         return commands, arm
 
