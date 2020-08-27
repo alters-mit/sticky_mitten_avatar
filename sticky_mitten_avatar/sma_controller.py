@@ -862,6 +862,18 @@ class StickyMittenAvatarController(Controller):
                              "frequency": "always"})
         self.communicate(commands)
 
+    def destroy_avatar(self, avatar_id: str) -> None:
+        """
+        Destroy an avatar or camera in the scene.
+
+        :param avatar_id: The ID of the avatar or camera.
+        """
+
+        self.communicate({"$type": "destroy_avatar",
+                          "avatar_id": avatar_id})
+        if avatar_id in self._avatars:
+            self._avatars.pop(avatar_id)
+
     def _get_position(self, target: Union[Dict[str, float], np.array, int],
                       nearest_on_bounds: bool = False, avatar_id: str = None) -> np.array:
         """
