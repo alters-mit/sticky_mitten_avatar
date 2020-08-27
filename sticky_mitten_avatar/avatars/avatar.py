@@ -142,12 +142,12 @@ class Avatar(ABC):
 
         ik_target = np.array(target) - (self.frame.get_position())
 
-        # Rotate the target point to global forward.
-        angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
-
-        ik_target = rotate_point_around(point=ik_target, angle=angle)
         if self._debug:
             print(f"Absolute target: {target}\tIK target: {ik_target}")
+
+        angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
+        target = rotate_point_around(point=ik_target, angle=angle)
+
         self._ik_goals[arm] = _IKGoal(target=target)
 
         # Get the IK solution.
@@ -156,6 +156,7 @@ class Avatar(ABC):
         if self._debug:
             print([np.rad2deg(r) for r in rotations])
             self._plot_ik(target=ik_target, arm=arm)
+
             # Show the target.
             commands.extend([{"$type": "remove_position_markers"},
                              {"$type": "add_position_marker",
