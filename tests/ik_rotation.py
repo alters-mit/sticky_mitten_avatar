@@ -22,8 +22,9 @@ if __name__ == "__main__":
                        "axis": "yaw",
                        "is_world": True,
                        "avatar_id": avatar_id})
-        c.bend_arm(avatar_id=avatar_id, target={"x": -0.2, "y": 0.4, "z": 0.385}, arm=Arm.left, absolute=False)
-        c.bend_arm(avatar_id=avatar_id, target={"x": 0.2, "y": 0.4, "z": 0.385}, arm=Arm.right, absolute=False)
+
+        c.bend_arm(avatar_id=avatar_id, target={"x": -0.4, "y": 0.3, "z": 0.185}, arm=Arm.left, absolute=False)
+        c.bend_arm(avatar_id=avatar_id, target={"x": 0.4, "y": 0.3, "z": 0.185}, arm=Arm.right, absolute=False)
         c.reset_arms(avatar_id=avatar_id)
         theta += d_theta
 
