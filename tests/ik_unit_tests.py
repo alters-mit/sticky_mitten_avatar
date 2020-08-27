@@ -30,39 +30,46 @@ class IKUnitTests(StickyMittenAvatarController):
         # End the test.
         self.destroy_avatar(avatar_id=self.id)
 
-    def raise_arms(self) -> None:
+    def symmetry(self) -> None:
         """
         Test: Both arms raise symmetrically.
         """
 
-        c.bend_arm(avatar_id=self.id, target={"x": -0.2, "y": 0.4, "z": 0.385}, arm=Arm.left)
-        c.bend_arm(avatar_id=self.id, target={"x": 0.2, "y": 0.4, "z": 0.385}, arm=Arm.right)
+        self.bend_arm(avatar_id=self.id, target={"x": -0.2, "y": 0.4, "z": 0.385}, arm=Arm.left)
+        self.bend_arm(avatar_id=self.id, target={"x": 0.2, "y": 0.4, "z": 0.385}, arm=Arm.right)
 
-    def ik_rotation(self) -> None:
+    def rotation(self) -> None:
         """
-        Test: IK target follows avatar rotation.
+        Test: The IK target follows the rotation of the avatar.
         """
 
         d_theta = 15
         theta = 15
         while theta < 360:
-            c.communicate({"$type": "rotate_avatar_by",
-                           "angle": theta,
-                           "axis": "yaw",
-                           "is_world": True,
-                           "avatar_id": self.id})
+            self.communicate({"$type": "rotate_avatar_by",
+                              "angle": theta,
+                              "axis": "yaw",
+                              "is_world": True,
+                              "avatar_id": self.id})
 
-            c.bend_arm(avatar_id=self.id, target={"x": -0.4, "y": 0.3, "z": 0.185}, arm=Arm.left, absolute=False)
-            c.bend_arm(avatar_id=self.id, target={"x": 0.4, "y": 0.3, "z": 0.185}, arm=Arm.right, absolute=False)
-            c.reset_arms(avatar_id=self.id)
+            self.bend_arm(avatar_id=self.id, target={"x": -0.4, "y": 0.3, "z": 0.185}, arm=Arm.left)
+            self.bend_arm(avatar_id=self.id, target={"x": 0.4, "y": 0.3, "z": 0.185}, arm=Arm.right)
+            self.reset_arms(avatar_id=self.id)
             theta += d_theta
+
+    def position(self) -> None:
+        """
+        Test: The IK target follows the position of the avatar.
+        """
+
+        self.communicate({"$type": "teleport_avatar_to",
+                          "position": {"x": 1.1, "y": 0.0, "z": 1},
+                          "avatar_id": self.id})
+        self.bend_arm(avatar_id=self.id, target={"x": -0.2, "y": 0.4, "z": 0.385}, arm=Arm.left)
 
 
 if __name__ == "__main__":
     c = IKUnitTests()
-    # c.do_test(c.raise_arms)
-    c.do_test(c.ik_rotation)
-
-
-
-
+    c.do_test(c.symmetry)
+    c.do_test(c.rotation)
+    c.do_test(c.position)

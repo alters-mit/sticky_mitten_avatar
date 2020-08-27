@@ -455,8 +455,7 @@ class StickyMittenAvatarController(Controller):
         self.model_librarian = self._lib_core
         return commands
 
-    def bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float], do_motion: bool = True,
-                 absolute=True) -> None:
+    def bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float], do_motion: bool = True) -> None:
         """
         Begin to bend an arm of an avatar in the scene. The motion will continue to update per `communicate()` step.
 
@@ -464,13 +463,10 @@ class StickyMittenAvatarController(Controller):
         :param target: The target position for the mitten.
         :param avatar_id: The unique ID of the avatar.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done. See: `do_joint_motion()`
-        :param absolute: If True, the target position is in world coordinates. If False, it is relative to the avatar.
         """
 
-        target = TDWUtils.vector3_to_array(target)
-        if not absolute:
-            target = self._avatars[avatar_id].frame.get_position() + target
-        self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm, target=target))
+        self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm,
+                                                                       target=TDWUtils.vector3_to_array(target)))
 
         if do_motion:
             self.do_joint_motion()
@@ -868,11 +864,13 @@ class StickyMittenAvatarController(Controller):
 
         :param avatar_id: The ID of the avatar or camera.
         """
-
-        self.communicate({"$type": "destroy_avatar",
-                          "avatar_id": avatar_id})
         if avatar_id in self._avatars:
             self._avatars.pop(avatar_id)
+        # Remove commands for this avatar.
+        self._avatar_commands = [cmd for cmd in self._avatar_commands if ("avatar_id" not in cmd) or
+                                 (cmd["avatar_id"] != avatar_id)]
+        self.communicate({"$type": "destroy_avatar",
+                          "avatar_id": avatar_id})
 
     def end(self) -> None:
         """
