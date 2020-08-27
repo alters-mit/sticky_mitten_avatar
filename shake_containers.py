@@ -82,27 +82,27 @@ class ShakeContainer(StickyMittenAvatarController):
         # Pick up the first container. Shake it, and put it down.
         self.go_to(avatar_id=avatar_id, target=container_id_0)
         self.pick_up(avatar_id=avatar_id, object_id=container_id_0)
-        self.bend_arm(avatar_id=avatar_id, target={"x": 0.2, "y": 0.3, "z": 0.385}, arm=Arm.left, absolute=True)
+        self.bend_arm(avatar_id=avatar_id, target={"x": 0.2, "y": 0.3, "z": 0.385}, arm=Arm.left)
         self.shake(avatar_id=avatar_id, joint_name=f"elbow_left")
         self.put_down(avatar_id=avatar_id, do_motion=False)
 
         # Pick up the second container. Shake it, and put it down.
         self.go_to(avatar_id=avatar_id, target=container_id_1)
         self.pick_up(avatar_id=avatar_id, object_id=container_id_1)
-        self.bend_arm(avatar_id=avatar_id, target={"x": -0.3, "y": 0.4, "z": 0.285}, arm=Arm.right, absolute=False)
+        self.bend_arm(avatar_id=avatar_id, target={"x": -0.3, "y": 0.4, "z": 0.285}, arm=Arm.right)
         self.shake(avatar_id=avatar_id, joint_name=f"elbow_right")
         self.put_down(avatar_id=avatar_id, do_motion=False)
 
         # Pick up the first container again.
         self.go_to(avatar_id=avatar_id, target=container_id_0)
         self.pick_up(avatar_id=avatar_id, object_id=container_id_0)
-        self.bend_arm(avatar_id=avatar_id, target={"x": 0.3, "y": 0.4, "z": 0.285}, arm=Arm.left, absolute=False)
+        self.bend_arm(avatar_id=avatar_id, target={"x": 0.3, "y": 0.4, "z": 0.285}, arm=Arm.left)
 
         # Go to the sofa.
         self.go_to(avatar_id=avatar_id, target={"x": -4.475, "y": 0, "z": 2.132})
 
         # Put the container on the sofa.
-        self.bend_arm(avatar_id=avatar_id, target={"x": -4.75, "y": 0.9, "z": 1.885}, arm=Arm.left, absolute=True)
+        self.bend_arm(avatar_id=avatar_id, target={"x": -4.75, "y": 0.9, "z": 1.885}, arm=Arm.left)
         self.put_down(avatar_id=avatar_id, do_motion=False)
         for i in range(100):
             self.communicate([])
