@@ -70,8 +70,7 @@ class ShakeContainer(StickyMittenAvatarController):
         avatar_id = "a"
         self.create_avatar(avatar_id=avatar_id,
                            position={"x": -3.661998, "y": 0, "z": 0.507},
-                           rotation=60)
-        # Low-level
+                           rotation=60, debug=True)
         cam_id = "c"
         self.add_overhead_camera(position={"x": -2.369, "y": 0.582, "z": 1.651},
                                  target_object=avatar_id,
@@ -83,7 +82,7 @@ class ShakeContainer(StickyMittenAvatarController):
         # Pick up the first container. Shake it, and put it down.
         self.go_to(avatar_id=avatar_id, target=container_id_0)
         self.pick_up(avatar_id=avatar_id, object_id=container_id_0)
-        self.bend_arm(avatar_id=avatar_id, target={"x": 0.3, "y": 0.4, "z": 0.285}, arm=Arm.left, absolute=False)
+        self.bend_arm(avatar_id=avatar_id, target={"x": 0.2, "y": 0.3, "z": 0.385}, arm=Arm.left, absolute=True)
         self.shake(avatar_id=avatar_id, joint_name=f"elbow_left")
         self.put_down(avatar_id=avatar_id, do_motion=False)
 
