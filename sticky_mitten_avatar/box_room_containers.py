@@ -15,9 +15,6 @@ class BoxRoomContainers(StickyMittenAvatarController):
         self.container_0 = self.get_unique_id()
         self.container_1 = self.get_unique_id()
 
-    def run(self) -> None:
-        self.init_scene()
-
     def _get_scene_init_commands_early(self) -> List[dict]:
         # Load the scene.
         commands = [self.get_add_scene(scene_name="box_room_2018")]

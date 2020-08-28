@@ -3,8 +3,9 @@ from sticky_mitten_avatar.avatars import Arm
 
 
 if __name__ == "__main__":
-    c = BoxRoomContainers(launch_build=False)
-    c.run()
+    c = BoxRoomContainers()
+    # Initialize the scene. Add the objects, avatar, set global values, etc.
+    c.init_scene()
 
     # Pick up each container, shake it, and put it down.
     for container, arm, x_dir in zip([c.container_0, c.container_1], [Arm.right, Arm.left], [1, -1]):
@@ -19,6 +20,7 @@ if __name__ == "__main__":
     c.reset_arms(avatar_id=c.avatar_id, do_motion=False)
 
     # Put the container on the sofa.
+    # The "target" values are hardcoded for now; in the future, there will be better avatar navigation.
     c.go_to(avatar_id=c.avatar_id,
             target={"x": 1.721, "y": 0, "z": -1.847},
             turn_stopping_threshold=2,

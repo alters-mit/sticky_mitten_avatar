@@ -35,6 +35,9 @@ class PutObjectInContainer(StickyMittenAvatarController):
         # Save images every frame, if possible.
         self.frame_count = 0
         self.on_resp = self.save_images
+        self.o_id = self.get_unique_id()
+        self.id = "a"
+        self.bowl_id = self.get_unique_id()
 
     def save_images(self, resp: List[bytes]) -> None:
         """
@@ -51,52 +54,43 @@ class PutObjectInContainer(StickyMittenAvatarController):
                                  output_directory=self.output_dir)
             self.frame_count += 1
 
+    def _get_scene_init_commands_early(self) -> List[dict]:
+        commands = super()._get_scene_init_commands_early()
+        # Add a jug.
+        commands.extend(self.get_add_object("jug05",
+                                            position={"x": -0.2, "y": 0, "z": 0.385},
+                                            object_id=self.o_id,
+                                            scale={"x": 0.8, "y": 0.8, "z": 0.8}))
+        # Add a container.
+        bowl_position = {"x": 1.2, "y": 0, "z": 0.25}
+        commands.extend(self.get_add_object("serving_bowl",
+                                            position=bowl_position,
+                                            rotation={"x": 0, "y": 30, "z": 0},
+                                            object_id=self.bowl_id,
+                                            scale={"x": 1.3, "y": 1, "z": 1.3}))
+        return commands
+
+    def _do_scene_init_late(self) -> None:
+        # Add a third-person camera.
+        self.add_overhead_camera({"x": -0.08, "y": 1.25, "z": 1.41}, target_object=self.id, images="cam")
+
     def run(self) -> None:
         """
         Run a single trial. Save images per frame.
         """
 
-        self.start()
-
-        o_id = self.get_unique_id()
-        # Create a room.
-        commands = [TDWUtils.create_empty_room(12, 12)]
-        # Add a jug.
-        commands.extend(self.get_add_object("jug05",
-                                            position={"x": -0.2, "y": 0, "z": 0.385},
-                                            object_id=o_id,
-                                            scale={"x": 0.8, "y": 0.8, "z": 0.8}))
-        # Add a container.
-        bowl_id = self.get_unique_id()
-        bowl_position = {"x": 1.2, "y": 0, "z": 0.25}
-        commands.extend(self.get_add_object("serving_bowl",
-                                            position=bowl_position,
-                                            rotation={"x": 0, "y": 30, "z": 0},
-                                            object_id=bowl_id,
-                                            scale={"x": 1.3, "y": 1, "z": 1.3},
-                                            mass=1000))
-        self.communicate(commands)
-
-        # Create the sticky mitten avatar.
-        avatar_id = "a"
-        self.create_avatar(avatar_id=avatar_id)
-
-        # Add a third-person camera.
-        self.add_overhead_camera({"x": -0.08, "y": 1.25, "z": 1.41}, target_object=avatar_id, images="cam")
-
-        # End scene setup.
-        self.end_scene_setup()
+        self.init_scene()
 
         # Pick up the object.
-        self.pick_up(avatar_id=avatar_id, object_id=o_id)
+        self.pick_up(avatar_id=self.id, object_id=self.o_id)
         # Lift the object up a bit.
-        self.bend_arm(avatar_id=avatar_id, target={"x": -0.1, "y": 0.4, "z": 0.42}, arm=Arm.left)
+        self.bend_arm(avatar_id=self.id, target={"x": -0.1, "y": 0.4, "z": 0.42}, arm=Arm.left)
         # Go to the bowl.
-        self.go_to(avatar_id=avatar_id, target=bowl_id)
+        self.go_to(avatar_id=self.id, target=self.bowl_id)
         # Lift the object up a bit.
-        self.bend_arm(avatar_id=avatar_id, target={"x": 1.178, "y": 0.4, "z": 0.34}, arm=Arm.left)
+        self.bend_arm(avatar_id=self.id, target={"x": 1.178, "y": 0.4, "z": 0.34}, arm=Arm.left)
         # Drop the object in the container.
-        self.put_down(avatar_id=avatar_id)
+        self.put_down(avatar_id=self.id)
         for i in range(50):
             self.communicate([])
         # Stop the build.

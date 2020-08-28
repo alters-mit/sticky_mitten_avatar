@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 from tdw.tdw_utils import TDWUtils
 from tdw.librarian import ModelLibrarian
-from tdw.controller import Controller
 
 
 """
