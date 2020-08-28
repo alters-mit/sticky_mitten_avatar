@@ -91,7 +91,7 @@ class BoxRoomContainers(StickyMittenAvatarController):
                          {"$type": "set_ambient_occlusion_thickness_modifier",
                           "thickness": 3.5},
                          {"$type": "step_physics",
-                          "frames": 50}])
+                          "frames": 300}])
         return commands
 
     def _do_scene_init_late(self) -> None:

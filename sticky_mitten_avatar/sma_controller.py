@@ -589,7 +589,7 @@ class StickyMittenAvatarController(Controller):
                               position=target)
 
             # Failure because the avatar turned all the way around without aligning with the target.
-            if angle - initial_angle >= 360:
+            if angle - initial_angle >= 180:
                 return _TaskState.failure
 
             if angle > 180:
@@ -633,7 +633,7 @@ class StickyMittenAvatarController(Controller):
             # Coast to a stop.
             coasting = True
             while coasting:
-                coasting = np.linalg.norm(avatar.frame.get_angular_velocity()) > 0.05
+                coasting = np.linalg.norm(avatar.frame.get_angular_velocity()) > 0.3
                 state = get_turn_state()
                 if state == _TaskState.success:
                     self.stop_avatar(avatar_id=avatar_id)

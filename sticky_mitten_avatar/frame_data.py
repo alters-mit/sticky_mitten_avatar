@@ -63,8 +63,6 @@ class FrameData:
                 other_amp = collider_info.amp
                 other_mat = collider_info.material.name
             rel_amp = other_amp / target_amp
-            if rel_amp >= 1:
-                rel_amp = 0.05
             audio = FrameData._P.get_sound(coll, rigidbodies, other_id, other_mat, target_id, target_mat, rel_amp)
             self.audio.append((audio, target_id))
         # Get the audio of each environment collision.
