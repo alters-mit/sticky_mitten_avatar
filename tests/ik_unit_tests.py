@@ -1,6 +1,5 @@
-from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.avatars import Arm
-from sticky_mitten_avatar.sma_controller import StickyMittenAvatarController
+from sticky_mitten_avatar import StickyMittenAvatarController
 
 
 class IKUnitTests(StickyMittenAvatarController):
@@ -10,10 +9,6 @@ class IKUnitTests(StickyMittenAvatarController):
 
     def __init__(self, port: int = 1071):
         super().__init__(port=port, launch_build=False)
-        # Create an empty room.
-        self.start()
-        self.communicate(TDWUtils.create_empty_room(12, 12))
-        self.end_scene_setup()
         self.id = "a"
 
     def do_test(self, test) -> None:
@@ -91,6 +86,7 @@ class IKUnitTests(StickyMittenAvatarController):
 
 if __name__ == "__main__":
     c = IKUnitTests()
+    c.init_scene()
     c.do_test(c.symmetry)
     c.do_test(c.rotation)
     c.do_test(c.position)

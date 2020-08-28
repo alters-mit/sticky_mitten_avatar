@@ -14,7 +14,6 @@ from sticky_mitten_avatar.util import get_data, get_angle, get_closest_point_in_
 from sticky_mitten_avatar.dynamic_object_info import DynamicObjectInfo
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
-from sticky_mitten_avatar.scene_recipes import SceneRecipe
 
 
 class _TaskState(Enum):
@@ -37,13 +36,12 @@ class StickyMittenAvatarController(Controller):
     from tdw.tdw_utils import TDWUtils
     from sticky_mitten_avatar.avatars import Arm
     from sticky_mitten_avatar import StickyMittenAvatarController
-    from sticky_mitten_avatar.scene_recipes import Simple
 
     c = StickyMittenAvatarController()
 
     # Load a simple scene.
     avatar_id = "a"
-    avatar_id = c.init_scene(avatar_id=avatar_id, scene=Simple(c))
+    avatar_id = c.init_scene()
 
     # Bend an arm.
     c.bend_arm(avatar_id=avatar_id, target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
@@ -160,30 +158,20 @@ class StickyMittenAvatarController(Controller):
                              {"$type": "set_time_step",
                               "time_step": 0.02}])
 
-    def init_scene(self, avatar_id: str, recipe: SceneRecipe) -> None:
+    def init_scene(self) -> None:
         """
         Initialize the scene by loading a scene recipe. The recipe loads the scene, populates it with objects,
         adds the avatar, and sets rendering options such as post-processing values.
         Then, the build requests relevant output data per frame (collisions, transforms, etc.),
         initializes image capture, and caches [static object data](static_object_data.md).
-
-        :param avatar_id: The ID of the avatar.
-        :param recipe: The scene recipe. Example: `c.init_scene(recipe=Simple(c))`
         """
 
         # Initialize the scene.
-        self.communicate(recipe.commands)
+        self.communicate(self._get_scene_init_commands_early())
         # Create the avatar.
-        recipe.create_avatar(avatar_id=avatar_id, c=self)
-        # Finish initializing the scene.
-        self.end_scene_setup()
-
-    def end_scene_setup(self) -> None:
-        """
-        Request Collisions, Rigidbodies, and Transforms.
-        Request SegmentationColors, Bounds, and Volumes for this frame only.
-        Cache static object data.
-        """
+        self._init_avatar()
+        # Initialize after adding avatars.
+        self._do_scene_init_late()
 
         # Request Collisions, Rigidbodies, and Transforms.
         # Request SegmentationColors, Bounds, and Volumes for this frame only.
@@ -578,8 +566,8 @@ class StickyMittenAvatarController(Controller):
                           "angular_drag": self._STOP_DRAG,
                           "avatar_id": avatar_id})
 
-    def turn_to(self, avatar_id: str, target: Union[Dict[str, float], int], force: float = 300,
-                stopping_threshold: float = 0.1) -> bool:
+    def turn_to(self, avatar_id: str, target: Union[Dict[str, float], int], force: float = 500,
+                stopping_threshold: float = 0.15) -> bool:
         """
         The avatar will turn to face a target. This will advance through many simulation frames.
 
@@ -630,7 +618,7 @@ class StickyMittenAvatarController(Controller):
 
         # Set a low drag.
         self.communicate({"$type": "set_avatar_drag",
-                          "drag": 100,
+                          "drag": 0,
                           "angular_drag": 0.05,
                           "avatar_id": avatar_id})
 
@@ -669,7 +657,7 @@ class StickyMittenAvatarController(Controller):
         return False
 
     def go_to(self, avatar_id: str, target: Union[Dict[str, float], int],
-              turn_force: float = 300, turn_stopping_threshold: float = 0.1,
+              turn_force: float = 1000, turn_stopping_threshold: float = 0.15,
               move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool:
         """
         Go to a target position or object.
@@ -951,3 +939,28 @@ class StickyMittenAvatarController(Controller):
                              "wav_data": audio.wav_str,
                              "y_pos_offset": 0.1})
         return commands
+
+    def _get_scene_init_commands_early(self) -> List[dict]:
+        """
+        Get commands to initialize the scene before adding avatars.
+
+        :return: A list of commands to initialize the scene. Override this function for a different "scene recipe".
+        """
+
+        return [{"$type": "load_scene",
+                 "scene_name": "ProcGenScene"},
+                TDWUtils.create_empty_room(12, 12)]
+
+    def _do_scene_init_late(self) -> None:
+        """
+        Initialize the scene after adding avatars.
+        """
+
+        return
+
+    def _init_avatar(self) -> None:
+        """
+        Initialize the avatar.
+        """
+
+        self.create_avatar(avatar_id="a")

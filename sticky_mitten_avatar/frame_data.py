@@ -1,7 +1,7 @@
 import numpy as np
 from typing import List, Dict, Optional, Tuple
 from tdw.output_data import OutputData, Rigidbodies, Images, Transforms
-from tdw.py_impact import PyImpact, AudioMaterial, Base64Sound, CollisionTypesOnFrame, CollisionType
+from tdw.py_impact import PyImpact, AudioMaterial, Base64Sound
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.util import get_data
 
@@ -18,7 +18,7 @@ class FrameData:
                The images tuple is (segmentation pass, depth pass). Either can be None.
     """
 
-    _P = PyImpact(initial_amp=0.03)
+    _P = PyImpact(initial_amp=0.01)
 
     def __init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], surface_material: AudioMaterial):
         """
@@ -62,8 +62,10 @@ class FrameData:
                 other_id = collider_id
                 other_amp = collider_info.amp
                 other_mat = collider_info.material.name
-            audio = FrameData._P.get_sound(coll, rigidbodies, other_id, other_mat, target_id, target_mat,
-                                           other_amp / target_amp)
+            rel_amp = other_amp / target_amp
+            if rel_amp >= 1:
+                rel_amp = 0.05
+            audio = FrameData._P.get_sound(coll, rigidbodies, other_id, other_mat, target_id, target_mat, rel_amp)
             self.audio.append((audio, target_id))
         # Get the audio of each environment collision.
         for coll in env_collisions:
@@ -72,7 +74,7 @@ class FrameData:
             if (v is not None) and (v > 0):
                 collider_info = objects[collider_id].audio
                 audio = FrameData._P.get_sound(coll, rigidbodies, 1, surface_material.name, collider_id,
-                                               collider_info.material.name, 0.01 / collider_info.amp)
+                                               collider_info.material.name, 0.01)
                 self.audio.append((audio, collider_id))
         # Get the image data.
         self.images: Dict[str, Tuple[np.array, np.array]] = dict()

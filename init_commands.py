@@ -10,7 +10,7 @@ Convert initialization commands into a Sticky Mitten Avatar API scene recipe.
 
 The commands must be a list located at: ~/tdw_config/init_commands.json
 
-Output: a list of `commands.extend(c.get_add_object` calls.
+Output: a list of `commands.extend(self.get_add_object` calls.
 """
 
 
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     path = Path.home().joinpath("tdw_config/init_commands.json")
 
     # Spaces used to format the output string.
-    spaces = "                                 "
+    spaces = "                                    "
 
     output = ""
     # Load the commands.
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         cmd = commands[i]
         if cmd["$type"] == "add_object":
             name = cmd["name"]
-            output += f'commands.extend(c.get_add_object("{name}",\n{spaces}'
+            output += f'commands.extend(self.get_add_object("{name}",\n{spaces}'
             output += f"position={json.dumps(cmd['position'])},\n{spaces}"
             # The next command is a rotation command.
             # Convert the rotation to Euler angles.
@@ -40,5 +40,5 @@ if __name__ == "__main__":
             rotation = TDWUtils.array_to_vector3(rotation)
             output += f"rotation={json.dumps(rotation)},\n{spaces}"
             output += f"scale={json.dumps(commands[i + 2]['scale_factor'])},\n{spaces}"
-            output += f"object_id={Controller.get_unique_id()}))\n"
+            output += "object_id=self.get_uniqueID()))\n"
     print(output)

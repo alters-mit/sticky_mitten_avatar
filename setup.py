@@ -1,4 +1,6 @@
 from setuptools import setup, find_packages
+from sticky_mitten_avatar.avatars import Arm
+from sticky_mitten_avatar import StickyMittenAvatarController
 
 
 setup(
