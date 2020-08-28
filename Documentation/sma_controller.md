@@ -11,17 +11,13 @@ dynamic data (such as position). The controller also has useful wrapper function
 ```python
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.avatars import Arm
-from sticky_mitten_avatar.sma_controller import StickyMittenAvatarController
+from sticky_mitten_avatar import StickyMittenAvatarController
 
-c = StickyMittenAvatarController(launch_build=False)
+c = StickyMittenAvatarController()
 
-# Create an empty room.
-c.start()
-c.communicate(TDWUtils.create_empty_room(12, 12))
-
-# Create an avatar.
+# Load a simple scene.
 avatar_id = "a"
-c.create_avatar(avatar_id=avatar_id)
+avatar_id = c.init_scene()
 
 # Bend an arm.
 c.bend_arm(avatar_id=avatar_id, target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
@@ -71,19 +67,16 @@ c.on_resp = _per_frame
 
 ***
 
-#### `end_scene_setup(self, commands: List[dict] = None) -> None`
+#### `init_scene(self) -> None`
 
-Call this function at the end of scene setup (after all objects and avatars have been created).
-This function will request return data (collisions, transforms, etc.) and correctly initialize image capture.
-It will also cache [static object data](static_object_data.md)
-
-| Parameter | Description |
-| --- | --- |
-| commands | Additional commands to send at the end of scene setup (if you are overriding this function). |
+Initialize the scene by loading a scene recipe. The recipe loads the scene, populates it with objects,
+adds the avatar, and sets rendering options such as post-processing values.
+Then, the build requests relevant output data per frame (collisions, transforms, etc.),
+initializes image capture, and caches [static object data](static_object_data.md).
 
 ***
 
-#### `create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None, debug: bool = False) -> None`
+#### `create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None, rotation: float = 0, debug: bool = False) -> None`
 
 Create an avatar. Set default values for the avatar. Cache its static data (segmentation colors, etc.)
 
@@ -92,6 +85,7 @@ Create an avatar. Set default values for the avatar. Cache its static data (segm
 | avatar_type | The type of avatar. Options: "baby", "adult" |
 | avatar_id | The unique ID of the avatar. |
 | position | The initial position of the avatar. |
+| rotation | The initial rotation of the avatar in degrees. |
 | debug | If true, print debug messages when the avatar moves. |
 
 ***
@@ -140,10 +134,11 @@ _Returns:_  A list of container [model records](https://github.com/threedworld-m
 #### `get_add_container(self, model_name: str, object_id: int, contents: List[str], position: Dict[str, float] = None, rotation: Dict[str, float] = None, audio: ObjectInfo = None, scale: Dict[str, float] = None) -> List[dict]`
 
 Add a container to the scene. A container is an object that can hold other objects in it.
+Containers must be from the "containers" library. See `get_container_records()`.
 
 | Parameter | Description |
 | --- | --- |
-| model_name | The name of the container. Must be from the "containers" library. See `get_container_records()`. |
+| model_name | The name of the container. |
 | object_id | The ID of the container. |
 | contents | The model names of objects that will be put in the container. They will be assigned random positions and object IDs and default audio and physics values. |
 | position | The position of the container. |
@@ -184,7 +179,7 @@ _Returns:_  The arm that is picking up the object.
 
 ***
 
-#### `put_down(self, avatar_id: str, reset_arms: bool = True) -> None`
+#### `put_down(self, avatar_id: str, reset_arms: bool = True, do_motion: bool = True) -> None`
 
 Begin to put down all objects.
 The motion will continue to update per `communicate()` step.
@@ -193,6 +188,18 @@ The motion will continue to update per `communicate()` step.
 | --- | --- |
 | avatar_id | The unique ID of the avatar. |
 | reset_arms | If True, reset arm positions to "neutral". |
+| do_motion | If True, advance simulation frames until the pick-up motion is done. See: `do_joint_motion()` |
+
+***
+
+#### `reset_arms(self, avatar_id: str, do_motion: bool = True) -> None`
+
+Reset the avatar's arm joints to their starting positions.
+
+| Parameter | Description |
+| --- | --- |
+| avatar_id | The ID of the avatar. |
+| do_motion | If True, advance simulation frames until the pick-up motion is done. See: `do_joint_motion()` |
 
 ***
 
@@ -224,7 +231,7 @@ Advance 1 frame and stop the avatar's movement and turning.
 
 ***
 
-#### `turn_to(self, avatar_id: str, target: Union[Dict[str, float], int], force: float = 300, stopping_threshold: float = 0.1) -> bool`
+#### `turn_to(self, avatar_id: str, target: Union[Dict[str, float], int], force: float = 500, stopping_threshold: float = 0.15) -> bool`
 
 The avatar will turn to face a target. This will advance through many simulation frames.
 
@@ -245,7 +252,7 @@ _Returns:_  Whether avatar succeed, failed, or is presently turning.
 
 ***
 
-#### `go_to(self, avatar_id: str, target: Union[Dict[str, float], int], turn_force: float = 300, turn_stopping_threshold: float = 0.1, move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool`
+#### `go_to(self, avatar_id: str, target: Union[Dict[str, float], int], turn_force: float = 1000, turn_stopping_threshold: float = 0.15, move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool`
 
 Go to a target position or object.
 If the avatar isn't facing the target, it will turn to face it (see `turn_to()`).
@@ -300,6 +307,42 @@ Advances 1 frame.
 | target_object | Always point the camera at this object or avatar. |
 | position | The position of the camera. |
 | images | Image capture behavior. Choices: |
+
+***
+
+#### `destroy_avatar(self, avatar_id: str) -> None`
+
+Destroy an avatar or camera in the scene.
+
+| Parameter | Description |
+| --- | --- |
+| avatar_id | The ID of the avatar or camera. |
+
+***
+
+#### `end(self) -> None`
+
+End the simulation. Terminate the build process.
+
+***
+
+#### `_get_scene_init_commands_early(self) -> List[dict]`
+
+Get commands to initialize the scene before adding avatars.
+
+_Returns:_  A list of commands to initialize the scene. Override this function for a different "scene recipe".
+
+***
+
+#### `_do_scene_init_late(self) -> None`
+
+Initialize the scene after adding avatars.
+
+***
+
+#### `_init_avatar(self) -> None`
+
+Initialize the avatar.
 
 ***
 

@@ -86,7 +86,7 @@ Fields:
 
 ***
 
-#### `bend_arm(self, arm: Arm, target: Union[np.array, list], target_orientation: np.array = None) -> List[dict]`
+#### `bend_arm(self, arm: Arm, target: np.array, target_orientation: np.array = None) -> List[dict]`
 
 Get an IK solution to move a mitten to a target position.
 
@@ -156,10 +156,26 @@ _Returns:_  A list of commands to put down the object.
 
 ***
 
+#### `reset_arms(self) -> List[dict]`
+
+_Returns:_  A list of commands to drop arms to their starting positions.
+
+***
+
 #### `set_dummy_ik_goals(self) -> None`
 
 Set "dummy" IK goals.
 There's no target, so the avatar will just bend the arms until they stop moving.
+
+***
+
+#### `look_at(self, object_id: int = None) -> None`
+
+Set a target object to look at per frame. If None, the avatar's head will stop tracking the object.
+
+| Parameter | Description |
+| --- | --- |
+| object_id | The target object. |
 
 ***
 

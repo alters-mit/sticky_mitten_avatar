@@ -78,6 +78,3 @@ class Baby(Avatar):
                      orientation=[0, 0, 0],
                      rotation=[-1, 0, 0],
                      bounds=(0, 1.5708))])
-
-    def _get_mitten_offset(self) -> np.array:
-        return np.array([0, -0.0625, 0])
