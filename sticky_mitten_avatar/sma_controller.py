@@ -14,6 +14,7 @@ from sticky_mitten_avatar.util import get_data, get_angle, get_closest_point_in_
 from sticky_mitten_avatar.dynamic_object_info import DynamicObjectInfo
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
+from sticky_mitten_avatar.scene_recipes import SceneRecipe
 
 
 class _TaskState(Enum):
@@ -36,16 +37,13 @@ class StickyMittenAvatarController(Controller):
     from tdw.tdw_utils import TDWUtils
     from sticky_mitten_avatar.avatars import Arm
     from sticky_mitten_avatar import StickyMittenAvatarController
+    from sticky_mitten_avatar.scene_recipes import Simple
 
-    c = StickyMittenAvatarController(launch_build=False)
+    c = StickyMittenAvatarController()
 
-    # Create an empty room.
-    c.start()
-    c.communicate(TDWUtils.create_empty_room(12, 12))
-
-    # Create an avatar.
+    # Load a simple scene.
     avatar_id = "a"
-    c.create_avatar(avatar_id=avatar_id)
+    avatar_id = c.init_scene(avatar_id=avatar_id, scene=Simple(c))
 
     # Bend an arm.
     c.bend_arm(avatar_id=avatar_id, target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
@@ -162,35 +160,48 @@ class StickyMittenAvatarController(Controller):
                              {"$type": "set_time_step",
                               "time_step": 0.02}])
 
-    def end_scene_setup(self, commands: List[dict] = None) -> None:
+    def init_scene(self, avatar_id: str, recipe: SceneRecipe) -> None:
         """
-        Call this function at the end of scene setup (after all objects and avatars have been created).
-        This function will request return data (collisions, transforms, etc.) and correctly initialize image capture.
-        It will also cache [static object data](static_object_data.md)
+        Initialize the scene by loading a scene recipe. The recipe loads the scene, populates it with objects,
+        adds the avatar, and sets rendering options such as post-processing values.
+        Then, the build requests relevant output data per frame (collisions, transforms, etc.),
+        initializes image capture, and caches [static object data](static_object_data.md).
 
-        :param commands: Additional commands to send at the end of scene setup (if you are overriding this function).
+        :param avatar_id: The ID of the avatar.
+        :param recipe: The scene recipe. Example: `c.init_scene(recipe=Simple(c))`
+        """
+
+        # Initialize the scene.
+        self.communicate(recipe.commands)
+        # Create the avatar.
+        recipe.create_avatar(avatar_id=avatar_id, c=self)
+        # Finish initializing the scene.
+        self.end_scene_setup()
+
+    def end_scene_setup(self) -> None:
+        """
+        Request Collisions, Rigidbodies, and Transforms.
+        Request SegmentationColors, Bounds, and Volumes for this frame only.
+        Cache static object data.
         """
 
         # Request Collisions, Rigidbodies, and Transforms.
         # Request SegmentationColors, Bounds, and Volumes for this frame only.
-        end_commands = [{"$type": "send_collisions",
-                         "enter": True,
-                         "stay": False,
-                         "exit": False,
-                         "collision_types": ["obj", "env"]},
-                        {"$type": "send_rigidbodies",
-                         "frequency": "always"},
-                        {"$type": "send_transforms",
-                         "frequency": "always"},
-                        {"$type": "send_segmentation_colors",
-                         "frequency": "once"},
-                        {"$type": "send_bounds",
-                         "frequency": "once"},
-                        {"$type": "send_volumes",
-                         "frequency": "once"}]
-        if commands is not None:
-            end_commands.extend(commands)
-        resp = self.communicate(end_commands)
+        resp = self.communicate([{"$type": "send_collisions",
+                                  "enter": True,
+                                  "stay": False,
+                                  "exit": False,
+                                  "collision_types": ["obj", "env"]},
+                                 {"$type": "send_rigidbodies",
+                                  "frequency": "always"},
+                                 {"$type": "send_transforms",
+                                  "frequency": "always"},
+                                 {"$type": "send_segmentation_colors",
+                                  "frequency": "once"},
+                                 {"$type": "send_bounds",
+                                  "frequency": "once"},
+                                 {"$type": "send_volumes",
+                                  "frequency": "once"}])
 
         # Cache the static object data.
         segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
