@@ -197,7 +197,6 @@ class Avatar(ABC):
         right_mitten_position = self._get_mitten_position(arm=Arm.right)
         d_left = np.linalg.norm(left_mitten_position - center)
         d_right = np.linalg.norm(right_mitten_position - center)
-        print(d_left, d_right)
         if d_left <= d_right:
             arm = Arm.left
             mitten = left_mitten_position

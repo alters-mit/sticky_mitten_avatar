@@ -9,7 +9,7 @@ class BoxRoomContainers(StickyMittenAvatarController):
     Enables audio playback.
     """
 
-    def __init__(self, port: int = 1071, launch_build: bool = True):
+    def __init__(self, port: int = 1071, launch_build: bool = True, audio_playback_mode: str = None):
         super().__init__(port=port, launch_build=launch_build, audio_playback_mode="unity")
         self.avatar_id = "a"
         self.container_0 = self.get_unique_id()
@@ -72,7 +72,7 @@ class BoxRoomContainers(StickyMittenAvatarController):
         commands.extend(self.get_add_container(model_name="shoebox_fused",
                                                object_id=self.container_0,
                                                contents=["sphere", "sphere"],
-                                               position={"x": 0.771, "y": 0.3711542, "z": -0.385},
+                                               position={"x": 0.721, "y": 0.3711542, "z": -0.3850179},
                                                rotation={"x": 0, "y": 13, "z": 0}))
         commands.extend(self.get_add_container(model_name="shoebox_fused",
                                                object_id=self.container_1,
