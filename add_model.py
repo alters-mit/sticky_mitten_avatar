@@ -9,7 +9,7 @@ from tdw.asset_bundle_creator import AssetBundleCreator
 
 """
 Use this script to add create an asset bundle from a prefab and add it to a library in this repo. See: 
-(AssetBundleCreator)[https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/asset_bundle_creator.md]
+ [AssetBundleCreator](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/asset_bundle_creator.md)
 """
 
 

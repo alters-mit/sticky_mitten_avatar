@@ -96,6 +96,19 @@ All controllers can be found in: `controllers/`
 | `shake_demo.py`              | An avatar shakes two different containers with different audio properties. |
 | `put_object_on_table.py`     | _Obsolete._ Put an object on a table using a simple "aiming" algorithm to bend the arm. |
 
+## Test Controllers
+
+| Controller   | Description                              |
+| ------------ | ---------------------------------------- |
+| `ik_test.py` | Test the IK chains of the avatar's arms. |
+
+## Utility Scripts
+
+| Script             | Description                                                  |
+| ------------------ | ------------------------------------------------------------ |
+| `add_model.py`     | Use this script to add create an asset bundle from a prefab and add it to a library in this repo. See:  [AssetBundleCreator](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/asset_bundle_creator.md). |
+| `init_commands.py` | Convert initialization commands into a Sticky Mitten Avatar API scene recipe. |
+
 ## Changelog
 
 ### 0.2.0
