@@ -216,7 +216,7 @@ c.create_avatar(avatar_id="b")
 c.bend_arm(avatar_id="a", target=pos_a, arm=Arm.left, do_motion=False)
 c.bend_arm(avatar_id="b", target=pos_b, arm=Arm.left, do_motion=False)
 # Wait until both avatars are done moving.
-self.do_joint_mothion()
+self.do_joint_motion()
 ```
 
 ***
