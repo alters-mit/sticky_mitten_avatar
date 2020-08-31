@@ -7,9 +7,15 @@ from tdw.backend.platforms import UNITY_TO_SYSTEM
 from tdw.asset_bundle_creator import AssetBundleCreator
 
 
+"""
+Use this script to add create an asset bundle from a prefab and add it to a library in this repo. See: 
+(AssetBundleCreator)[https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/asset_bundle_creator.md]
+"""
+
+
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--name", type=str, default="box_00",
+    parser.add_argument("--name", type=str,
                         help="The name of the prefab in ~/asset_bundle_creator/Assets/Resources/prefab")
     parser.add_argument("--lib", type=str, default="containers", help="The name of the local library.")
     args = parser.parse_args()

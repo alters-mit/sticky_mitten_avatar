@@ -5,12 +5,13 @@ from sticky_mitten_avatar import StickyMittenAvatarController
 class BoxRoomContainers(StickyMittenAvatarController):
     """
     A simple room with some furniture, props, and two containers with objects in them.
+    Adds a third-person camera that will track the avatar as it moves.
 
-    Enables audio playback.
+    This a subclass of the [StickyMittenAvatarController](sma_controller.md).
     """
 
     def __init__(self, port: int = 1071, launch_build: bool = True, audio_playback_mode: str = None):
-        super().__init__(port=port, launch_build=launch_build, audio_playback_mode="unity")
+        super().__init__(port=port, launch_build=launch_build, audio_playback_mode=audio_playback_mode)
         self.avatar_id = "a"
         self.container_0 = self.get_unique_id()
         self.container_1 = self.get_unique_id()

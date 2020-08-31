@@ -6,8 +6,13 @@ from tdw.librarian import ModelLibrarian
 
 """
 Convert initialization commands into a Sticky Mitten Avatar API scene recipe.
+The commands must be in the file: ~/tdw_config/init_commands.json
 
-The commands must be a list located at: ~/tdw_config/init_commands.json
+The commands should be in a dictionary:
+
+```python
+{"commands": [command1, command2, command3]}
+```
 
 Output: a list of `commands.extend(self.get_add_object` calls.
 """
