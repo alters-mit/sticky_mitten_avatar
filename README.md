@@ -54,6 +54,7 @@ Use the [StickyMittenAvatarController](Documentation/sma_controller.md) to creat
 | -------- | ----------- |
 | `create_avatar()`       | Create an avatar.                                            |
 | `get_add_object()`      | Returns a list of commands to add an object to the scene and to set its position, mass, etc. Overrides [`Controller.get_add_object()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md#get_add_objectself-model_name-str-object_id-int-positionx-0-y-0-z-0-rotationx-0-y-0-z-0-library-str-----dict); returns a list of commands instead of just 1 command. |
+| `get_container_records()` | Get a list of all available container models. |
 | `get_add_container()`   | Similar to `get_add_object()` except that it adds a specialized "container" object and puts small objects in the container. |
 | `destroy_avatar()` | Destroy an avatar in the scene. |
 
@@ -113,16 +114,39 @@ All controllers can be found in: `controllers/`
 
 ### 0.2.0
 
+- Parameter `target` in `Avatar.bend_arm` must be a numpy array (previously, could be a numpy array or a list).
+- Added: `Avatar.reset_arms()` Set the arms to a "neutral" position.
 - Added: `Avatar.set_dummy_ik_goals()` Set "dummy" IK goals with no targets.
+- Added: `box_room_containers.py` Creates a photorealistic scene with furniture and containers.
+- **Added: `shake_demo.py`. The avatar shakes containers and "listens" to the audio.**
 - Renamed: `PhysicsInfo` to `DynamicObjectInfo`
+- Added: `FrameData` **Contains image and audio data.**
 - Added new fields to `StickyMittenAvatarController`:
   - `frame` Current frame data. 
   - `static_object_info` Static object info per object.
-- Added parameter to `StickyMittenAvatarController` constructor: `audio_playback_mode`
-- Added: `StickyMittenAvatarController.end_scene_setup()` End scene setup. Cache data. Request output data.
+  - Added parameter to `StickyMittenAvatarController` constructor: `audio_playback_mode`
+- Added: `StickyMittenAvatar.init_scene()` Initialize a scene.
+- Changed the commands returned by `StickyMittenAvatar.get_add_object()`
+- Added: `StickyMittenAvatar.get_container_records()` Get records for all container models.
+- Added: `StickyMittenAvatar.get_add_container()` Add a container to the scene.
+- Added: `StickyMittenAvatar.reset_arms()`  Set the arms to a "neutral" position.
 - Added: `StickyMittenAvatarController.shake()` Shake an avatar's joint.
+- Added: `StickyMittenAvatarController.destroy_avatar()` Destroy the avatar.
+- Added: `StickyMittenAvatarController.end()` End the simulation.
+- Added parameter `do_motion` to `StickyMittenAvatar.put_down()`
+- Parameter `target` in `StickyMittenAvatar.turn_to()` must be a dictionary (Vector3) or an integer (object ID).
 - Added: `StaticObjectInfo`
-- Added: `FrameData` **Contains image and audio data.**
 - Removed: `util.get_collisions()`
-- Fixed: `def` headers in documentation.
-- Fixed: Bad IK chains for the baby avatar.
+- Added utility script: `add_model.py`
+- Added utility script: `init_commands.py`
+- Added test controller: `tests/ik_test.py`
+- Removed test controller: `arm_test.py`
+- Moved `put_object_in_container.py` to `controllers/` and adjusted some values to make it work with the improved IK system.
+- Moved `put_object_on_table.py` to `controllers/`
+- Added asset bundle `shoebox_fused`.
+- Added: `audio.csv` Default audio values.
+- Added model libraries: `containers.json` and `container_contents.json`
+- **Fixed: IK chains for the baby avatar are wrong.**
+- Fixed: `util.rotate_point_around()` often returns incorrect values.
+- Fixed: `def` headers in documentation sometimes don't contain all parameters.
+- Added: `videos/shake_demo.mp4`

@@ -69,10 +69,11 @@ c.on_resp = _per_frame
 
 #### `init_scene(self) -> None`
 
-Initialize the scene by loading a scene recipe. The recipe loads the scene, populates it with objects,
-adds the avatar, and sets rendering options such as post-processing values.
-Then, the build requests relevant output data per frame (collisions, transforms, etc.),
-initializes image capture, and caches [static object data](static_object_data.md).
+Initialize a scene, populate it with objects,
+add the avatar, and set rendering options such as post-processing values.
+Then, request relevant output data per frame (collisions, transforms, etc.),
+initialize image capture, and cache [static object data](static_object_data.md).
+Each subclass of StickyMittenAvatarController has a specialized "recipe" for `init_scene()`.
 
 ***
 

@@ -111,7 +111,6 @@ class Avatar(ABC):
         # Any current IK goals.
         self._ik_goals: Dict[Arm, Optional[_IKGoal]] = {Arm.left: None,
                                                         Arm.right: None}
-        self._look_at_target: Optional[int] = None
         smsc: Optional[AvatarStickyMittenSegmentationColors] = None
         for i in range(len(resp) - 1):
             r_id = OutputData.get_data_type_id(resp[i])
@@ -312,13 +311,6 @@ class Avatar(ABC):
         self._ik_goals = temp_goals
         self.frame = frame
 
-        # Set the head rotation.
-        if self._look_at_target is not None:
-            commands.append({"$type": "head_look_at",
-                             "object_id": self._look_at_target,
-                             "avatar_id": self.id,
-                             "use_centroid": True})
-
         return commands
 
     def is_ik_done(self) -> bool:
@@ -380,15 +372,6 @@ class Avatar(ABC):
 
         for arm in self._ik_goals:
             self._ik_goals[arm] = _IKGoal(target=None)
-
-    def look_at(self, object_id: int = None) -> None:
-        """
-        Set a target object to look at per frame. If None, the avatar's head will stop tracking the object.
-
-        :param object_id: The target object.
-        """
-
-        self._look_at_target = object_id
 
     def _stop_arms(self, arm: Arm) -> List[dict]:
         """

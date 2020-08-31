@@ -169,13 +169,3 @@ There's no target, so the avatar will just bend the arms until they stop moving.
 
 ***
 
-#### `look_at(self, object_id: int = None) -> None`
-
-Set a target object to look at per frame. If None, the avatar's head will stop tracking the object.
-
-| Parameter | Description |
-| --- | --- |
-| object_id | The target object. |
-
-***
-
