@@ -1,0 +1,147 @@
+{
+    "description": "Small objects for containers",
+    "records": {
+        "cone": {
+            "asset_bundle_sizes": {
+                "Darwin": 66809,
+                "Linux": 102670,
+                "Windows": 33926
+            },
+            "bounds": {
+                "back": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": -0.5
+                },
+                "bottom": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "center": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "front": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "left": {
+                    "x": -0.494911,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "right": {
+                    "x": 0.494911,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "top": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                }
+            },
+            "canonical_rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "composite_object": false,
+            "do_not_use": false,
+            "do_not_use_reason": "",
+            "flex": true,
+            "name": "cone",
+            "physics_quality": 1,
+            "scale_factor": 0.04,
+            "substructure": [
+                {
+                    "materials": [
+                        "None"
+                    ],
+                    "name": "cone"
+                }
+            ],
+            "urls": {
+                "Darwin": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/osx/2019.2/cone",
+                "Linux": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/linux/2019.2/cone",
+                "Windows": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/windows/2019.2/cone"
+            },
+            "wcategory": "flex_primitive",
+            "wnid": ""
+        },
+        "sphere": {
+            "asset_bundle_sizes": {
+                "Darwin": 70845,
+                "Linux": 106825,
+                "Windows": 37880
+            },
+            "bounds": {
+                "back": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": -0.5
+                },
+                "bottom": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "center": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "front": {
+                    "x": 0,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "left": {
+                    "x": -0.5,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "right": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0
+                },
+                "top": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                }
+            },
+            "canonical_rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "composite_object": false,
+            "do_not_use": false,
+            "do_not_use_reason": "",
+            "flex": true,
+            "name": "sphere",
+            "physics_quality": 1,
+            "scale_factor": 0.05,
+            "substructure": [
+                {
+                    "materials": [
+                        "None"
+                    ],
+                    "name": "sphere"
+                }
+            ],
+            "urls": {
+                "Darwin": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/osx/2019.2/sphere",
+                "Linux": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/linux/2019.2/sphere",
+                "Windows": "https://tdw-public.s3.amazonaws.com/models/flex_primitives/windows/2019.2/sphere"
+            },
+            "wcategory": "flex_primitive",
+            "wnid": ""
+        }
+    }
+}

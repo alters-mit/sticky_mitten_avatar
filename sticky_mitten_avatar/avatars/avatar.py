@@ -6,7 +6,7 @@ from ikpy.chain import Chain
 from enum import Enum
 from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds
 from tdw.tdw_utils import TDWUtils
-from sticky_mitten_avatar.util import get_angle_between, rotate_point_around
+from sticky_mitten_avatar.util import get_angle_between, rotate_point_around, FORWARD
 
 
 class Arm(Enum):
@@ -49,6 +49,9 @@ class Joint:
         self.axis = axis
         self.arm = arm
 
+    def __str__(self):
+        return self.joint + " " + self.axis
+
 
 class _IKGoal:
     """
@@ -80,21 +83,18 @@ class Avatar(ABC):
     - `frame` Dynamic info for the avatar on this frame, such as its position. See `tdw.output_data.AvatarStickyMitten`
     """
 
-    JOINTS = [Joint(arm="left", axis="pitch", part="shoulder"),
-              Joint(arm="left", axis="yaw", part="shoulder"),
-              Joint(arm="left", axis="roll", part="shoulder"),
-              Joint(arm="left", axis="pitch", part="elbow"),
-              Joint(arm="left", axis="roll", part="wrist"),
-              Joint(arm="left", axis="pitch", part="wrist"),
-              Joint(arm="right", axis="pitch", part="shoulder"),
-              Joint(arm="right", axis="yaw", part="shoulder"),
-              Joint(arm="right", axis="roll", part="shoulder"),
-              Joint(arm="right", axis="pitch", part="elbow"),
-              Joint(arm="right", axis="roll", part="wrist"),
-              Joint(arm="right", axis="pitch", part="wrist")]
-
-    # Global forward directional vector.
-    _FORWARD = np.array([0, 0, 1])
+    JOINTS: List[Joint] = [Joint(arm="left", axis="pitch", part="shoulder"),
+                           Joint(arm="left", axis="yaw", part="shoulder"),
+                           Joint(arm="left", axis="roll", part="shoulder"),
+                           Joint(arm="left", axis="pitch", part="elbow"),
+                           Joint(arm="left", axis="roll", part="wrist"),
+                           Joint(arm="left", axis="pitch", part="wrist"),
+                           Joint(arm="right", axis="pitch", part="shoulder"),
+                           Joint(arm="right", axis="yaw", part="shoulder"),
+                           Joint(arm="right", axis="roll", part="shoulder"),
+                           Joint(arm="right", axis="pitch", part="elbow"),
+                           Joint(arm="right", axis="roll", part="wrist"),
+                           Joint(arm="right", axis="pitch", part="wrist")]
 
     def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False):
         """
@@ -105,7 +105,6 @@ class Avatar(ABC):
 
         self.id = avatar_id
         self._debug = debug
-        self._mitten_offset = self._get_mitten_offset()
         # Set the arm chains.
         self._arms: Dict[Arm, Chain] = {Arm.left: self._get_left_arm(),
                                         Arm.right: self._get_right_arm()}
@@ -132,7 +131,7 @@ class Avatar(ABC):
         # Start dynamic data.
         self.frame = self._get_frame(resp)
 
-    def bend_arm(self, arm: Arm, target: Union[np.array, list], target_orientation: np.array = None) -> List[dict]:
+    def bend_arm(self, arm: Arm, target: np.array, target_orientation: np.array = None) -> List[dict]:
         """
         Get an IK solution to move a mitten to a target position.
 
@@ -143,13 +142,11 @@ class Avatar(ABC):
         :return: A list of commands to begin bending the arm.
         """
 
-        ik_target = np.array(target) - (self.frame.get_position())
+        ik_target = np.array(target)
 
-        # Rotate the target point to global forward.
-        ik_target = rotate_point_around(point=ik_target,
-                                        angle=get_angle_between(v1=Avatar._FORWARD, v2=self.frame.get_forward()))
-        if self._debug:
-            print(f"Absolute target: {target}\tIK target: {ik_target}")
+        angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
+        target = rotate_point_around(point=ik_target, angle=angle) + self.frame.get_position()
+
         self._ik_goals[arm] = _IKGoal(target=target)
 
         # Get the IK solution.
@@ -158,6 +155,7 @@ class Avatar(ABC):
         if self._debug:
             print([np.rad2deg(r) for r in rotations])
             self._plot_ik(target=ik_target, arm=arm)
+
             # Show the target.
             commands.extend([{"$type": "remove_position_markers"},
                              {"$type": "add_position_marker",
@@ -206,8 +204,11 @@ class Avatar(ABC):
             mitten = right_mitten_position
 
         target_orientation = (mitten - center) / np.linalg.norm(mitten - center)
+        angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
 
-        commands = self.bend_arm(arm=arm, target=center, target_orientation=target_orientation)
+        target = rotate_point_around(point=center - self.frame.get_position(), angle=-angle)
+
+        commands = self.bend_arm(arm=arm, target=target, target_orientation=target_orientation)
         self._ik_goals[arm].pick_up_id = object_id
         return commands, arm
 
@@ -241,7 +242,7 @@ class Avatar(ABC):
                 for i in range(frame.get_num_rigidbody_parts()):
                     # Get the mitten.
                     if frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
-                        mitten_position = np.array(frame.get_body_part_position(i)) + self._mitten_offset
+                        mitten_position = np.array(frame.get_body_part_position(i))
                         # If we're at the position, stop.
                         d = np.linalg.norm(mitten_position - self._ik_goals[arm].target)
                         if d < 0.1:
@@ -261,13 +262,18 @@ class Avatar(ABC):
                                     temp_goals[arm] = None
                                 # Keep bending the arm and trying to pick up the object.
                                 else:
-                                    commands.append({"$type": "pick_up_proximity",
-                                                     "distance": 0.1,
-                                                     "radius": 0.1,
-                                                     "grip": 1000,
-                                                     "is_left": arm == Arm.left,
-                                                     "avatar_id": self.id,
-                                                     "object_ids": [self._ik_goals[arm].pick_up_id]})
+                                    commands.extend([{"$type": "pick_up_proximity",
+                                                      "distance": 0.15,
+                                                      "radius": 0.1,
+                                                      "grip": 1000,
+                                                      "is_left": arm == Arm.left,
+                                                      "avatar_id": self.id,
+                                                      "object_ids": [self._ik_goals[arm].pick_up_id]},
+                                                     {"$type": "pick_up",
+                                                      "grip": 1000,
+                                                      "is_left": arm == Arm.left,
+                                                      "object_ids": [self._ik_goals[arm].pick_up_id],
+                                                      "avatar_id": self.id}])
                                     temp_goals[arm] = self._ik_goals[arm]
                             # Keep bending the arm.
                             else:
@@ -304,6 +310,7 @@ class Avatar(ABC):
                     temp_goals[arm] = None
         self._ik_goals = temp_goals
         self.frame = frame
+
         return commands
 
     def is_ik_done(self) -> bool:
@@ -338,16 +345,33 @@ class Avatar(ABC):
                      "is_left": False,
                      "avatar_id": self.id}]
         if reset_arms:
-            for j in self.JOINTS:
-                commands.append({"$type": "bend_arm_joint_to",
-                                 "joint": j.joint,
-                                 "axis": j.axis,
-                                 "angle": 0,
-                                 "avatar_id": self.id})
+            commands.extend(self.reset_arms())
+        return commands
+
+    def reset_arms(self) -> List[dict]:
+        """
+        :return: A list of commands to drop arms to their starting positions.
+        """
+
+        commands = []
+        for j in self.JOINTS:
+            commands.append({"$type": "bend_arm_joint_to",
+                             "joint": j.joint,
+                             "axis": j.axis,
+                             "angle": 0,
+                             "avatar_id": self.id})
         # Add some dummy IK goals.
+        self.set_dummy_ik_goals()
+        return commands
+
+    def set_dummy_ik_goals(self) -> None:
+        """
+        Set "dummy" IK goals.
+        There's no target, so the avatar will just bend the arms until they stop moving.
+        """
+
         for arm in self._ik_goals:
             self._ik_goals[arm] = _IKGoal(target=None)
-        return commands
 
     def _stop_arms(self, arm: Arm) -> List[dict]:
         """
@@ -356,13 +380,24 @@ class Avatar(ABC):
         :return: Commands to stop all arm movement.
         """
 
+        if arm == Arm.left:
+            joints = Avatar.JOINTS[:6]
+            angles = self.frame.get_angles_left()
+        else:
+            joints = Avatar.JOINTS[6:]
+            angles = self.frame.get_angles_right()
+
         commands = []
-        for j in self.JOINTS:
-            if j.arm == arm.name:
-                commands.append({"$type": "stop_arm_joint",
-                                 "joint": j.joint,
-                                 "axis": j.axis,
-                                 "avatar_id": self.id})
+        # Get the current angle and bend the joint to that angle.
+        for j, a in zip(joints, angles):
+            theta = float(a)
+            if theta > 90:
+                theta = 180 - theta
+            commands.append({"$type": "bend_arm_joint_to",
+                             "angle": theta,
+                             "joint": j.joint,
+                             "axis": j.axis,
+                             "avatar_id": self.id})
         return commands
 
     @abstractmethod
@@ -376,13 +411,6 @@ class Avatar(ABC):
     def _get_right_arm(self) -> Chain:
         """
         :return: The IK chain of the right arm.
-        """
-
-        raise Exception()
-
-    def _get_mitten_offset(self) -> np.array:
-        """
-        :return: The offset vector from the mitten position (at the wrist) to the centerpoint.
         """
 
         raise Exception()
@@ -412,7 +440,7 @@ class Avatar(ABC):
         for i in range(self.frame.get_num_rigidbody_parts()):
             # Get the mitten.
             if self.frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
-                return np.array(self.frame.get_body_part_position(i)) + self._mitten_offset
+                return np.array(self.frame.get_body_part_position(i))
         raise Exception(f"Mitten {arm.name} not found.")
 
     def _plot_ik(self, target: np.array, arm: Arm) -> None:

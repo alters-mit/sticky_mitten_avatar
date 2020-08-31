@@ -1,13 +1,19 @@
+import random
 from enum import Enum
 import numpy as np
-from typing import Dict, List, Union, Optional
+from pkg_resources import resource_filename
+from typing import Dict, List, Union, Optional, Tuple
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
-from tdw.output_data import Bounds, Transforms, Rigidbodies
+from tdw.librarian import ModelLibrarian, ModelRecord
+from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Volumes
+from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from sticky_mitten_avatar.avatars import Arm, Baby
-from sticky_mitten_avatar.avatars.avatar import Avatar
+from sticky_mitten_avatar.avatars.avatar import Avatar, Joint
 from sticky_mitten_avatar.util import get_data, get_angle, get_closest_point_in_bounds
-from sticky_mitten_avatar.physics_info import PhysicsInfo
+from sticky_mitten_avatar.dynamic_object_info import DynamicObjectInfo
+from sticky_mitten_avatar.static_object_info import StaticObjectInfo
+from sticky_mitten_avatar.frame_data import FrameData
 
 
 class _TaskState(Enum):
@@ -29,35 +35,46 @@ class StickyMittenAvatarController(Controller):
     ```python
     from tdw.tdw_utils import TDWUtils
     from sticky_mitten_avatar.avatars import Arm
-    from sticky_mitten_avatar.sma_controller import StickyMittenAvatarController
+    from sticky_mitten_avatar import StickyMittenAvatarController
 
-    c = StickyMittenAvatarController(launch_build=False)
+    c = StickyMittenAvatarController()
 
-    # Create an empty room.
-    c.start()
-    c.communicate(TDWUtils.create_empty_room(12, 12))
-
-    # Create an avatar.
+    # Load a simple scene.
     avatar_id = "a"
-    c.create_avatar(avatar_id=avatar_id)
+    avatar_id = c.init_scene()
 
     # Bend an arm.
     c.bend_arm(avatar_id=avatar_id, target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
+
+    # Get the segementation color pass for the avatar after bending the arm.
+    segmentation_colors = c.frame.images[avatar_id][0]
     ```
 
     ***
 
     Fields:
 
+    - `frame` Dynamic data for the current frame. Overwrites itself per frame.
+                   [Read this](frame_data.md) for a full API.
+                   Note: Most of the avatar API advances the simulation multiple frames.
+    ```python
+    # Get the segementation color pass for the avatar after bending the arm.
+    segmentation_colors = c.frame.images[avatar_id][0]
+    ```
+
+    - `static_object_data`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
+
+    ```python
+    # Get the segmentation color of an object.
+    segmentation_color = c.static_object_info[object_id].segmentation_color
+    ```
+
     - `on_resp` Default = None. Set this to a function with a `resp` argument to do something per-frame:
 
     ```python
-    from sticky_mitten_avatar.sma_controller import StickyMittenAvatarController
-
     def _per_frame():
         print("This will happen every frame.")
 
-    c = StickyMittenAvatarController(launch_build=False)
     c.on_resp = _per_frame
     ```
     """
@@ -65,37 +82,141 @@ class StickyMittenAvatarController(Controller):
     # A high drag value to stop movement.
     _STOP_DRAG = 1000
 
-    def __init__(self, port: int = 1071, launch_build: bool = True):
+    _STATIC_FRICTION = {AudioMaterial.ceramic: 0.47,
+                        AudioMaterial.hardwood: 0.4,
+                        AudioMaterial.wood: 0.4,
+                        AudioMaterial.cardboard: 0.47,
+                        AudioMaterial.glass: 0.65,
+                        AudioMaterial.metal: 0.52}
+    _DYNAMIC_FRICTION = {AudioMaterial.ceramic: 0.47,
+                         AudioMaterial.hardwood: 0.35,
+                         AudioMaterial.wood: 0.35,
+                         AudioMaterial.cardboard: 0.47,
+                         AudioMaterial.glass: 0.65,
+                         AudioMaterial.metal: 0.43}
+
+    def __init__(self, port: int = 1071, launch_build: bool = True, audio_playback_mode: str = None):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
+        :param audio_playback_mode: How the build will play back audio. Options: None (no playback, but audio will be generated in `self.frame_data`), `"unity"` (use the standard Unity audio system), `"resonance_audio"` (use Resonance Audio).
         """
+
+        # The containers library.
+        self._lib_containers = ModelLibrarian(library=resource_filename(__name__, "metadata_libraries/containers.json"))
+        # Cached core model library.
+        self._lib_core = ModelLibrarian()
 
         # Cache the entities.
         self._avatars: Dict[str, Avatar] = dict()
         # Commands sent by avatars.
         self._avatar_commands: List[dict] = []
-        # Cached object physics info.
-        self._objects: Dict[int, PhysicsInfo] = dict()
+        # Per-frame object physics info.
+        self._dynamic_object_info: Dict[int, DynamicObjectInfo] = dict()
+        # Cache names of models.
+        self.static_object_info: Dict[int, StaticObjectInfo] = dict()
+        self._surface_material = AudioMaterial.hardwood
+        self._audio_playback_mode = audio_playback_mode
+        # Load default audio values for objects.
+        self._default_audio_values = PyImpact.get_object_info()
+        # Load custom audio values.
+        custom_audio_info = PyImpact.get_object_info(resource_filename(__name__, "audio.csv"))
+        for a in custom_audio_info:
+            av = custom_audio_info[a]
+            av.library = resource_filename(__name__, av.library)
+            self._default_audio_values[a] = av
+
+        self._audio_values: Dict[int, ObjectInfo] = dict()
 
         # The command for the third-person camera, if any.
         self._cam_commands: Optional[list] = None
         # What to do after receiving a response.
         self.on_resp = None
+        self.frame: Optional[FrameData] = None
 
         super().__init__(port=port, launch_build=launch_build)
-        # Set image encoding to jpgs.
-        self.communicate([{"$type": "set_img_pass_encoding",
-                          "value": False}])
+
+        # Set image encoding to .jpg
+        # Set the highest render quality.
+        # Set global physics values.
+        commands = [{"$type": "set_img_pass_encoding",
+                     "value": False},
+                    {"$type": "set_render_quality",
+                     "render_quality": 5},
+                    {"$type": "set_physics_solver_iterations",
+                     "iterations": 32},
+                    {"$type": "set_vignette",
+                     "enabled": False},
+                    {"$type": "set_shadow_strength",
+                     "strength": 1.0},
+                    {"$type": "set_sleep_threshold",
+                     "sleep_threshold": 0.1}]
+        # Set the frame rate and timestep for audio.
+        if self._audio_playback_mode is not None:
+            commands.extend([{"$type": "set_target_framerate",
+                             "framerate": 30},
+                             {"$type": "set_time_step",
+                              "time_step": 0.02}])
+
+    def init_scene(self) -> None:
+        """
+        Initialize a scene, populate it with objects,
+        add the avatar, and set rendering options such as post-processing values.
+        Then, request relevant output data per frame (collisions, transforms, etc.),
+        initialize image capture, and cache [static object data](static_object_data.md).
+
+        Each subclass of StickyMittenAvatarController has a specialized "recipe" for `init_scene()`.
+        """
+
+        # Initialize the scene.
+        self.communicate(self._get_scene_init_commands_early())
+        # Create the avatar.
+        self._init_avatar()
+        # Initialize after adding avatars.
+        self._do_scene_init_late()
+
+        # Request Collisions, Rigidbodies, and Transforms.
+        # Request SegmentationColors, Bounds, and Volumes for this frame only.
+        resp = self.communicate([{"$type": "send_collisions",
+                                  "enter": True,
+                                  "stay": False,
+                                  "exit": False,
+                                  "collision_types": ["obj", "env"]},
+                                 {"$type": "send_rigidbodies",
+                                  "frequency": "always"},
+                                 {"$type": "send_transforms",
+                                  "frequency": "always"},
+                                 {"$type": "send_segmentation_colors",
+                                  "frequency": "once"},
+                                 {"$type": "send_bounds",
+                                  "frequency": "once"},
+                                 {"$type": "send_volumes",
+                                  "frequency": "once"}])
+
+        # Cache the static object data.
+        segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
+        bounds = get_data(resp=resp, d_type=Bounds)
+        volumes = get_data(resp=resp, d_type=Volumes)
+        rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
+        for i in range(segmentation_colors.get_num()):
+            object_id = segmentation_colors.get_object_id(i)
+            static_object = StaticObjectInfo(index=i,
+                                             segmentation_colors=segmentation_colors,
+                                             rigidbodies=rigidbodies,
+                                             volumes=volumes,
+                                             bounds=bounds,
+                                             audio=self._audio_values[object_id])
+            self.static_object_info[static_object.object_id] = static_object
 
     def create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None,
-                      debug: bool = False) -> None:
+                      rotation: float = 0, debug: bool = False) -> None:
         """
         Create an avatar. Set default values for the avatar. Cache its static data (segmentation colors, etc.)
 
         :param avatar_type: The type of avatar. Options: "baby", "adult"
         :param avatar_id: The unique ID of the avatar.
         :param position: The initial position of the avatar.
+        :param rotation: The initial rotation of the avatar in degrees.
         :param debug: If true, print debug messages when the avatar moves.
         """
 
@@ -112,11 +233,17 @@ class StickyMittenAvatarController(Controller):
         commands = TDWUtils.create_avatar(avatar_type=avatar_type,
                                           avatar_id=avatar_id,
                                           position=position)[:]
+        # Rotate the avatar.
         # Request segmentation colors, body part names, and dynamic avatar data.
         # Turn off the follow camera.
         # Set the palms to sticky.
         # Enable image capture.
-        commands.extend([{"$type": "send_avatar_segmentation_colors",
+        commands.extend([{"$type": "rotate_avatar_by",
+                          "angle": rotation,
+                          "axis": "yaw",
+                          "is_world": True,
+                          "avatar_id": avatar_id},
+                         {"$type": "send_avatar_segmentation_colors",
                           "frequency": "once",
                           "ids": [avatar_id]},
                          {"$type": "send_avatars",
@@ -135,11 +262,7 @@ class StickyMittenAvatarController(Controller):
                           "frequency": "always"},
                          {"$type": "toggle_image_sensor",
                           "sensor_name": "FollowCamera",
-                          "avatar_id": avatar_id},
-                         {"$type": "send_rigidbodies",
-                          "frequency": "always"},
-                         {"$type": "send_transforms",
-                          "frequency": "always"}])
+                          "avatar_id": avatar_id}])
         # Set all sides of both mittens to be sticky.
         for sub_mitten in ["palm", "back", "side"]:
             for is_left in [True, False]:
@@ -152,15 +275,22 @@ class StickyMittenAvatarController(Controller):
         # Strengthen the avatar.
         for joint in Avatar.JOINTS:
             commands.extend([{"$type": "adjust_joint_force_by",
-                              "delta": 40,
+                              "delta": 80,
                               "joint": joint.joint,
                               "axis": joint.axis,
                               "avatar_id": avatar_id},
                              {"$type": "adjust_joint_damper_by",
-                              "delta": 200,
+                              "delta": 300,
                               "joint": joint.joint,
                               "axis": joint.axis,
                               "avatar_id": avatar_id}])
+
+        if self._audio_playback_mode == "unity":
+            commands.append({"$type": "add_audio_sensor",
+                             "avatar_id": avatar_id})
+        elif self._audio_playback_mode == "resonance_audio":
+            commands.append({"$type": "add_environ_audio_sensor",
+                             "avatar_id": avatar_id})
 
         # Send the commands. Get a response.
         resp = self.communicate(commands)
@@ -196,6 +326,9 @@ class StickyMittenAvatarController(Controller):
         # Clear avatar commands.
         self._avatar_commands.clear()
 
+        # Add audio commands.
+        commands.extend(self._get_audio_commands())
+
         # Send the commands and get a response.
         resp = super().communicate(commands)
 
@@ -203,7 +336,7 @@ class StickyMittenAvatarController(Controller):
             return resp
 
         # Clear object info.
-        self._objects.clear()
+        self._dynamic_object_info.clear()
         # Update object info.
         tran = get_data(resp=resp, d_type=Transforms)
         rigi = get_data(resp=resp, d_type=Rigidbodies)
@@ -211,9 +344,12 @@ class StickyMittenAvatarController(Controller):
         if tran is None or rigi is None:
             return resp
 
+        # Update the frame data.
+        self.frame = FrameData(resp=resp, objects=self.static_object_info, surface_material=self._surface_material)
+
         for i in range(tran.get_num()):
             o_id = tran.get_id(i)
-            self._objects[o_id] = PhysicsInfo(o_id=o_id, rigi=rigi, tran=tran, tr_index=i)
+            self._dynamic_object_info[o_id] = DynamicObjectInfo(o_id=o_id, rigi=rigi, tran=tran, tr_index=i)
 
         # Update the avatars. Add new avatar commands for the next frame.
         for a_id in self._avatars:
@@ -226,8 +362,8 @@ class StickyMittenAvatarController(Controller):
         return resp
 
     def get_add_object(self, model_name: str, object_id: int, position: Dict[str, float] = None,
-                       rotation: Dict[str, float] = None, library: str = "", mass: int = 1,
-                       scale: Dict[str, float] = None) -> List[dict]:
+                       rotation: Dict[str, float] = None, library: str = "",
+                       scale: Dict[str, float] = None, audio: ObjectInfo = None) -> List[dict]:
         """
         Overrides Controller.get_add_object; returns a list of commands instead of 1 command.
 
@@ -237,11 +373,10 @@ class StickyMittenAvatarController(Controller):
         :param library: The path to the records file. If left empty, the default library will be selected.
                         See `ModelLibrarian.get_library_filenames()` and `ModelLibrarian.get_default_library()`.
         :param object_id: The ID of the new object.
-        :param mass: The mass of the object.
         :param scale: The scale factor of the object. If None, the scale factor is (1, 1, 1)
+        :param audio: Audio values for the object. If None, use default values.
 
-        :return: A list of commands: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode,
-                                       send_transforms, send_rigidbodies]`
+        :return: A list of commands: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode, set_physic_material]`
         """
 
         if position is None:
@@ -250,11 +385,14 @@ class StickyMittenAvatarController(Controller):
             rotation = {"x": 0, "y": 0, "z": 0}
         if scale is None:
             scale = {"x": 1, "y": 1, "z": 1}
+        if audio is None:
+            audio = self._default_audio_values[model_name]
+        self._audio_values[object_id] = audio
 
         return [super().get_add_object(model_name=model_name, object_id=object_id, position=position,
                                        rotation=rotation, library=library),
                 {"$type": "set_mass",
-                 "mass": mass,
+                 "mass": audio.mass,
                  "id": object_id},
                 {"$type": "scale_object",
                  "id": object_id,
@@ -262,10 +400,61 @@ class StickyMittenAvatarController(Controller):
                 {"$type": "set_object_collision_detection_mode",
                  "id": object_id,
                  "mode": "continuous_dynamic"},
-                {"$type": "send_rigidbodies",
-                 "frequency": "always"},
-                {"$type": "send_transforms",
-                 "frequency": "always"}]
+                {"$type": "set_physic_material",
+                 "dynamic_friction": StickyMittenAvatarController._DYNAMIC_FRICTION[audio.material],
+                 "static_friction": StickyMittenAvatarController._STATIC_FRICTION[audio.material],
+                 "bounciness": audio.bounciness,
+                 "id": object_id}]
+
+    def get_container_records(self) -> List[ModelRecord]:
+        """
+        :return: A list of container [model records](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/librarian/model_librarian.md#modelrecord-api).
+        """
+
+        return self._lib_containers.records
+
+    def get_add_container(self, model_name: str, object_id: int, contents: List[str], position: Dict[str, float] = None,
+                          rotation: Dict[str, float] = None, audio: ObjectInfo = None,
+                          scale: Dict[str, float] = None) -> List[dict]:
+        """
+        Add a container to the scene. A container is an object that can hold other objects in it.
+        Containers must be from the "containers" library. See `get_container_records()`.
+
+        :param model_name: The name of the container.
+        :param object_id: The ID of the container.
+        :param contents: The model names of objects that will be put in the container. They will be assigned random positions and object IDs and default audio and physics values.
+        :param position: The position of the container.
+        :param rotation: The rotation of the container.
+        :param audio: Audio values for the container. If None, use default values.
+        :param scale: The scale of the container.
+
+        :return: A list of commands per object added: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode, set_physic_material]`
+        """
+
+        record = self._lib_containers.get_record(model_name)
+        assert record is not None, f"Couldn't find container record for: {model_name}"
+
+        if position is None:
+            position = {"x": 0, "y": 0, "z": 0}
+
+        # Get commands to add the container.
+        commands = self.get_add_object(model_name=model_name, object_id=object_id, position=position, rotation=rotation,
+                                       library=self._lib_containers.library, audio=audio, scale=scale)
+        bounds = record.bounds
+        # Get the radius in which objects can reasonably be placed.
+        radius = (min(bounds['front']['z'] - bounds['back']['z'],
+                      bounds['right']['x'] - bounds['left']['x']) / 2 * record.scale_factor) - 0.03
+        # Add small objects.
+        for obj_name in contents:
+            obj = self._default_audio_values[obj_name]
+            o_pos = TDWUtils.array_to_vector3(TDWUtils.get_random_point_in_circle(
+                center=TDWUtils.vector3_to_array(position),
+                radius=radius))
+            o_pos["y"] = position["y"] + 0.01
+            commands.extend(self.get_add_object(model_name=obj.name, position=o_pos, audio=obj,
+                                                object_id=self.get_unique_id(), library=obj.library))
+        self.model_librarian = self._lib_core
+        return commands
 
     def bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float], do_motion: bool = True) -> None:
         """
@@ -308,16 +497,32 @@ class StickyMittenAvatarController(Controller):
             self.do_joint_motion()
         return arm
 
-    def put_down(self, avatar_id: str, reset_arms: bool = True) -> None:
+    def put_down(self, avatar_id: str, reset_arms: bool = True, do_motion: bool = True) -> None:
         """
         Begin to put down all objects.
         The motion will continue to update per `communicate()` step.
 
         :param avatar_id: The unique ID of the avatar.
         :param reset_arms: If True, reset arm positions to "neutral".
+        :param do_motion: If True, advance simulation frames until the pick-up motion is done. See: `do_joint_motion()`
+
         """
 
         self._avatar_commands.extend(self._avatars[avatar_id].put_down(reset_arms=reset_arms))
+        if do_motion:
+            self.do_joint_motion()
+
+    def reset_arms(self, avatar_id: str, do_motion: bool = True) -> None:
+        """
+        Reset the avatar's arm joints to their starting positions.
+
+        :param avatar_id: The ID of the avatar.
+        :param do_motion: If True, advance simulation frames until the pick-up motion is done. See: `do_joint_motion()`
+        """
+
+        self._avatar_commands.extend(self._avatars[avatar_id].reset_arms())
+        if do_motion:
+            self.do_joint_motion()
 
     def do_joint_motion(self) -> None:
         """
@@ -336,7 +541,7 @@ class StickyMittenAvatarController(Controller):
         c.bend_arm(avatar_id="b", target=pos_b, arm=Arm.left, do_motion=False)
 
         # Wait until both avatars are done moving.
-        self.do_joint_mothion()
+        self.do_joint_motion()
         ```
         """
 
@@ -363,8 +568,8 @@ class StickyMittenAvatarController(Controller):
                           "angular_drag": self._STOP_DRAG,
                           "avatar_id": avatar_id})
 
-    def turn_to(self, avatar_id: str, target: Union[Dict[str, float], int], force: float = 300,
-                stopping_threshold: float = 0.1) -> bool:
+    def turn_to(self, avatar_id: str, target: Union[Dict[str, float], int], force: float = 500,
+                stopping_threshold: float = 0.15) -> bool:
         """
         The avatar will turn to face a target. This will advance through many simulation frames.
 
@@ -386,7 +591,7 @@ class StickyMittenAvatarController(Controller):
                               position=target)
 
             # Failure because the avatar turned all the way around without aligning with the target.
-            if angle - initial_angle >= 360:
+            if angle - initial_angle >= 180:
                 return _TaskState.failure
 
             if angle > 180:
@@ -415,7 +620,7 @@ class StickyMittenAvatarController(Controller):
 
         # Set a low drag.
         self.communicate({"$type": "set_avatar_drag",
-                          "drag": 100,
+                          "drag": 0,
                           "angular_drag": 0.05,
                           "avatar_id": avatar_id})
 
@@ -430,7 +635,7 @@ class StickyMittenAvatarController(Controller):
             # Coast to a stop.
             coasting = True
             while coasting:
-                coasting = np.linalg.norm(avatar.frame.get_angular_velocity()) > 0.05
+                coasting = np.linalg.norm(avatar.frame.get_angular_velocity()) > 0.3
                 state = get_turn_state()
                 if state == _TaskState.success:
                     self.stop_avatar(avatar_id=avatar_id)
@@ -454,7 +659,7 @@ class StickyMittenAvatarController(Controller):
         return False
 
     def go_to(self, avatar_id: str, target: Union[Dict[str, float], int],
-              turn_force: float = 300, turn_stopping_threshold: float = 0.1,
+              turn_force: float = 1000, turn_stopping_threshold: float = 0.15,
               move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool:
         """
         Go to a target position or object.
@@ -531,6 +736,77 @@ class StickyMittenAvatarController(Controller):
         self.stop_avatar(avatar_id=avatar_id)
         return False
 
+    def shake(self, avatar_id: str, joint_name: str = "elbow_left", axis: str = "pitch",
+              angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (3, 5),
+              force: Tuple[float, float] = (900, 1000)) -> None:
+        """
+        Shake a joint back and forth for multiple iterations.
+        Per iteration, the joint will bend forward by an angle and then bend back by an angle.
+        This will advance the simulation multiple frames.
+
+        :param avatar_id: The ID of the avatar.
+        :param joint_name: The name of the joint.
+        :param axis: The axis of the joint's rotation.
+        :param angle: Each shake will bend the joint by a angle in degrees within this range.
+        :param num_shakes: The avatar will shake the joint a number of times within this range.
+        :param force: The avatar will add strength to the joint by a value within this range.
+        """
+
+        # Check if the joint and axis are valid.
+        joint: Optional[Joint] = None
+        for j in Avatar.JOINTS:
+            if j.joint == joint_name and j.axis == axis:
+                joint = j
+                break
+        if joint is None:
+            return
+
+        force = random.uniform(force[0], force[1])
+        damper = 200
+        # Increase the force of the joint.
+        self.communicate([{"$type": "adjust_joint_force_by",
+                           "delta": force,
+                           "joint": joint.joint,
+                           "axis": joint.axis,
+                           "avatar_id": avatar_id},
+                          {"$type": "adjust_joint_damper_by",
+                           "delta": -damper,
+                           "joint": joint.joint,
+                           "axis": joint.axis,
+                           "avatar_id": avatar_id}])
+        # Do each iteration.
+        for i in range(random.randint(num_shakes[0], num_shakes[1])):
+            a = random.uniform(angle[0], angle[1])
+            # Start the shake.
+            self.communicate({"$type": "bend_arm_joint_by",
+                              "angle": a,
+                              "joint": joint.joint,
+                              "axis": joint.axis,
+                              "avatar_id": avatar_id})
+            for j in range(10):
+                self.communicate([])
+            # Bend the arm back.
+            self.communicate({"$type": "bend_arm_joint_by",
+                              "angle": -(a / 2),
+                              "joint": joint.joint,
+                              "axis": joint.axis,
+                              "avatar_id": avatar_id})
+            for j in range(50):
+                self.communicate([])
+            # Apply the motion.
+            self.do_joint_motion()
+        # Reset the force of the joint.
+        self.communicate([{"$type": "adjust_joint_force_by",
+                           "delta": -force,
+                           "joint": joint.joint,
+                           "axis": joint.axis,
+                           "avatar_id": avatar_id},
+                          {"$type": "adjust_joint_damper_by",
+                           "delta": damper,
+                           "joint": joint.joint,
+                           "axis": joint.axis,
+                           "avatar_id": avatar_id}])
+
     def add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c",
                             images: str = "all") -> None:
         """
@@ -583,6 +859,27 @@ class StickyMittenAvatarController(Controller):
                              "frequency": "always"})
         self.communicate(commands)
 
+    def destroy_avatar(self, avatar_id: str) -> None:
+        """
+        Destroy an avatar or camera in the scene.
+
+        :param avatar_id: The ID of the avatar or camera.
+        """
+        if avatar_id in self._avatars:
+            self._avatars.pop(avatar_id)
+        # Remove commands for this avatar.
+        self._avatar_commands = [cmd for cmd in self._avatar_commands if ("avatar_id" not in cmd) or
+                                 (cmd["avatar_id"] != avatar_id)]
+        self.communicate({"$type": "destroy_avatar",
+                          "avatar_id": avatar_id})
+
+    def end(self) -> None:
+        """
+        End the simulation. Terminate the build process.
+        """
+
+        self.communicate({"$type": "terminate"})
+
     def _get_position(self, target: Union[Dict[str, float], np.array, int],
                       nearest_on_bounds: bool = False, avatar_id: str = None) -> np.array:
         """
@@ -598,7 +895,7 @@ class StickyMittenAvatarController(Controller):
 
         # This is an object ID.
         if isinstance(target, int):
-            if target not in self._objects:
+            if target not in self._dynamic_object_info:
                 raise Exception(f"Object not found: {target}")
             # Get the nearest point from the avatar.
             if nearest_on_bounds and (avatar_id is not None):
@@ -610,8 +907,62 @@ class StickyMittenAvatarController(Controller):
                                                    origin=self._avatars[avatar_id].frame.get_position(),
                                                    index=0)
             # Get the object's position.
-            return self._objects[target].position
+            return self._dynamic_object_info[target].position
         elif isinstance(target, dict):
             return TDWUtils.vector3_to_array(target)
         else:
             return target
+
+    def _get_audio_commands(self) -> List[dict]:
+        """
+        :return: A list of audio commands generated from `self.frame_data`
+        """
+
+        commands = []
+        if self._audio_playback_mode is None:
+            return commands
+        if self._audio_playback_mode == "unity":
+            cmd = "play_audio_data"
+        elif self._audio_playback_mode == "resonance_audio":
+            cmd = "play_point_source_data"
+        else:
+            raise Exception(f"Bad audio playback type: {self._audio_playback_mode}")
+        if self.frame is None:
+            return commands
+
+        for audio, object_id in self.frame.audio:
+            if audio is None:
+                continue
+            commands.append({"$type": cmd,
+                             "id": object_id,
+                             "num_frames": audio.length,
+                             "num_channels": 1,
+                             "frame_rate": 44100,
+                             "wav_data": audio.wav_str,
+                             "y_pos_offset": 0.1})
+        return commands
+
+    def _get_scene_init_commands_early(self) -> List[dict]:
+        """
+        Get commands to initialize the scene before adding avatars.
+
+        :return: A list of commands to initialize the scene. Override this function for a different "scene recipe".
+        """
+
+        return [{"$type": "load_scene",
+                 "scene_name": "ProcGenScene"},
+                TDWUtils.create_empty_room(12, 12)]
+
+    def _do_scene_init_late(self) -> None:
+        """
+        Initialize the scene after adding avatars.
+        """
+
+        return
+
+    def _init_avatar(self) -> None:
+        """
+        Initialize the avatar.
+        """
+
+        self.create_avatar(avatar_id="a")

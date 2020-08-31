@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Dict, List, TypeVar, Type, Optional
-from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Collision, Images
+from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Images, SegmentationColors, Volumes
 
 
 T = TypeVar("T", bound=OutputData)
@@ -8,7 +8,11 @@ T = TypeVar("T", bound=OutputData)
 _OUTPUT_IDS: Dict[Type[OutputData], str] = {Transforms: "tran",
                                             Rigidbodies: "rigi",
                                             Bounds: "boun",
-                                            Images: "imag"}
+                                            Images: "imag",
+                                            SegmentationColors: "segm",
+                                            Volumes: "volu"}
+# Global forward directional vector.
+FORWARD = np.array([0, 0, 1])
 
 
 def get_data(resp: List[bytes], d_type: Type[T]) -> Optional[T]:
@@ -29,22 +33,6 @@ def get_data(resp: List[bytes], d_type: Type[T]) -> Optional[T]:
         if r_id == _OUTPUT_IDS[d_type]:
             return d_type(resp[i])
     return None
-
-
-def get_collisions(resp: List[bytes]) -> List[Collision]:
-    """
-    Use this function instead of `get_data` for collision data (because there might be multiple collisions).
-
-    :param resp: The response from the build (a list of byte arrays).
-    :return: A list of all collisions on this frame.
-    """
-
-    collisions: List[Collision] = []
-    for i in range(len(resp) - 1):
-        r_id = OutputData.get_data_type_id(resp[i])
-        if r_id == "coll":
-            collisions.append(Collision(resp[i]))
-    return collisions
 
 
 def get_bounds_dict(bounds: Bounds, index: int) -> Dict[str, np.array]:
@@ -112,7 +100,10 @@ def get_angle_between(v1: np.array, v2: np.array) -> float:
     :return: The angle in degrees between two directional vectors.
     """
 
-    return np.rad2deg(np.arccos(np.dot(v1, v2)))
+    ang1 = np.arctan2(v1[2], v1[0])
+    ang2 = np.arctan2(v2[2], v2[0])
+
+    return np.rad2deg((ang1 - ang2) % (2 * np.pi))
 
 
 def rotate_point_around(point: np.array, angle: float, origin: np.array = None) -> np.array:
@@ -127,11 +118,14 @@ def rotate_point_around(point: np.array, angle: float, origin: np.array = None) 
     if origin is None:
         origin = np.array([0, 0, 0])
 
-    angle = np.deg2rad(angle)
+    radians = np.deg2rad(angle)
+    x, y = point[0], point[2]
+    offset_x, offset_y = origin[0], origin[2]
+    adjusted_x = (x - offset_x)
+    adjusted_y = (y - offset_y)
+    cos_rad = np.cos(radians)
+    sin_rad = np.sin(radians)
+    qx = offset_x + cos_rad * adjusted_x + sin_rad * adjusted_y
+    qy = offset_y + -sin_rad * adjusted_x + cos_rad * adjusted_y
 
-    ox, oy = origin[0], origin[2]
-    px, py = point[0], point[2]
-
-    qx = ox + np.cos(angle) * (px - ox) - np.sin(angle) * (py - oy)
-    qy = oy + np.sin(angle) * (px - ox) + np.cos(angle) * (py - oy)
     return np.array([qx, point[1], qy])
