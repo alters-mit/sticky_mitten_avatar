@@ -58,9 +58,6 @@ class BoxRoomContainers(StickyMittenAvatarController):
         commands.extend(self.get_add_object("arflex_hollywood_sofa",
                                             position={"x": 0.567, "y": 0, "z": -2.153},
                                             object_id=5922932))
-        commands.extend(self.get_add_object("macbook_air",
-                                            position={"x": 2.024, "y": 0.46, "z": -2.399},
-                                            object_id=1453018))
         commands.extend(self.get_add_object("alma_floor_lamp",
                                             position={"x": 3.637, "y": 0, "z": 2.45},
                                             object_id=9067846))
