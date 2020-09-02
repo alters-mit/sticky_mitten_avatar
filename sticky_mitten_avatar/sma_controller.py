@@ -581,10 +581,15 @@ class StickyMittenAvatarController(Controller):
         :return: True if the avatar succeeded in turning to face the target.
         """
 
-        def get_turn_state() -> _TaskState:
+        def get_turn_state(previous_angle: float) -> (_TaskState, float):
             """
-            :return: Whether avatar succeed, failed, or is presently turning.
+            :param previous_angle: The previous angle.
+
+            :return: Whether avatar succeed, failed, or is presently turning, and the new angle.
             """
+
+            if previous_angle > 180:
+                previous_angle -= 360
 
             angle = get_angle(origin=np.array(avatar.frame.get_position()),
                               forward=np.array(avatar.frame.get_forward()),
@@ -592,16 +597,19 @@ class StickyMittenAvatarController(Controller):
 
             # Failure because the avatar turned all the way around without aligning with the target.
             if angle - initial_angle >= 180:
-                return _TaskState.failure
+                return _TaskState.failure, angle
 
             if angle > 180:
                 angle -= 360
 
             # Success because the avatar is facing the target.
             if np.abs(angle) < stopping_threshold:
-                return _TaskState.success
+                return _TaskState.success, angle
+            # Overshot the turn. Stop.
+            if (direction < 0 and previous_angle > angle) or (direction > 0 and previous_angle < angle):
+                return _TaskState.success, angle
 
-            return _TaskState.ongoing
+            return _TaskState.ongoing, angle
 
         avatar = self._avatars[avatar_id]
 
@@ -612,6 +620,7 @@ class StickyMittenAvatarController(Controller):
         initial_angle = get_angle(origin=np.array(avatar.frame.get_position()),
                                   forward=np.array(avatar.frame.get_forward()),
                                   position=np.array(target))
+        current_angle = initial_angle
         # Decide which direction to turn.
         if initial_angle > 180:
             direction = -1
@@ -636,7 +645,7 @@ class StickyMittenAvatarController(Controller):
             coasting = True
             while coasting:
                 coasting = np.linalg.norm(avatar.frame.get_angular_velocity()) > 0.3
-                state = get_turn_state()
+                state, current_angle = get_turn_state(current_angle)
                 if state == _TaskState.success:
                     self.stop_avatar(avatar_id=avatar_id)
                     return True
@@ -647,7 +656,7 @@ class StickyMittenAvatarController(Controller):
 
             # Turn.
             self.communicate(turn_command)
-            state = get_turn_state()
+            state, current_angle = get_turn_state(current_angle)
             if state == _TaskState.success:
                 self.stop_avatar(avatar_id=avatar_id)
                 return True
