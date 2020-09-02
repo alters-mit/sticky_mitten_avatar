@@ -15,7 +15,7 @@ class Baby(Avatar):
         return Chain(name="left_arm", links=[
             OriginLink(),
             URDFLink(name="shoulder_pitch",
-                     translation_vector=[-0.225, 0.075, 0.182],
+                     translation_vector=[-0.225, 0.565, 0.075],
                      orientation=[-np.pi / 2, 0, 0],
                      rotation=[-1, 0, 0],
                      bounds=(-1.0472, 3.12414)),
@@ -49,7 +49,7 @@ class Baby(Avatar):
         return Chain(name="right_arm", links=[
             OriginLink(),
             URDFLink(name="shoulder_pitch",
-                     translation_vector=[0.235, 0.075, 0.182],
+                     translation_vector=[0.235, 0.565, 0.075],
                      orientation=[-np.pi / 2, 0, 0],
                      rotation=[-1, 0, 0],
                      bounds=(-1.0472, 3.12414)),
