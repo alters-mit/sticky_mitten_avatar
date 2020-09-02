@@ -192,8 +192,8 @@ class Avatar(ABC):
         assert center is not None, f"Couldn't find center of object {object_id}"
 
         # Get the nearest mitten.
-        left_mitten_position = self._get_mitten_position(arm=Arm.left)
-        right_mitten_position = self._get_mitten_position(arm=Arm.right)
+        left_mitten_position = np.array(self.frame.get_mitten_center_left_position())
+        right_mitten_position = np.array(self.frame.get_mitten_center_right_position())
         d_left = np.linalg.norm(left_mitten_position - center)
         d_right = np.linalg.norm(right_mitten_position - center)
         if d_left <= d_right:
@@ -238,47 +238,46 @@ class Avatar(ABC):
                 temp_goals[arm] = self._ik_goals[arm]
             else:
                 # Is the arm at the target?
-                mitten = f"mitten_{arm.name}"
-                for i in range(frame.get_num_rigidbody_parts()):
-                    # Get the mitten.
-                    if frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
-                        mitten_position = np.array(frame.get_body_part_position(i))
-                        # If we're at the position, stop.
-                        d = np.linalg.norm(mitten_position - self._ik_goals[arm].target)
-                        if d < 0.1:
+                if arm == Arm.left:
+                    mitten_position = np.array(frame.get_mitten_center_left_position())
+                else:
+                    mitten_position = np.array(frame.get_mitten_center_right_position())
+                # If we're at the position, stop.
+                d = np.linalg.norm(mitten_position - self._ik_goals[arm].target)
+                if d < 0.1:
+                    if self._debug:
+                        print(f"{arm.name} mitten is at target position {self._ik_goals[arm].target}. Stopping.")
+                    commands.extend(self._stop_arms(arm=arm))
+                    temp_goals[arm] = None
+                else:
+                    # Are we trying to pick up an object?
+                    if self._ik_goals[arm].pick_up_id is not None:
+                        # Did we pick up the object in the previous frame?
+                        if self._ik_goals[arm].pick_up_id in frame.get_held_left() or self._ik_goals[arm]. \
+                                pick_up_id in frame.get_held_right():
                             if self._debug:
-                                print(f"{mitten} is at target position {self._ik_goals[arm].target}. Stopping.")
+                                print(f"{arm.name} mitten picked up {self._ik_goals[arm].pick_up_id}. Stopping.")
                             commands.extend(self._stop_arms(arm=arm))
                             temp_goals[arm] = None
+                        # Keep bending the arm and trying to pick up the object.
                         else:
-                            # Are we trying to pick up an object?
-                            if self._ik_goals[arm].pick_up_id is not None:
-                                # Did we pick up the object in the previous frame?
-                                if self._ik_goals[arm].pick_up_id in frame.get_held_left() or self._ik_goals[arm].\
-                                        pick_up_id in frame.get_held_right():
-                                    if self._debug:
-                                        print(f"{mitten} picked up {self._ik_goals[arm].pick_up_id}. Stopping.")
-                                    commands.extend(self._stop_arms(arm=arm))
-                                    temp_goals[arm] = None
-                                # Keep bending the arm and trying to pick up the object.
-                                else:
-                                    commands.extend([{"$type": "pick_up_proximity",
-                                                      "distance": 0.15,
-                                                      "radius": 0.1,
-                                                      "grip": 1000,
-                                                      "is_left": arm == Arm.left,
-                                                      "avatar_id": self.id,
-                                                      "object_ids": [self._ik_goals[arm].pick_up_id]},
-                                                     {"$type": "pick_up",
-                                                      "grip": 1000,
-                                                      "is_left": arm == Arm.left,
-                                                      "object_ids": [self._ik_goals[arm].pick_up_id],
-                                                      "avatar_id": self.id}])
-                                    temp_goals[arm] = self._ik_goals[arm]
-                            # Keep bending the arm.
-                            else:
-                                temp_goals[arm] = self._ik_goals[arm]
-                                self._ik_goals[arm].previous_distance = d
+                            commands.extend([{"$type": "pick_up_proximity",
+                                              "distance": 0.15,
+                                              "radius": 0.1,
+                                              "grip": 1000,
+                                              "is_left": arm == Arm.left,
+                                              "avatar_id": self.id,
+                                              "object_ids": [self._ik_goals[arm].pick_up_id]},
+                                             {"$type": "pick_up",
+                                              "grip": 1000,
+                                              "is_left": arm == Arm.left,
+                                              "object_ids": [self._ik_goals[arm].pick_up_id],
+                                              "avatar_id": self.id}])
+                            temp_goals[arm] = self._ik_goals[arm]
+                    # Keep bending the arm.
+                    else:
+                        temp_goals[arm] = self._ik_goals[arm]
+                        self._ik_goals[arm].previous_distance = d
         self._ik_goals = temp_goals
 
         # Check if the arms are still moving.
@@ -428,20 +427,6 @@ class Avatar(ABC):
                 if avsm.get_avatar_id() == self.id:
                     return avsm
         raise Exception(f"No avatar data found for {self.id}")
-
-    def _get_mitten_position(self, arm: Arm) -> np.array:
-        """
-        :param arm: The mitten's arm.
-
-        :return: The position of the mitten.
-        """
-
-        mitten = f"mitten_{arm.name}"
-        for i in range(self.frame.get_num_rigidbody_parts()):
-            # Get the mitten.
-            if self.frame.get_body_part_id(i) == self.body_parts_static[mitten].o_id:
-                return np.array(self.frame.get_body_part_position(i))
-        raise Exception(f"Mitten {arm.name} not found.")
 
     def _plot_ik(self, target: np.array, arm: Arm) -> None:
         """
