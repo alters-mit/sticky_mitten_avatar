@@ -40,7 +40,7 @@ class Baby(Avatar):
                      rotation=[0, 0, 1],
                      bounds=(-1.5708, 1.5708)),
             URDFLink(name="wrist_pitch",
-                     translation_vector=[0, 0, 0],
+                     translation_vector=[0, 0, -0.0285],
                      orientation=[0, 0, 0],
                      rotation=[-1, 0, 0],
                      bounds=(0, 1.5708))])
@@ -74,7 +74,7 @@ class Baby(Avatar):
                      rotation=[0, 0, 1],
                      bounds=(-1.5708, 1.5708)),
             URDFLink(name="wrist_pitch",
-                     translation_vector=[0, 0, 0],
+                     translation_vector=[0, 0, -0.0285],
                      orientation=[0, 0, 0],
                      rotation=[-1, 0, 0],
                      bounds=(0, 1.5708))])
