@@ -43,7 +43,11 @@ class Baby(Avatar):
                      translation_vector=[0, 0, 0],
                      orientation=[0, 0, 0],
                      rotation=[-1, 0, 0],
-                     bounds=(0, 1.5708))])
+                     bounds=(0, 1.5708)),
+            URDFLink(name="mitten",
+                     translation_vector=[0, 0, -0.0625],
+                     orientation=[0, 0, 0],
+                     rotation=[0, 0, 0])])
 
     def _get_right_arm(self) -> Chain:
         return Chain(name="right_arm", links=[
@@ -77,4 +81,8 @@ class Baby(Avatar):
                      translation_vector=[0, 0, 0],
                      orientation=[0, 0, 0],
                      rotation=[-1, 0, 0],
-                     bounds=(0, 1.5708))])
+                     bounds=(0, 1.5708)),
+            URDFLink(name="mitten",
+                     translation_vector=[0, 0, -0.0625],
+                     orientation=[0, 0, 0],
+                     rotation=[0, 0, 0])])

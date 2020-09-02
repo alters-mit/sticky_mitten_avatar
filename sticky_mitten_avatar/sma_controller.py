@@ -280,7 +280,7 @@ class StickyMittenAvatarController(Controller):
                               "axis": joint.axis,
                               "avatar_id": avatar_id},
                              {"$type": "adjust_joint_damper_by",
-                              "delta": 300,
+                              "delta": 30,
                               "joint": joint.joint,
                               "axis": joint.axis,
                               "avatar_id": avatar_id}])

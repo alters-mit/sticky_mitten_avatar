@@ -162,7 +162,7 @@ class Avatar(ABC):
                               "position": TDWUtils.array_to_vector3(target)}])
 
         a = arm.name
-        for c, r in zip(self._arms[arm].links[1:], rotations[1:]):
+        for c, r in zip(self._arms[arm].links[1:-1], rotations[1:-1]):
             j = c.name.split("_")
             commands.append({"$type": "bend_arm_joint_to",
                              "angle": np.rad2deg(r),
