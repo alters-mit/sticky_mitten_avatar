@@ -26,7 +26,7 @@ if __name__ == "__main__":
     # Pick up the first container again.
     c.go_to(avatar_id=c.avatar_id, target=c.container_0, move_stopping_threshold=0.7)
     c.turn_to(avatar_id=c.avatar_id, target=c.container_0)
-    c.pick_up(avatar_id=c.avatar_id, object_id=c.container_0)
+    arm = c.pick_up(avatar_id=c.avatar_id, object_id=c.container_0)
 
     # Put the container on the sofa.
     # The "target" values are hardcoded for now; in the future, there will be better avatar navigation.
@@ -35,5 +35,7 @@ if __name__ == "__main__":
             turn_stopping_threshold=2,
             move_stopping_threshold=0.2)
     c.turn_to(avatar_id=c.avatar_id, target={"x": 2.024, "y": 0.46, "z": -2.399})
+    c.bend_arm(avatar_id=c.avatar_id, arm=arm,
+               target={"x": 0.1 * 1 if arm == Arm.right else -1, "y": 0.4, "z": 0.185})
     c.put_down(avatar_id=c.avatar_id)
     c.end()

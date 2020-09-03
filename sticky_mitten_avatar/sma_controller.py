@@ -578,7 +578,7 @@ class StickyMittenAvatarController(Controller):
                           "angular_drag": self._STOP_DRAG,
                           "avatar_id": avatar_id})
 
-    def turn_to(self, avatar_id: str, target: Union[Dict[str, float], int], force: float = 500,
+    def turn_to(self, avatar_id: str, target: Union[Dict[str, float], int], force: float = 1000,
                 stopping_threshold: float = 0.15) -> bool:
         """
         The avatar will turn to face a target. This will advance through many simulation frames.
