@@ -319,15 +319,6 @@ class Avatar(ABC):
 
         return self._ik_goals[Arm.left] is None and self._ik_goals[Arm.right] is None
 
-    def is_holding(self, object_id: int) -> bool:
-        """
-        :param object_id: The ID of the object.
-
-        :return: True if the avatar is holding the object in either mitten.
-        """
-
-        return object_id in self.frame.get_held_right() or object_id in self.frame.get_held_left()
-
     def put_down(self, reset_arms: bool = True) -> List[dict]:
         """
         Put down the object.
@@ -371,6 +362,19 @@ class Avatar(ABC):
 
         for arm in self._ik_goals:
             self._ik_goals[arm] = _IKGoal(target=None)
+
+    def is_holding(self, object_id: int) -> (bool, Arm):
+        """
+        :param object_id: The ID of the object.
+
+        :return: True if the avatar is holding the object and, if so, the arm holding the object.
+        """
+
+        if object_id in self.frame.get_held_left():
+            return True, Arm.left
+        elif object_id in self.frame.get_held_right():
+            return True, Arm.right
+        return False, Arm.left
 
     def _stop_arms(self, arm: Arm) -> List[dict]:
         """

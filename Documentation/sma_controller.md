@@ -164,7 +164,7 @@ Begin to bend an arm of an avatar in the scene. The motion will continue to upda
 
 ***
 
-#### `pick_up(self, avatar_id: str, object_id: int, do_motion: bool = True) -> Arm`
+#### `pick_up(self, avatar_id: str, object_id: int, do_motion: bool = True, try_again: bool = True) -> Arm`
 
 Begin to bend an avatar's arm to try to pick up an object in the scene.
 The simulation will advance 1 frame (to collect the object's bounds data).
@@ -175,6 +175,7 @@ The motion will continue to update per `communicate()` step.
 | object_id | The ID of the target object. |
 | avatar_id | The unique ID of the avatar. |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. See: `do_joint_motion()` |
+| try_again | If True, try to pick up the object a second time if the first attempt failed. |
 
 _Returns:_  The arm that is picking up the object.
 
@@ -247,9 +248,14 @@ _Returns:_  True if the avatar succeeded in turning to face the target.
 
 ***
 
-#### `get_turn_state() -> _TaskState`
+#### `get_turn_state(previous_angle: float) -> (_TaskState, float)`
 
-_Returns:_  Whether avatar succeed, failed, or is presently turning.
+
+| Parameter | Description |
+| --- | --- |
+| previous_angle | The previous angle. |
+
+_Returns:_  Whether avatar succeed, failed, or is presently turning, and the new angle.
 
 ***
 

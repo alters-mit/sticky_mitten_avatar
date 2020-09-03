@@ -472,7 +472,7 @@ class StickyMittenAvatarController(Controller):
         if do_motion:
             self.do_joint_motion()
 
-    def pick_up(self, avatar_id: str, object_id: int, do_motion: bool = True) -> Arm:
+    def pick_up(self, avatar_id: str, object_id: int, do_motion: bool = True, try_again: bool = True) -> Arm:
         """
         Begin to bend an avatar's arm to try to pick up an object in the scene.
         The simulation will advance 1 frame (to collect the object's bounds data).
@@ -481,6 +481,7 @@ class StickyMittenAvatarController(Controller):
         :param object_id: The ID of the target object.
         :param avatar_id: The unique ID of the avatar.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done. See: `do_joint_motion()`
+        :param try_again: If True, try to pick up the object a second time if the first attempt failed.
 
         :return: The arm that is picking up the object.
         """
@@ -495,6 +496,15 @@ class StickyMittenAvatarController(Controller):
 
         if do_motion:
             self.do_joint_motion()
+
+        # Check if the avatar is holding the object.
+        is_holding, arm = self._avatars[avatar_id].is_holding(object_id=object_id)
+        # If not, turn to the target and try again.
+        if (not is_holding) and try_again and do_motion:
+            self.reset_arms(avatar_id=avatar_id)
+            self.turn_to(avatar_id=avatar_id, target=object_id)
+            arm = self.pick_up(avatar_id=avatar_id, object_id=object_id, try_again=False)
+
         return arm
 
     def put_down(self, avatar_id: str, reset_arms: bool = True, do_motion: bool = True) -> None:

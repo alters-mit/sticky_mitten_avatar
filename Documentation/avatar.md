@@ -133,17 +133,6 @@ _Returns:_  True if the IK goals are complete, False if the arms are still movin
 
 ***
 
-#### `is_holding(self, object_id: int) -> bool`
-
-
-| Parameter | Description |
-| --- | --- |
-| object_id | The ID of the object. |
-
-_Returns:_  True if the avatar is holding the object in either mitten.
-
-***
-
 #### `put_down(self, reset_arms: bool = True) -> List[dict]`
 
 Put down the object.
@@ -166,6 +155,17 @@ _Returns:_  A list of commands to drop arms to their starting positions.
 
 Set "dummy" IK goals.
 There's no target, so the avatar will just bend the arms until they stop moving.
+
+***
+
+#### `is_holding(self, object_id: int) -> (bool, Arm)`
+
+
+| Parameter | Description |
+| --- | --- |
+| object_id | The ID of the object. |
+
+_Returns:_  True if the avatar is holding the object and, if so, the arm holding the object.
 
 ***
 

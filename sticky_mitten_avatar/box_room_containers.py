@@ -75,8 +75,8 @@ class BoxRoomContainers(StickyMittenAvatarController):
         commands.extend(self.get_add_container(model_name="shoebox_fused",
                                                object_id=self.container_1,
                                                contents=["cone", "cone", "cone", "cone"],
-                                               position={"x": 1.584, "y": 0.3359459, "z": 1.34},
-                                               rotation={"x": 0, "y": 55, "z": 0}))
+                                               position={"x": 1.922, "y": 0.3359459, "z": 1.25},
+                                               rotation={"x": 0, "y": 15, "z": 0}))
 
         commands.extend([{"$type": "set_aperture",
                           "aperture": 8.0},
