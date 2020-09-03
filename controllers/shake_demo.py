@@ -36,6 +36,6 @@ if __name__ == "__main__":
             move_stopping_threshold=0.2)
     c.turn_to(avatar_id=c.avatar_id, target={"x": 2.024, "y": 0.46, "z": -2.399})
     c.bend_arm(avatar_id=c.avatar_id, arm=arm,
-               target={"x": 0.1 * 1 if arm == Arm.right else -1, "y": 0.4, "z": 0.185})
+               target={"x": 0, "y": 0.2, "z": 1})
     c.put_down(avatar_id=c.avatar_id)
     c.end()
