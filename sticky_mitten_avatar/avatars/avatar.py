@@ -95,6 +95,10 @@ class Avatar(ABC):
                            Joint(arm="right", axis="pitch", part="elbow"),
                            Joint(arm="right", axis="roll", part="wrist"),
                            Joint(arm="right", axis="pitch", part="wrist")]
+    # Additional force applied to bending joints.
+    _BEND_FORCE = 80
+    # Damper delta when bending joints.
+    _BEND_DAMPER = -300
 
     def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False):
         """
@@ -164,11 +168,24 @@ class Avatar(ABC):
         a = arm.name
         for c, r in zip(self._arms[arm].links[1:-1], rotations[1:-1]):
             j = c.name.split("_")
-            commands.append({"$type": "bend_arm_joint_to",
+            joint = f"{j[0]}_{a}"
+            axis = j[1]
+            # Apply the motion. Strengthen the joint.
+            commands.extend([{"$type": "bend_arm_joint_to",
                              "angle": np.rad2deg(r),
-                             "joint": f"{j[0]}_{a}",
-                             "axis": j[1],
-                             "avatar_id": self.id})
+                              "joint": joint,
+                              "axis": axis,
+                              "avatar_id": self.id},
+                             {"$type": "adjust_joint_force_by",
+                              "delta": Avatar._BEND_FORCE,
+                              "joint": joint,
+                              "axis": axis,
+                              "avatar_id": self.id},
+                             {"$type": "adjust_joint_damper_by",
+                              "delta": Avatar._BEND_DAMPER,
+                              "joint": joint,
+                              "axis": axis,
+                              "avatar_id": self.id}])
         return commands
 
     def pick_up(self, object_id: int, bounds: Bounds) -> (List[dict], Arm):
@@ -396,11 +413,23 @@ class Avatar(ABC):
             theta = float(a)
             if theta > 90:
                 theta = 180 - theta
-            commands.append({"$type": "bend_arm_joint_to",
-                             "angle": theta,
-                             "joint": j.joint,
-                             "axis": j.axis,
-                             "avatar_id": self.id})
+            # Set the joint positions to where they are.
+            # Reset force and damper.
+            commands.extend([{"$type": "bend_arm_joint_to",
+                              "angle": theta,
+                              "joint": j.joint,
+                              "axis": j.axis,
+                              "avatar_id": self.id},
+                             {"$type": "adjust_joint_force_by",
+                              "delta": -Avatar._BEND_FORCE,
+                              "joint": j.joint,
+                              "axis": j.axis,
+                              "avatar_id": self.id},
+                             {"$type": "adjust_joint_damper_by",
+                              "delta": -Avatar._BEND_DAMPER,
+                              "joint": j.joint,
+                              "axis": j.axis,
+                              "avatar_id": self.id}])
         return commands
 
     @abstractmethod
