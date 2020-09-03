@@ -112,6 +112,23 @@ All controllers can be found in: `controllers/`
 
 ## Changelog
 
+### 0.2.1
+
+#### High-Level
+
+- Improved the overall stability of `shake_demo.py`
+- Improved the positional accuracy of arm-bending API calls  by matching the IK parameters more closely to the avatar prefab parameters.
+- Fixed: The default speed of `StickyMittenAvatarController.turn_to()` is slower than the turn speed in `StickyMittenAvatarController.go_to()`.
+- `StickyMittenAvatarController.bend_arm()` will increase the force and decrease the damper of all joints that are bending. When they are done bending, they will revert to the original values.
+- Added: `videos/shake_demo.mp4`
+
+#### Low-Level
+
+- Avatar IK arm chains now include `mitten`, the centerpoint of the mitten.
+- `Avatar.is_holding()` return a boolean and the arm holding the item (instead of just a boolean).
+
+***
+
 ### 0.2.0
 
 - Parameter `target` in `Avatar.bend_arm` must be a numpy array (previously, could be a numpy array or a list).
