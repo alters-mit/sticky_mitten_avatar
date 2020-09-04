@@ -13,4 +13,4 @@ class TestController(StickyMittenAvatarController):
         Initialize the avatar.
         """
 
-        self.create_avatar(avatar_id="a", debug=True)
+        self._create_avatar(avatar_id="a", debug=True)

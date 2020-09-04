@@ -12,10 +12,10 @@ class CollisionTest(TestController):
         commands = [{"$type": "load_scene",
                      "scene_name": "ProcGenScene"},
                     TDWUtils.create_empty_room(4, 4)]
-        commands.extend(self.get_add_object("trunck",
-                                            position={"x": 0, "y": 0, "z": 1},
-                                            rotation={"x": 0, "y": 0, "z": 0},
-                                            object_id=o_id))
+        commands.extend(self._add_object("trunck",
+                                         position={"x": 0, "y": 0, "z": 1},
+                                         rotation={"x": 0, "y": 0, "z": 0},
+                                         object_id=o_id))
         return commands
 
 

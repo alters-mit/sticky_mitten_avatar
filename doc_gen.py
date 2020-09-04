@@ -39,8 +39,8 @@ class PyDocGen:
             # Create a function description.
             elif lines[i].strip().startswith("def"):
                 # Skip private functions.
-                match = re.search("def _(.*):", lines[i])
-                if match is not None and "init" not in match.group(1):
+                match = re.search("def _(.*)", lines[i])
+                if match is not None and "__init__" not in lines[i]:
                     continue
                 # Append the function description.
                 doc += PyDocGen.get_function_documentation(lines, i) + "\n\n***\n\n"

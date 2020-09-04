@@ -10,9 +10,3 @@ The build will show IK targets and the controller will output IK solution plots.
 
 ***
 
-#### `_init_avatar(self) -> None`
-
-Initialize the avatar.
-
-***
-

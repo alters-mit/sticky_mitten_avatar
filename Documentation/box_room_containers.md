@@ -15,15 +15,3 @@ This a subclass of the [StickyMittenAvatarController](sma_controller.md).
 
 ***
 
-#### `_get_scene_init_commands_early(self) -> List[dict]`
-
-***
-
-#### `_do_scene_init_late(self) -> None`
-
-***
-
-#### `_init_avatar(self) -> None`
-
-***
-
