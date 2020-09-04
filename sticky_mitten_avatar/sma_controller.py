@@ -9,7 +9,7 @@ from tdw.librarian import ModelLibrarian, ModelRecord
 from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Volumes
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from sticky_mitten_avatar.avatars import Arm, Baby
-from sticky_mitten_avatar.avatars.avatar import Avatar, Joint
+from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, get_closest_point_in_bounds
 from sticky_mitten_avatar.dynamic_object_info import DynamicObjectInfo
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
@@ -113,8 +113,9 @@ class StickyMittenAvatarController(Controller):
         self._avatar_commands: List[dict] = []
         # Per-frame object physics info.
         self._dynamic_object_info: Dict[int, DynamicObjectInfo] = dict()
-        # Cache names of models.
+        # Cache static data.
         self.static_object_info: Dict[int, StaticObjectInfo] = dict()
+        self.static_avatar_info: Dict[str, Dict[int, BodyPartStatic]] = dict()
         self._surface_material = AudioMaterial.hardwood
         self._audio_playback_mode = audio_playback_mode
         # Load default audio values for objects.
@@ -301,6 +302,7 @@ class StickyMittenAvatarController(Controller):
             raise Exception(f"Avatar not defined: {avatar_type}")
         # Cache the avatar.
         self._avatars[avatar_id] = avatar
+        self.static_avatar_info[avatar_id] = self._avatars[avatar_id].body_parts_static
 
     def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
         """
@@ -703,13 +705,16 @@ class StickyMittenAvatarController(Controller):
             """
 
             # Check if the root object of the avatar collided with anything large. If so, stop movement.
-            for name in avatar.collisions:
+            for body_part_id in avatar.collisions:
+                name = avatar.body_parts_static[body_part_id].name
                 if name.startswith("A_StickyMitten"):
-                    collidee_mass = self.static_object_info[avatar.collisions[name]].mass
-                    if collidee_mass >= 90:
-                        return _TaskState.failure
+                    for o_id in avatar.collisions[body_part_id]:
+                        collidee_mass = self.static_object_info[o_id].mass
+                        if collidee_mass >= 90:
+                            return _TaskState.failure
             # If the avatar's body collided with the environment (e.g. a wall), stop movement.
-            for name in avatar.env_collisions:
+            for body_part_id in avatar.env_collisions:
+                name = avatar.body_parts_static[body_part_id].name
                 if name.startswith("A_StickyMitten"):
                     return _TaskState.failure
 

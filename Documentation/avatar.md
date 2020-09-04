@@ -140,17 +140,6 @@ _Returns:_  A list of commands to pick up, stop moving, etc.
 
 ***
 
-#### `get_collisions(self, resp: List[bytes]) -> Dict[str, int]`
-
-
-| Parameter | Description |
-| --- | --- |
-| resp | The response from the build. |
-
-_Returns:_  All collisions on this frame between body parts and objects. Key = body part name. Value = object ID.
-
-***
-
 #### `is_ik_done(self) -> bool`
 
 _Returns:_  True if the IK goals are complete, False if the arms are still moving/trying to pick up/etc.

@@ -139,8 +139,8 @@ class Avatar(ABC):
         # Get data for the current frame.
         # Start dynamic data.
         self.frame = self._get_frame(resp)
-        self.collisions: Dict[str, int] = dict()
-        self.env_collisions: List[str] = list()
+        self.collisions: Dict[int, List[int]] = dict()
+        self.env_collisions: List[int] = list()
 
     def can_bend_to(self, target: np.array, arm: Arm) -> bool:
         """
@@ -288,14 +288,18 @@ class Avatar(ABC):
                 collidee_id = coll.get_collidee_id()
                 # Check if the collision includes a body part.
                 if collider_id in self.body_parts_static and collidee_id not in self.body_parts_static:
-                    self.collisions[self.body_parts_static[collider_id].name] = collidee_id
+                    if collider_id not in self.collisions:
+                        self.collisions[collider_id] = []
+                    self.collisions[collider_id].append(collidee_id)
                 elif collidee_id in self.body_parts_static and collider_id not in self.body_parts_static:
-                    self.collisions[self.body_parts_static[collidee_id].name] = collider_id
+                    if collidee_id not in self.collisions:
+                        self.collisions[collidee_id] = []
+                    self.collisions[collidee_id].append(collider_id)
             elif r_id == "enco":
                 coll = EnvironmentCollision(resp[i])
                 collider_id = coll.get_object_id()
                 if collider_id in self.body_parts_static:
-                    self.env_collisions.append(self.body_parts_static[collider_id].name)
+                    self.env_collisions.append(collider_id)
 
         # Check if IK goals are done.
         temp_goals: Dict[Arm, Optional[_IKGoal]] = dict()

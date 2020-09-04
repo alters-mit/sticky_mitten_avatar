@@ -259,6 +259,11 @@ _Returns:_  Whether avatar succeed, failed, or is presently turning.
 
 Go to a target position or object.
 If the avatar isn't facing the target, it will turn to face it (see `turn_to()`).
+The task will end in success if the avatar reaches the destination.
+The task will end in failure if:
+- The avatar overshot the target.
+- The avatar's body collided with a heavy object (mass >= 90)
+- The avatar collided with part of the environment (such as a wall).
 
 | Parameter | Description |
 | --- | --- |
