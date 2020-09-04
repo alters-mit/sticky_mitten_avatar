@@ -86,6 +86,18 @@ Fields:
 
 ***
 
+#### `can_bend_to(self, target: np.array, arm: Arm) -> bool`
+
+
+| Parameter | Description |
+| --- | --- |
+| target | The target position. |
+| arm | The arm that is bending to the target. |
+
+_Returns:_  True if it is possible to move the mitten to the target.
+
+***
+
 #### `bend_arm(self, arm: Arm, target: np.array, target_orientation: np.array = None) -> List[dict]`
 
 Get an IK solution to move a mitten to a target position.

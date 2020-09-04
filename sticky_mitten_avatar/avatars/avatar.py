@@ -135,6 +135,34 @@ class Avatar(ABC):
         # Start dynamic data.
         self.frame = self._get_frame(resp)
 
+    def can_bend_to(self, target: np.array, arm: Arm) -> bool:
+        """
+        :param target: The target position.
+        :param arm: The arm that is bending to the target.
+
+        :return: True if it is possible to move the mitten to the target.
+        """
+
+        pos = np.array([target[0], target[2]])
+        d = np.linalg.norm(pos)
+        if d < 0.25:
+            if self._debug:
+                print(f"Target {target} is too close to the avatar: {np.linalg.norm(d)}")
+            return False
+        if arm == Arm.left:
+            d = np.linalg.norm(target - [-0.225, 0.565, 0.075])
+        else:
+            d = np.linalg.norm(target - [0.225, 0.565, 0.075])
+        if d > 0.52:
+            if self._debug:
+                print(f"Target {target} is too far away from the {arm} shoulder: {d}")
+            return False
+        if target[2] < 0:
+            if self._debug:
+                print(f"Target {target} z < 0")
+            return False
+        return True
+
     def bend_arm(self, arm: Arm, target: np.array, target_orientation: np.array = None) -> List[dict]:
         """
         Get an IK solution to move a mitten to a target position.

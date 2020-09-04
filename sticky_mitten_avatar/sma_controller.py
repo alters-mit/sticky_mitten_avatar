@@ -456,7 +456,7 @@ class StickyMittenAvatarController(Controller):
         self.model_librarian = self._lib_core
         return commands
 
-    def bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float], do_motion: bool = True) -> None:
+    def bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float], do_motion: bool = True) -> bool:
         """
         Begin to bend an arm of an avatar in the scene. The motion will continue to update per `communicate()` step.
 
@@ -464,13 +464,20 @@ class StickyMittenAvatarController(Controller):
         :param target: The target position for the mitten.
         :param avatar_id: The unique ID of the avatar.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done. See: `do_joint_motion()`
+
+        :return: True if the avatar bends the arm.
         """
 
-        self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm,
-                                                                       target=TDWUtils.vector3_to_array(target)))
+        target = TDWUtils.vector3_to_array(target)
+
+        if not self._avatars[avatar_id].can_bend_to(target=target, arm=arm):
+            return False
+
+        self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm, target=target))
 
         if do_motion:
             self.do_joint_motion()
+        return True
 
     def pick_up(self, avatar_id: str, object_id: int, do_motion: bool = True) -> Arm:
         """

@@ -199,6 +199,7 @@ class PyDocGen:
                  "sticky_mitten_avatar/static_object_info.py",
                  "sticky_mitten_avatar/sma_controller.py",
                  "sticky_mitten_avatar/box_room_containers.py",
+                 "sticky_mitten_avatar/test_controller.py",
                  "sticky_mitten_avatar/frame_data.py",
                  "sticky_mitten_avatar/util.py"]
 

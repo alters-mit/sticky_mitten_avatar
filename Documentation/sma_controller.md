@@ -151,7 +151,7 @@ _Returns:_  A list of commands per object added: `[add_object, set_mass, scale_o
 
 ***
 
-#### `bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float], do_motion: bool = True) -> None`
+#### `bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float], do_motion: bool = True) -> bool`
 
 Begin to bend an arm of an avatar in the scene. The motion will continue to update per `communicate()` step.
 
@@ -161,6 +161,8 @@ Begin to bend an arm of an avatar in the scene. The motion will continue to upda
 | target | The target position for the mitten. |
 | avatar_id | The unique ID of the avatar. |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. See: `do_joint_motion()` |
+
+_Returns:_  True if the avatar bends the arm.
 
 ***
 
