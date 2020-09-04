@@ -21,13 +21,14 @@ Static data for a body part in an avatar.
 
 ***
 
-#### `__init__(self, o_id: int, color: Tuple[float, float, float])`
+#### `__init__(self, o_id: int, color: Tuple[float, float, float], name: str)`
 
 
 | Parameter | Description |
 | --- | --- |
 | o_id | The object ID of the part. |
 | color | The segmentation color of the part. |
+| name | The name of the body part. |
 
 ***
 
@@ -136,6 +137,17 @@ If the avatar has achieved a goal (for example, picking up an object), it will s
 | resp | The response from the build. |
 
 _Returns:_  A list of commands to pick up, stop moving, etc.
+
+***
+
+#### `get_collisions(self, resp: List[bytes]) -> Dict[str, int]`
+
+
+| Parameter | Description |
+| --- | --- |
+| resp | The response from the build. |
+
+_Returns:_  All collisions on this frame between body parts and objects. Key = body part name. Value = object ID.
 
 ***
 

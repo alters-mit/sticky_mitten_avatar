@@ -354,6 +354,9 @@ class StickyMittenAvatarController(Controller):
         # Update the avatars. Add new avatar commands for the next frame.
         for a_id in self._avatars:
             self._avatar_commands.extend(self._avatars[a_id].on_frame(resp=resp))
+            avatar_collisions = self._avatars[a_id].get_collisions(resp=resp)
+            if len(avatar_collisions) > 0:
+                print(avatar_collisions)
 
         # Do something with the response per-frame.
         if self.on_resp is not None:

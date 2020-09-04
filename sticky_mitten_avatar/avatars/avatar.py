@@ -4,7 +4,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from ikpy.chain import Chain
 from enum import Enum
-from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds
+from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds, Collision
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.util import get_angle_between, rotate_point_around, FORWARD
 
@@ -23,14 +23,16 @@ class BodyPartStatic:
     Static data for a body part in an avatar.
     """
 
-    def __init__(self, o_id: int, color: Tuple[float, float, float]):
+    def __init__(self, o_id: int, color: Tuple[float, float, float], name: str):
         """
         :param o_id: The object ID of the part.
         :param color: The segmentation color of the part.
+        :param name: The name of the body part.
         """
 
         self.o_id = o_id
         self.color = color
+        self.name = name
 
 
 class Joint:
@@ -125,11 +127,14 @@ class Avatar(ABC):
                     break
         assert smsc is not None, f"No avatar segmentation colors found for {avatar_id}"
         # Cache static data of body parts.
-        self.body_parts_static: Dict[str, BodyPartStatic] = dict()
+        self.body_parts_static: Dict[int, BodyPartStatic] = dict()
         for i in range(smsc.get_num_body_parts()):
-            bps = BodyPartStatic(o_id=smsc.get_body_part_id(i),
-                                 color=smsc.get_body_part_segmentation_color(i))
-            self.body_parts_static[smsc.get_body_part_name(i)] = bps
+            body_part_id = smsc.get_body_part_id(i)
+            bps = BodyPartStatic(o_id=body_part_id,
+                                 color=smsc.get_body_part_segmentation_color(i),
+                                 name=smsc.get_body_part_name(i))
+            print(smsc.get_body_part_name(i), body_part_id)
+            self.body_parts_static[body_part_id] = bps
 
         # Get data for the current frame.
         # Start dynamic data.
@@ -356,6 +361,27 @@ class Avatar(ABC):
         self.frame = frame
 
         return commands
+
+    def get_collisions(self, resp: List[bytes]) -> Dict[str, int]:
+        """
+        :param resp: The response from the build.
+
+        :return: All collisions on this frame between body parts and objects. Key = body part name. Value = object ID.
+        """
+
+        collisions: Dict[str, int] = dict()
+        # Get each collision.
+        for i in range(len(resp) - 1):
+            if OutputData.get_data_type_id(resp[i]) == "coll":
+                coll = Collision(resp[i])
+                collider_id = coll.get_collider_id()
+                collidee_id = coll.get_collidee_id()
+                # Check if the collision includes a body part.
+                if collider_id in self.body_parts_static and collidee_id not in self.body_parts_static:
+                    collisions[self.body_parts_static[collider_id].name] = collidee_id
+                elif collidee_id in self.body_parts_static and collider_id not in self.body_parts_static:
+                    collisions[self.body_parts_static[collidee_id].name] = collider_id
+        return collisions
 
     def is_ik_done(self) -> bool:
         """
