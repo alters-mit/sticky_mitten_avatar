@@ -133,12 +133,12 @@ class Avatar(ABC):
             bps = BodyPartStatic(o_id=body_part_id,
                                  color=smsc.get_body_part_segmentation_color(i),
                                  name=smsc.get_body_part_name(i))
-            print(smsc.get_body_part_name(i), body_part_id)
             self.body_parts_static[body_part_id] = bps
 
         # Get data for the current frame.
         # Start dynamic data.
         self.frame = self._get_frame(resp)
+        self.collisions: Dict[str, int] = dict()
 
     def can_bend_to(self, target: np.array, arm: Arm) -> bool:
         """
@@ -274,6 +274,19 @@ class Avatar(ABC):
 
         # Update dynamic data.
         frame = self._get_frame(resp=resp)
+        # Update dynamic collision data.
+        self.collisions.clear()
+        # Get each collision.
+        for i in range(len(resp) - 1):
+            if OutputData.get_data_type_id(resp[i]) == "coll":
+                coll = Collision(resp[i])
+                collider_id = coll.get_collider_id()
+                collidee_id = coll.get_collidee_id()
+                # Check if the collision includes a body part.
+                if collider_id in self.body_parts_static and collidee_id not in self.body_parts_static:
+                    self.collisions[self.body_parts_static[collider_id].name] = collidee_id
+                elif collidee_id in self.body_parts_static and collider_id not in self.body_parts_static:
+                    self.collisions[self.body_parts_static[collidee_id].name] = collider_id
 
         # Check if IK goals are done.
         temp_goals: Dict[Arm, Optional[_IKGoal]] = dict()
@@ -361,27 +374,6 @@ class Avatar(ABC):
         self.frame = frame
 
         return commands
-
-    def get_collisions(self, resp: List[bytes]) -> Dict[str, int]:
-        """
-        :param resp: The response from the build.
-
-        :return: All collisions on this frame between body parts and objects. Key = body part name. Value = object ID.
-        """
-
-        collisions: Dict[str, int] = dict()
-        # Get each collision.
-        for i in range(len(resp) - 1):
-            if OutputData.get_data_type_id(resp[i]) == "coll":
-                coll = Collision(resp[i])
-                collider_id = coll.get_collider_id()
-                collidee_id = coll.get_collidee_id()
-                # Check if the collision includes a body part.
-                if collider_id in self.body_parts_static and collidee_id not in self.body_parts_static:
-                    collisions[self.body_parts_static[collider_id].name] = collidee_id
-                elif collidee_id in self.body_parts_static and collider_id not in self.body_parts_static:
-                    collisions[self.body_parts_static[collidee_id].name] = collider_id
-        return collisions
 
     def is_ik_done(self) -> bool:
         """
