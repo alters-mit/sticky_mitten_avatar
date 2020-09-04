@@ -3,6 +3,7 @@ from typing import List, Dict, Optional, Tuple
 from tdw.output_data import OutputData, Rigidbodies, Images, Transforms
 from tdw.py_impact import PyImpact, AudioMaterial, Base64Sound
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
+from sticky_mitten_avatar.avatars.avatar import Avatar
 from sticky_mitten_avatar.util import get_data
 
 
@@ -31,15 +32,24 @@ class FrameData:
 
     _P = PyImpact(initial_amp=0.01)
 
-    def __init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], surface_material: AudioMaterial):
+    def __init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], surface_material: AudioMaterial,
+                 avatars: Dict[str, Avatar]):
         """
         :param resp: The response from the build.
         :param objects: Static object info per object. Key = the ID of the object in the scene.
         :param surface_material: The floor's [audio material](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#audiomaterialenum).
+        :param avatars: Each avatar in the scene.
         """
 
         self.audio: List[Tuple[Base64Sound, int]] = list()
         collisions, env_collisions, rigidbodies = FrameData._P.get_collisions(resp=resp)
+
+        # Record avatar collisions.
+        self.avatar_collisions_with_objects: Dict[str, Dict[str, int]] = dict()
+        self.avatar_collisions_with_environment: Dict[str, List[str]] = dict()
+        for avatar_id in avatars:
+            self.avatar_collisions_with_environment[avatar_id] = avatars[avatar_id].env_collisions
+            self.avatar_collisions_with_objects[avatar_id] = avatars[avatar_id].collisions
 
         self.positions: Dict[int, np.array] = dict()
         tr = get_data(resp=resp, d_type=Transforms)

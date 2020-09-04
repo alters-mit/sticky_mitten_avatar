@@ -345,7 +345,8 @@ class StickyMittenAvatarController(Controller):
             return resp
 
         # Update the frame data.
-        self.frame = FrameData(resp=resp, objects=self.static_object_info, surface_material=self._surface_material)
+        self.frame = FrameData(resp=resp, objects=self.static_object_info, surface_material=self._surface_material,
+                               avatars=self._avatars)
 
         for i in range(tran.get_num()):
             o_id = tran.get_id(i)
@@ -354,8 +355,6 @@ class StickyMittenAvatarController(Controller):
         # Update the avatars. Add new avatar commands for the next frame.
         for a_id in self._avatars:
             self._avatar_commands.extend(self._avatars[a_id].on_frame(resp=resp))
-            if len(self._avatars[a_id].collisions) > 0:
-                print(self._avatars[a_id].collisions)
 
         # Do something with the response per-frame.
         if self.on_resp is not None:
@@ -680,6 +679,12 @@ class StickyMittenAvatarController(Controller):
         """
         Go to a target position or object.
         If the avatar isn't facing the target, it will turn to face it (see `turn_to()`).
+        The task will end in success if the avatar reaches the destination.
+        The task will end in failure if:
+
+        - The avatar overshot the target.
+        - The avatar's body collided with a heavy object (mass >= 90)
+        - The avatar collided with part of the environment (such as a wall).
 
         :param avatar_id: The ID of the avatar.
         :param avatar_id: The unique ID of the avatar.
@@ -696,6 +701,17 @@ class StickyMittenAvatarController(Controller):
             """
             :return: Whether the avatar is at its destination, overshot it, or still going to it.
             """
+
+            # Check if the root object of the avatar collided with anything large. If so, stop movement.
+            for name in avatar.collisions:
+                if name.startswith("A_StickyMitten"):
+                    collidee_mass = self.static_object_info[avatar.collisions[name]].mass
+                    if collidee_mass >= 90:
+                        return _TaskState.failure
+            # If the avatar's body collided with the environment (e.g. a wall), stop movement.
+            for name in avatar.env_collisions:
+                if name.startswith("A_StickyMitten"):
+                    return _TaskState.failure
 
             p = np.array(avatar.frame.get_position())
             d_from_initial = np.linalg.norm(initial_position - p)

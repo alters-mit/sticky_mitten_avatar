@@ -4,7 +4,8 @@ import numpy as np
 from abc import ABC, abstractmethod
 from ikpy.chain import Chain
 from enum import Enum
-from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds, Collision
+from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds, Collision, \
+    EnvironmentCollision
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.util import get_angle_between, rotate_point_around, FORWARD
 
@@ -139,6 +140,7 @@ class Avatar(ABC):
         # Start dynamic data.
         self.frame = self._get_frame(resp)
         self.collisions: Dict[str, int] = dict()
+        self.env_collisions: List[str] = list()
 
     def can_bend_to(self, target: np.array, arm: Arm) -> bool:
         """
@@ -276,9 +278,11 @@ class Avatar(ABC):
         frame = self._get_frame(resp=resp)
         # Update dynamic collision data.
         self.collisions.clear()
+        self.env_collisions.clear()
         # Get each collision.
         for i in range(len(resp) - 1):
-            if OutputData.get_data_type_id(resp[i]) == "coll":
+            r_id = OutputData.get_data_type_id(resp[i])
+            if r_id == "coll":
                 coll = Collision(resp[i])
                 collider_id = coll.get_collider_id()
                 collidee_id = coll.get_collidee_id()
@@ -287,6 +291,11 @@ class Avatar(ABC):
                     self.collisions[self.body_parts_static[collider_id].name] = collidee_id
                 elif collidee_id in self.body_parts_static and collider_id not in self.body_parts_static:
                     self.collisions[self.body_parts_static[collidee_id].name] = collider_id
+            elif r_id == "enco":
+                coll = EnvironmentCollision(resp[i])
+                collider_id = coll.get_object_id()
+                if collider_id in self.body_parts_static:
+                    self.env_collisions.append(self.body_parts_static[collider_id].name)
 
         # Check if IK goals are done.
         temp_goals: Dict[Arm, Optional[_IKGoal]] = dict()
