@@ -46,7 +46,7 @@ class StickyMittenAvatarController(Controller):
     c.bend_arm(target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
 
     # Get the segementation color pass for the avatar after bending the arm.
-    segmentation_colors = c.frame.images[avatar_id][0]
+    segmentation_colors = c.frame.segmentation_image
     ```
 
     ***
@@ -55,9 +55,11 @@ class StickyMittenAvatarController(Controller):
 
     - `frame` Dynamic data for the current frame, updated per frame. [Read this](frame_data.md) for a full API.
       Note: Most of the avatar API advances the simulation multiple frames. `frame` is current to frame at the end of an action.
+
     ```python
-    # Get the segementation color pass for the avatar after bending the arm.
-    segmentation_colors = c.frame.images[avatar_id][0]
+    segmentation_colors = c.frame.segmentation_image
+    depth_map = c.frame.depth_map
+    # etc.
     ```
 
     - `static_object_data`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.

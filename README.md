@@ -147,13 +147,14 @@ All example controllers can be found in: `controllers/`
 - Added: `StickyMittenAvatar.reset_camera_rotation()`.
 - Removed: `StickyMittenAvatarController.get_container_records()`
 - Removed: `StickyMittenAvatarController.on_resp` (functionality can be replicated with `Controller.communite()`)
-- Added: `test_controller.py` Initialize a simple scene and an avatar in debug mode. 
 - Added field `name` to `BodyPartStatic`.
 - Added field `audio` to `BodyPartStatic`.
 - Moved `BodyPartStatic` to `body_part_static.py`.
+- Removed `FrameData.images` and added: `FrameData.segmentation_image` (a PIL image) and `FrameData.depth_map` (a numpy array).
 - Added field `avatar_collisions` to `FrameData`. Collisions per avatar between its body parts and other objects or the environment.
 - Set the maximum shoulder roll angle to 90 degrees (was 45 degrees).
 - Added: `collision_test.py` Test for the avatar listening to collisions.
+- Added: `test_controller.py` Initialize a simple scene and an avatar in debug mode. 
 - Removed private functions from API documentation.
 - Added example code to `FrameData` documentation.
 - Various improvements to `StickyMittenAvatar` API documentation.
