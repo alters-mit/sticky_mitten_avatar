@@ -1,6 +1,6 @@
 # Sticky Mitten Avatar API
 
-A high-level api for TDW TDW's [Sticky Mitten Avatar](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/sticky_mitten_avatar.md). 
+A high-level API for TDW's [Sticky Mitten Avatar](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/sticky_mitten_avatar.md). 
 
 ## Installation
 
@@ -17,9 +17,12 @@ A high-level api for TDW TDW's [Sticky Mitten Avatar](https://github.com/threedw
 
 Use the [StickyMittenAvatarController](Documentation/sma_controller.md) to create avatars and move them around the scene with a high-level API. **For a detailed API, [read this](Documentation/sma_controller.md).**
 
-For the API for output data (data received from the build), see **Fields (Output Data)** below.
+- For the API for output data (data received from the build), see **Fields (Output Data)** below.
+- For how and why API calls might fail, [read this](Documentation/fail_state.md).
 
-For further low-level documentation, [read these documents](https://github.com/alters-mit/sticky_mitten_avatar/tree/master/Documentation).
+- For further lower-level documentation, [read these documents](https://github.com/alters-mit/sticky_mitten_avatar/tree/master/Documentation).
+
+- For more information regarding TDW, see the [TDW repo](https://github.com/threedworld-mit/tdw/).
 
 #### General
 
@@ -34,7 +37,7 @@ Each of these functions advance the simulation 1 frame.
 
 #### Avatar
 
-By default, all of these functions will advance the simulation _n_ frames. Each of them has a success state as well as a [fail state](Documentation/fail_state.md).
+By default, all of these functions will advance the simulation _n_ frames. Each of them has a success state as well as a [**fail state**](Documentation/fail_state.md).
 
 | Function            | Description                                     |
 | ------------------- | ----------------------------------------------- |
@@ -59,7 +62,7 @@ By default, all of these functions will advance the simulation _n_ frames. Each 
 
 #### Commands
 
-You can, if you wish, use [TDW's low-level Command API](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/command_api.md).
+You can, if you wish, use [TDW's low-level Command API](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/command_api.md). For more information regarding TDW's low-level Sticky Mitten Avatar API, [read this](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/sticky_mitten_avatar.md).
 
 ## Controllers
 
@@ -150,6 +153,7 @@ All example controllers can be found in: `controllers/`
 - Removed private functions from API documentation.
 - Added example code to `FrameData` documentation.
 - Various improvements to `StickyMittenAvatar` API documentation.
+- Added: `fail_state.md` document to explain fail states.
 - Updated `shake_demo.mp4`
 
 #### Low-Level

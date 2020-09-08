@@ -54,7 +54,7 @@ class StickyMittenAvatarController(Controller):
     Fields:
 
     - `frame` Dynamic data for the current frame, updated per frame. [Read this](frame_data.md) for a full API.
-      Note: Most of the avatar API advances the simulation multiple frames.
+      Note: Most of the avatar API advances the simulation multiple frames. `frame` is current to frame at the end of an action.
     ```python
     # Get the segementation color pass for the avatar after bending the arm.
     segmentation_colors = c.frame.images[avatar_id][0]
