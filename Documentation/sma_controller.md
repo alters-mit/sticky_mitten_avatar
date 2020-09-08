@@ -43,14 +43,14 @@ segmentation_colors = c.frame.images[avatar_id][0]
 segmentation_color = c.static_object_info[object_id].segmentation_color
 ```
 
-- `static_avatar_data` Static info for the body parts of each avatar in the scene.
+- `static_avatar_data` Static info for the body parts of each avatar in the scene. [Read this](body_part_static.md) for a full API.
 
 
 ```python
 for avatar_id in c.static_avatar_data.avatars:
     for body_part_id in c.static_avatar_data.avatars[avatar_id]:
         body_part = c.static_avatar_data.avatars[avatar_id][body_part_id]
-        print(body_part.o_id) # The object ID of the body part (matches body_part_id).
+        print(body_part.object_id) # The object ID of the body part (matches body_part_id).
         print(body_part.color) # The segmentation color.
         print(body_part.name) # The name of the body part.
 ```

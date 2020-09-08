@@ -13,25 +13,6 @@ Enum values:
 
 ***
 
-## `BodyPartStatic`
-
-`from tdw.sticky_mitten_avatar.avatars.avatar import BodyPartStatic`
-
-Static data for a body part in an avatar.
-
-***
-
-#### `__init__(self, o_id: int, color: Tuple[float, float, float], name: str)`
-
-
-| Parameter | Description |
-| --- | --- |
-| o_id | The object ID of the part. |
-| color | The segmentation color of the part. |
-| name | The name of the body part. |
-
-***
-
 ## `Joint`
 
 `from tdw.sticky_mitten_avatar.avatars.avatar import Joint`

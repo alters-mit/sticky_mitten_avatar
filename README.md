@@ -142,6 +142,8 @@ All example controllers can be found in: `controllers/`
 - Removed: `StickyMittenAvatarController.on_resp` (functionality can be replicated with `Controller.communite()`)
 - Added: `test_controller.py` Initialize a simple scene and an avatar in debug mode. 
 - Added field `name` to `BodyPartStatic`.
+- Added field `audio` to `BodyPartStatic`.
+- Moved `BodyPartStatic` to `body_part_static.py`.
 - Added field `avatar_collisions` to `FrameData`. Collisions per avatar between its body parts and other objects or the environment.
 - Set the maximum shoulder roll angle to 90 degrees (was 45 degrees).
 - Added: `collision_test.py` Test for the avatar listening to collisions.
