@@ -54,7 +54,7 @@ By default, all of these functions will advance the simulation _n_ frames. Each 
 | Field | Description |
 | ----- | ----------- |
 | `static_object_info`    | [Static object info](Documentation/static_object_info.md) per object in the scene. |
-| `static_avatar_info` | [Static avatar info](Documentation/avatar.md#BodyPartStatic) per avatar in the scene. |
+| `static_avatar_info` | [Static avatar info](Documentation/body_part_static.md) per avatar in the scene as a dictionary. Key = the ID of the body part. |
 | `frame`                 | [Frame data](Documentation/frame_data.md) for the most recent frame. |
 
 #### Commands
@@ -79,7 +79,7 @@ from sticky_mitten_avatar.test_controller import TestController
 
 c = TestController()
 c.init_scene()
-c.bend_arm(avatar_id="a", arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
+c.bend_arm(arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
 ```
 
 ...or this:
@@ -89,7 +89,7 @@ from sticky_mitten_avatar.test_controller import TestController
 
 class MyController(TestController):
     def my_function(self):
-        self.bend_arm(avatar_id="a", arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
+        self.bend_arm(arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
 
 if __name__ == "__main__":
     c = MyController()
