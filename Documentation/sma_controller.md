@@ -188,6 +188,25 @@ _Returns:_  True if the avatar arrived at the destination.
 
 ***
 
+#### `move_forward_by(self, avatar_id: str, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool`
+
+Move the avatar forward by a distance along the avatar's current forward directional vector.
+The motion continues until the avatar reaches the destination, or if:
+- The avatar overshot the target.
+- The avatar's body collided with a heavy object (mass >= 90)
+- The avatar collided with part of the environment (such as a wall).
+
+| Parameter | Description |
+| --- | --- |
+| avatar_id | The ID of the avatar. |
+| distance | The distance that the avatar will travel. If < 0, the avatar will move backwards. |
+| move_force | The force at which the avatar will move. More force = faster, but might overshoot the target. |
+| move_stopping_threshold | Stop within this distance of the target. |
+
+_Returns:_  True if the avatar arrived at the destination.
+
+***
+
 #### `shake(self, avatar_id: str, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> None`
 
 Shake an avatar's arm for multiple iterations.

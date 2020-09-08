@@ -36,16 +36,17 @@ Each of these functions advance the simulation 1 frame.
 
 By default, all of these functions will advance the simulation _n_ frames. Each of them has a success state as well as a [fail state](Documentation/fail_state.md).
 
-| Function                | Description                                                  |
-| ----------------------- | ------------------------------------------------------------ |
-| `bend_arm()`            | Bend the arm of an avatar to a target position. |
-| `pick_up()`             | Try to pick up an object.                  |
-| `put_down()`            | Put down all held objects.                 |
-| `turn_to()`             | Face a target position or object.          |
-| `go_to()`               | Go to a target position or object.         |
-| `shake()`               | Shake a joint back and forth.              |
-| `reset_arms()`          | Return the arms to their "neutral" positions.                |
-| `stop_avatar()`         | Stop the avatar's movement and rotation.                     |
+| Function            | Description                                     |
+| ------------------- | ----------------------------------------------- |
+| `bend_arm()`        | Bend the arm of an avatar to a target position. |
+| `pick_up()`         | Try to pick up an object.                       |
+| `put_down()`        | Put down all held objects.                      |
+| `turn_to()`         | Face a target position or object.               |
+| `go_to()`           | Go to a target position or object.              |
+| `move_forward_by()` | Move forward by a given distance.               |
+| `shake()`           | Shake a joint back and forth.                   |
+| `reset_arms()`      | Return the arms to their "neutral" positions.   |
+| `stop_avatar()`     | Stop the avatar's movement and rotation.        |
 
 #### Fields (Output Data)
 

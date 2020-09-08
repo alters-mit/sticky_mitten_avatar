@@ -696,6 +696,7 @@ class StickyMittenAvatarController(Controller):
                     for o_id in avatar.collisions[body_part_id]:
                         collidee_mass = self.static_object_info[o_id].mass
                         if collidee_mass >= 90:
+                            print("hit something heavy")
                             return _TaskState.failure
             # If the avatar's body collided with the environment (e.g. a wall), stop movement.
             for body_part_id in avatar.env_collisions:
@@ -757,6 +758,29 @@ class StickyMittenAvatarController(Controller):
             i += 1
         self._stop_avatar(avatar_id=avatar_id)
         return False
+
+    def move_forward_by(self, avatar_id: str, distance: float, move_force: float = 80,
+                        move_stopping_threshold: float = 0.35) -> bool:
+        """
+        Move the avatar forward by a distance along the avatar's current forward directional vector.
+        The motion continues until the avatar reaches the destination, or if:
+
+        - The avatar overshot the target.
+        - The avatar's body collided with a heavy object (mass >= 90)
+        - The avatar collided with part of the environment (such as a wall).
+
+        :param avatar_id: The ID of the avatar.
+        :param distance: The distance that the avatar will travel. If < 0, the avatar will move backwards.
+        :param move_force: The force at which the avatar will move. More force = faster, but might overshoot the target.
+        :param move_stopping_threshold: Stop within this distance of the target.
+
+        :return: True if the avatar arrived at the destination.
+        """
+        # The target is at `distance` away from the avatar's position along the avatar's forward directional vector.
+        target = np.array(self._avatars[avatar_id].frame.get_position()) + (np.array(self._avatars[avatar_id].
+                                                                                     frame.get_forward()) * distance)
+        return self.go_to(avatar_id=avatar_id, target=target, move_force=move_force,
+                          move_stopping_threshold=move_stopping_threshold)
 
     def shake(self, avatar_id: str, joint_name: str = "elbow_left", axis: str = "pitch",
               angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (3, 5),
