@@ -125,6 +125,34 @@ All example controllers can be found in: `controllers/`
 
 ## Changelog
 
+### 0.2.2
+
+#### High-Level
+
+- Made the following functions in `StickyMittenController` private (added a `_` prefix), thereby hiding them from the API:
+  - `_create_avatar()`
+  - `get_add_object()` (renamed to `_add_object()`)
+  - `get_add_container()` (renamed to `_add_container()`)
+  - `_do_joint_motion()`
+  - `_stop_avatar()`
+  - `_destroy_avatar()`
+- Added: `StickyMittenAvatar.static_avatar_data`.
+- Removed: `StickyMittenAvatar.get_container_records()`
+- Removed: `StickyMittenAvatarController.on_resp` (functionality can be replicated with `Controller.communite()`)
+- Added: `test_controller.py` Initialize a simple scene and an avatar in debug mode. 
+- Added field `name` to `BodyPartStatic`.
+- Added field `avatar_collisions` to `FrameData`. Collisions per avatar between its body parts and other objects or the environment.
+- Set the maximum shoulder roll angle to 90 degrees (was 45 degrees).
+- Added: `collision_test.py` Test for the avatar listening to collisions.
+- Removed private functions from API documentation.
+- Added example code to `FrameData` documentation.
+- Various improvements to `StickyMittenAvatar` API documentation.
+- Updated `shake_demo.mp4`
+
+#### Low-Level
+
+- Added: `Avatar.can_bend_to()` True if the avatar can bend the arm to the target (assuming no obstructions or other factors).
+
 ### 0.2.1
 
 #### High-Level

@@ -147,7 +147,7 @@ class Avatar(ABC):
         :param target: The target position.
         :param arm: The arm that is bending to the target.
 
-        :return: True if it is possible to move the mitten to the target.
+        :return: True if the avatar can bend the arm to the target (assuming no obstructions or other factors).
         """
 
         pos = np.array([target[0], target[2]])
