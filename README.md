@@ -136,8 +136,9 @@ All example controllers can be found in: `controllers/`
   - `_do_joint_motion()`
   - `_stop_avatar()`
   - `_destroy_avatar()`
-- Added: `StickyMittenAvatar.static_avatar_data`.
-- Removed: `StickyMittenAvatar.get_container_records()`
+- Set a default value for the `avatar_id` for most `StickyMittenAvatarController` API calls.
+- Added: `StickyMittenAvatarController.static_avatar_data`.
+- Removed: `StickyMittenAvatarController.get_container_records()`
 - Removed: `StickyMittenAvatarController.on_resp` (functionality can be replicated with `Controller.communite()`)
 - Added: `test_controller.py` Initialize a simple scene and an avatar in debug mode. 
 - Added field `name` to `BodyPartStatic`.

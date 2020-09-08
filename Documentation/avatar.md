@@ -95,7 +95,7 @@ Fields:
 | target | The target position. |
 | arm | The arm that is bending to the target. |
 
-_Returns:_  True if it is possible to move the mitten to the target.
+_Returns:_  True if the avatar can bend the arm to the target (assuming no obstructions or other factors).
 
 ***
 

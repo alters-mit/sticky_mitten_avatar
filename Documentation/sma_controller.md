@@ -16,11 +16,10 @@ from sticky_mitten_avatar import StickyMittenAvatarController
 c = StickyMittenAvatarController()
 
 # Load a simple scene.
-avatar_id = "a"
 avatar_id = c.init_scene()
 
 # Bend an arm.
-c.bend_arm(avatar_id=avatar_id, target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
+c.bend_arm(target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
 
 # Get the segementation color pass for the avatar after bending the arm.
 segmentation_colors = c.frame.images[avatar_id][0]
@@ -92,7 +91,7 @@ _Returns:_  The response from the build.
 
 ***
 
-#### `bend_arm(self, avatar_id: str, arm: Arm, target: Dict[str, float], do_motion: bool = True) -> bool`
+#### `bend_arm(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, avatar_id: str = "a") -> bool`
 
 Bend an arm of an avatar until the mitten is at the target position.
 If the position is sufficiently out of reach, the arm won't bend.
@@ -109,7 +108,7 @@ _Returns:_  True if the mitten is near the target position.
 
 ***
 
-#### `pick_up(self, avatar_id: str, object_id: int, do_motion: bool = True) -> (bool, Arm)`
+#### `pick_up(self, object_id: int, do_motion: bool = True, avatar_id: str = "a") -> (bool, Arm)`
 
 Bend the arm of an avatar towards an object. Per frame, try to pick up the object.
 If the position is sufficiently out of reach, the arm won't bend.
@@ -125,7 +124,7 @@ _Returns:_  Tuple: True if the avatar picked up the object, and the arm that is 
 
 ***
 
-#### `put_down(self, avatar_id: str, reset_arms: bool = True, do_motion: bool = True) -> None`
+#### `put_down(self, reset_arms: bool = True, do_motion: bool = True, avatar_id: str = "a") -> None`
 
 Begin to put down all objects.
 The motion continues until the arms have reset to their neutral positions.
@@ -138,7 +137,7 @@ The motion continues until the arms have reset to their neutral positions.
 
 ***
 
-#### `reset_arms(self, avatar_id: str, do_motion: bool = True) -> None`
+#### `reset_arms(self, do_motion: bool = True, avatar_id: str = "a") -> None`
 
 Reset the avatar's arm joint positions.
 The motion continues until the arms have reset to their neutral positions.
@@ -150,7 +149,7 @@ The motion continues until the arms have reset to their neutral positions.
 
 ***
 
-#### `turn_to(self, avatar_id: str, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15) -> bool`
+#### `turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15, avatar_id: str = "a") -> bool`
 
 Turn the avatar to face a target.
 The motion continues until the avatar is either facing the target, overshoots it, or rotates a full 360 degrees.
@@ -166,7 +165,7 @@ _Returns:_  True if the avatar succeeded in turning to face the target.
 
 ***
 
-#### `turn_by(self, avatar_id: str, angle: float, force: float = 1000, stopping_threshold: float = 0.15) -> bool`
+#### `turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15, avatar_id: str = "a") -> bool`
 
 Turn the avatar by an angle.
 The motion continues until the avatar is either facing the target, overshoots it, or rotates a full 360 degrees.
@@ -182,7 +181,7 @@ _Returns:_  True if the avatar succeeded in turning to face the target.
 
 ***
 
-#### `go_to(self, avatar_id: str, target: Union[Dict[str, float], int], turn_force: float = 1000, turn_stopping_threshold: float = 0.15, move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool`
+#### `go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, turn_stopping_threshold: float = 0.15, move_force: float = 80, move_stopping_threshold: float = 0.35, avatar_id: str = "a") -> bool`
 
 Move the avatar to a target position or object.
 If the avatar isn't facing the target, it will turn to face it (see `turn_to()`).
@@ -204,7 +203,7 @@ _Returns:_  True if the avatar arrived at the destination.
 
 ***
 
-#### `move_forward_by(self, avatar_id: str, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool`
+#### `move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35, avatar_id: str = "a") -> bool`
 
 Move the avatar forward by a distance along the avatar's current forward directional vector.
 The motion continues until the avatar reaches the destination, or if:
@@ -223,7 +222,7 @@ _Returns:_  True if the avatar arrived at the destination.
 
 ***
 
-#### `shake(self, avatar_id: str, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> None`
+#### `shake(self, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000), avatar_id: str = "a") -> \ None`
 
 Shake an avatar's arm for multiple iterations.
 Per iteration, the joint will bend forward by an angle and then bend back by an angle.
