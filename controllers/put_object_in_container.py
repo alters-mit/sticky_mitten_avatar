@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Union
 from tdw.tdw_utils import TDWUtils
 from tdw.output_data import Images
 from sticky_mitten_avatar.avatars import Arm
@@ -34,40 +34,36 @@ class PutObjectInContainer(StickyMittenAvatarController):
 
         # Save images every frame, if possible.
         self.frame_count = 0
-        self.on_resp = self.save_images
         self.o_id = self.get_unique_id()
         self.id = "a"
         self.bowl_id = self.get_unique_id()
 
-    def save_images(self, resp: List[bytes]) -> None:
-        """
-        Save images per frame.
-        See `StickyMittenAvatarController.on_resp` and `StickyMittenAvatarController.communicate()`.
+    def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
+        resp = super().communicate(commands)
 
-        :param resp: The response from the build.
-        """
-
+        # Save images per frame.
         images = get_data(resp=resp, d_type=Images)
         if images is not None:
             TDWUtils.save_images(images=images,
                                  filename=TDWUtils.zero_padding(self.frame_count, width=4),
                                  output_directory=self.output_dir)
             self.frame_count += 1
+        return resp
 
     def _get_scene_init_commands_early(self) -> List[dict]:
         commands = super()._get_scene_init_commands_early()
         # Add a jug.
-        commands.extend(self.get_add_object("jug05",
-                                            position={"x": -0.2, "y": 0, "z": 0.385},
-                                            object_id=self.o_id,
-                                            scale={"x": 0.8, "y": 0.8, "z": 0.8}))
+        commands.extend(self._add_object("jug05",
+                                         position={"x": -0.2, "y": 0, "z": 0.385},
+                                         object_id=self.o_id,
+                                         scale={"x": 0.8, "y": 0.8, "z": 0.8}))
         # Add a container.
         bowl_position = {"x": 1.2, "y": 0, "z": 0.25}
-        commands.extend(self.get_add_object("serving_bowl",
-                                            position=bowl_position,
-                                            rotation={"x": 0, "y": 30, "z": 0},
-                                            object_id=self.bowl_id,
-                                            scale={"x": 1.3, "y": 1, "z": 1.3}))
+        commands.extend(self._add_object("serving_bowl",
+                                         position=bowl_position,
+                                         rotation={"x": 0, "y": 30, "z": 0},
+                                         object_id=self.bowl_id,
+                                         scale={"x": 1.3, "y": 1, "z": 1.3}))
         return commands
 
     def _do_scene_init_late(self) -> None:

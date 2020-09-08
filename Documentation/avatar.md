@@ -21,13 +21,14 @@ Static data for a body part in an avatar.
 
 ***
 
-#### `__init__(self, o_id: int, color: Tuple[float, float, float])`
+#### `__init__(self, o_id: int, color: Tuple[float, float, float], name: str)`
 
 
 | Parameter | Description |
 | --- | --- |
 | o_id | The object ID of the part. |
 | color | The segmentation color of the part. |
+| name | The name of the body part. |
 
 ***
 
@@ -83,6 +84,18 @@ Fields:
 | resp | The response from the build after creating the avatar. |
 | avatar_id | The ID of the avatar. |
 | debug | If True, print debug statements. |
+
+***
+
+#### `can_bend_to(self, target: np.array, arm: Arm) -> bool`
+
+
+| Parameter | Description |
+| --- | --- |
+| target | The target position. |
+| arm | The arm that is bending to the target. |
+
+_Returns:_  True if it is possible to move the mitten to the target.
 
 ***
 

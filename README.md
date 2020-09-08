@@ -17,79 +17,91 @@ A high-level api for TDW TDW's [Sticky Mitten Avatar](https://github.com/threedw
 
 Use the [StickyMittenAvatarController](Documentation/sma_controller.md) to create avatars and move them around the scene with a high-level API. **For a detailed API, [read this](Documentation/sma_controller.md).**
 
-#### High-Level
+For the API for output data (data received from the build), see **Fields (Output Data)** below.
 
-##### General
+For further low-level documentation, [read these documents](https://github.com/alters-mit/sticky_mitten_avatar/tree/master/Documentation).
 
-| Function                | Description                                          |
-| ----------------------- | ---------------------------------------------------- |
-| `init_scene()`          | Initialize the scene.                                |
-| `add_overhead_camera()` | Add a third-person camera to the scene.              |
-| `end()`                 | Stop the controller and kill the simulation process. |
+#### General
 
-##### Avatar
+Each of these functions advance the simulation 1 frame.
 
 | Function                | Description                                                  |
 | ----------------------- | ------------------------------------------------------------ |
-| `bend_arm()`            | Bend the arm of an avatar to a target position. |
-| `pick_up()`             | Try to pick up an object.                  |
-| `put_down()`            | Put down all held objects.                 |
-| `turn_to()`             | Face a target position or object.          |
-| `go_to()`               | Go to a target position or object.         |
-| `shake()`               | Shake a joint back and forth.              |
-| `reset_arms()`          | Return the arms to their "neutral" positions.                |
-| `stop_avatar()`         | Stop the avatar's movement and rotation.                     |
+| `init_scene()`          | Initialize the scene.                                        |
+| `add_overhead_camera()` | Add a third-person camera to the scene.                      |
+| `end()`                 | Stop the controller and kill the simulation process.         |
+| `communicate()`         | Low-level. Send [commands](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/command_api.md) to the build and receive a response. |
 
-##### Fields
+#### Avatar
+
+By default, all of these functions will advance the simulation _n_ frames. Each of them has a success state as well as a [fail state](Documentation/fail_state.md).
+
+| Function            | Description                                     |
+| ------------------- | ----------------------------------------------- |
+| `bend_arm()`        | Bend the arm of an avatar to a target position. |
+| `pick_up()`         | Try to pick up an object.                       |
+| `put_down()`        | Put down all held objects.                      |
+| `turn_to()`         | Face a target position or object.               |
+| `turn_by()`         | Turn by an angle.                               |
+| `go_to()`           | Go to a target position or object.              |
+| `move_forward_by()` | Move forward by a given distance.               |
+| `shake()`           | Shake a joint back and forth.                   |
+| `reset_arms()`      | Return the arms to their "neutral" positions.   |
+| `stop_avatar()`     | Stop the avatar's movement and rotation.        |
+
+#### Fields (Output Data)
 
 | Field | Description |
 | ----- | ----------- |
 | `static_object_info`    | [Static object info](Documentation/static_object_info.md) per object in the scene. |
-| `on_resp`               | Do something with the response (output data) per frame.      |
+| `static_avatar_info` | [Static avatar info](Documentation/avatar.md#BodyPartStatic) per avatar in the scene. |
 | `frame`                 | [Frame data](Documentation/frame_data.md) for the most recent frame. |
 
-#### Mid-Level
+#### Commands
 
-| Function | Description |
-| -------- | ----------- |
-| `create_avatar()`       | Create an avatar.                                            |
-| `get_add_object()`      | Returns a list of commands to add an object to the scene and to set its position, mass, etc. Overrides [`Controller.get_add_object()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md#get_add_objectself-model_name-str-object_id-int-positionx-0-y-0-z-0-rotationx-0-y-0-z-0-library-str-----dict); returns a list of commands instead of just 1 command. |
-| `get_container_records()` | Get a list of all available container models. |
-| `get_add_container()`   | Similar to `get_add_object()` except that it adds a specialized "container" object and puts small objects in the container. |
-| `destroy_avatar()` | Destroy an avatar in the scene. |
-
-#### Low-Level
-
-The [TDW Command API](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/command_api.md) can be used in conjunction with this API.
-
-| Function            | Description                                                  |
-| ------------------- | ------------------------------------------------------------ |
-| `communicate()`     | Overrides [`Controller.communicate()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md#communicateself-commands-uniondict-listdict---list). Includes additional automated functionality. |
-| `do_joint_motion()` | Step through the simulation until the joints of all avatars are done moving. |
-
-## API
-
-#### High-Level
-
-| Class                                                        | Description                                                  |
-| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| [StickyMittenAvatarController](Documentation/sma_controller.md) | High-level API controller for sticky mitten avatars. Creates a simple scene. |
-| [BoxRoomContainers](Documentation/box_room_containers.md)    | Sub-class of StickyMittenAvatarController. When `init_scene()` is called, it will create a photorealistic room with furniture and two containers with different objects in them. |
-| [FrameData](Documentation/frame_data.md)                     | Output data returned from the build per frame.               |
-| [StaticObjectInfo](Documentation/static_object_info.md)      | Static object info (ID, segmentation color, etc.) for a single object. |
-
-#### Low-Level
-
-| Class                                                        | Description                                                  |
-| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| [Avatar](Documentation/avatar.md)                            | High-level API for a sticky mitten avatar. Do not use this class directly; it is an abstract class. Use the `Baby` class instead (a subclass of `Avatar`). |
-| [Baby](Documentation/baby.md)                                | A small sticky mitten avatar.                                |
-| [DynamicObjectInfo](Documentation/dynamic_object_info.md)    | Dynamic physics info (position, velocity, etc.) for a single object. |
-| [util](Documentation/util.md)                                | Utility functions.                                           |
+You can, if you wish, use [TDW's low-level Command API](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/command_api.md).
 
 ## Controllers
 
-All controllers can be found in: `controllers/`
+Sub-classes of `StickyMittenAvatarController` have built-in scene setup recipes.
+
+| Controller                                                   | Description                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [StickyMittenAvatarController](Documentation/sma_controller.md) | High-level API controller for sticky mitten avatars. Creates a simple scene. |
+| [BoxRoomContainers](Documentation/box_room_containers.md)    | Sub-class of StickyMittenAvatarController. When `init_scene()` is called, it will create a photorealistic room with furniture and two containers with different objects in them. |
+| [TestController](Documentation/test_controller.md)           | Output data returned from the build per frame.               |
+To use these controllers, do this:
+
+```python
+from sticky_mitten_avatar.avatars import Arm
+from sticky_mitten_avatar.test_controller import TestController
+
+
+c = TestController()
+c.init_scene()
+c.bend_arm(avatar_id="a", arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
+```
+
+...or this:
+
+```python
+from sticky_mitten_avatar.test_controller import TestController
+
+class MyController(TestController):
+    def my_function(self):
+        self.bend_arm(avatar_id="a", arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
+
+if __name__ == "__main__":
+    c = MyController()
+    c.init_scene()
+    c.my_function()
+```
+
+To do something per-frame, regardless of whether the avatar is in the middle of an action, override the `communicate()` function. See [this controller](https://github.com/alters-mit/sticky_mitten_avatar/blob/master/controllers/put_object_in_container.py), which overrides `communicate()` in order to save an image every frame.
+
+## Examples
+
+All example controllers can be found in: `controllers/`
 
 | Controller                   | Description                                                  |
 | ---------------------------- | ------------------------------------------------------------ |
@@ -97,11 +109,12 @@ All controllers can be found in: `controllers/`
 | `shake_demo.py`              | An avatar shakes two different containers with different audio properties. |
 | `put_object_on_table.py`     | _Obsolete._ Put an object on a table using a simple "aiming" algorithm to bend the arm. |
 
-## Test Controllers
+## Tests
 
-| Controller   | Description                              |
-| ------------ | ---------------------------------------- |
-| `ik_test.py` | Test the IK chains of the avatar's arms. |
+| Controller          | Description                               |
+| ------------------- | ----------------------------------------- |
+| `ik_test.py`        | Test the IK chains of the avatar's arms.  |
+| `collision_test.py` | Test the avatar's response to collisions. |
 
 ## Utility Scripts
 
@@ -111,6 +124,34 @@ All controllers can be found in: `controllers/`
 | `init_commands.py` | Convert initialization commands into a Sticky Mitten Avatar API scene recipe. |
 
 ## Changelog
+
+### 0.2.2
+
+#### High-Level
+
+- Made the following functions in `StickyMittenController` private (added a `_` prefix), thereby hiding them from the API:
+  - `_create_avatar()`
+  - `get_add_object()` (renamed to `_add_object()`)
+  - `get_add_container()` (renamed to `_add_container()`)
+  - `_do_joint_motion()`
+  - `_stop_avatar()`
+  - `_destroy_avatar()`
+- Added: `StickyMittenAvatar.static_avatar_data`.
+- Removed: `StickyMittenAvatar.get_container_records()`
+- Removed: `StickyMittenAvatarController.on_resp` (functionality can be replicated with `Controller.communite()`)
+- Added: `test_controller.py` Initialize a simple scene and an avatar in debug mode. 
+- Added field `name` to `BodyPartStatic`.
+- Added field `avatar_collisions` to `FrameData`. Collisions per avatar between its body parts and other objects or the environment.
+- Set the maximum shoulder roll angle to 90 degrees (was 45 degrees).
+- Added: `collision_test.py` Test for the avatar listening to collisions.
+- Removed private functions from API documentation.
+- Added example code to `FrameData` documentation.
+- Various improvements to `StickyMittenAvatar` API documentation.
+- Updated `shake_demo.mp4`
+
+#### Low-Level
+
+- Added: `Avatar.can_bend_to()` True if the avatar can bend the arm to the target (assuming no obstructions or other factors).
 
 ### 0.2.1
 

@@ -19,11 +19,11 @@ class IKUnitTests(StickyMittenAvatarController):
         """
 
         # Create the avatar.
-        self.create_avatar(avatar_id=self.id, debug=True)
+        self._create_avatar(avatar_id=self.id, debug=True)
         # Run the test.
         test()
         # End the test.
-        self.destroy_avatar(avatar_id=self.id)
+        self._destroy_avatar(avatar_id=self.id)
 
     def symmetry(self) -> None:
         """
@@ -76,10 +76,10 @@ class IKUnitTests(StickyMittenAvatarController):
                            "axis": "yaw",
                            "is_world": True,
                            "avatar_id": self.id}])
-        self.communicate(self.get_add_object("jug05",
-                                             position={"x": 0.9, "y": 0, "z": 1.385},
-                                             object_id=o_id,
-                                             scale={"x": 0.8, "y": 0.8, "z": 0.8}))
+        self.communicate(self._add_object("jug05",
+                                          position={"x": 0.9, "y": 0, "z": 1.385},
+                                          object_id=o_id,
+                                          scale={"x": 0.8, "y": 0.8, "z": 0.8}))
         self.pick_up(avatar_id=self.id, object_id=o_id)
         assert o_id in self._avatars[self.id].frame.get_held_right()
 

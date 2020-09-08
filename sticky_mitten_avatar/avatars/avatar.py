@@ -4,7 +4,8 @@ import numpy as np
 from abc import ABC, abstractmethod
 from ikpy.chain import Chain
 from enum import Enum
-from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds
+from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds, Collision, \
+    EnvironmentCollision
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.util import get_angle_between, rotate_point_around, FORWARD
 
@@ -23,14 +24,16 @@ class BodyPartStatic:
     Static data for a body part in an avatar.
     """
 
-    def __init__(self, o_id: int, color: Tuple[float, float, float]):
+    def __init__(self, o_id: int, color: Tuple[float, float, float], name: str):
         """
         :param o_id: The object ID of the part.
         :param color: The segmentation color of the part.
+        :param name: The name of the body part.
         """
 
         self.o_id = o_id
         self.color = color
+        self.name = name
 
 
 class Joint:
@@ -125,15 +128,47 @@ class Avatar(ABC):
                     break
         assert smsc is not None, f"No avatar segmentation colors found for {avatar_id}"
         # Cache static data of body parts.
-        self.body_parts_static: Dict[str, BodyPartStatic] = dict()
+        self.body_parts_static: Dict[int, BodyPartStatic] = dict()
         for i in range(smsc.get_num_body_parts()):
-            bps = BodyPartStatic(o_id=smsc.get_body_part_id(i),
-                                 color=smsc.get_body_part_segmentation_color(i))
-            self.body_parts_static[smsc.get_body_part_name(i)] = bps
+            body_part_id = smsc.get_body_part_id(i)
+            bps = BodyPartStatic(o_id=body_part_id,
+                                 color=smsc.get_body_part_segmentation_color(i),
+                                 name=smsc.get_body_part_name(i))
+            self.body_parts_static[body_part_id] = bps
 
         # Get data for the current frame.
         # Start dynamic data.
         self.frame = self._get_frame(resp)
+        self.collisions: Dict[int, List[int]] = dict()
+        self.env_collisions: List[int] = list()
+
+    def can_bend_to(self, target: np.array, arm: Arm) -> bool:
+        """
+        :param target: The target position.
+        :param arm: The arm that is bending to the target.
+
+        :return: True if the avatar can bend the arm to the target (assuming no obstructions or other factors).
+        """
+
+        pos = np.array([target[0], target[2]])
+        d = np.linalg.norm(pos)
+        if d < 0.25:
+            if self._debug:
+                print(f"Target {target} is too close to the avatar: {np.linalg.norm(d)}")
+            return False
+        if arm == Arm.left:
+            d = np.linalg.norm(target - [-0.225, 0.565, 0.075])
+        else:
+            d = np.linalg.norm(target - [0.225, 0.565, 0.075])
+        if d > 0.52:
+            if self._debug:
+                print(f"Target {target} is too far away from the {arm} shoulder: {d}")
+            return False
+        if target[2] < 0:
+            if self._debug:
+                print(f"Target {target} z < 0")
+            return False
+        return True
 
     def bend_arm(self, arm: Arm, target: np.array, target_orientation: np.array = None) -> List[dict]:
         """
@@ -241,6 +276,30 @@ class Avatar(ABC):
 
         # Update dynamic data.
         frame = self._get_frame(resp=resp)
+        # Update dynamic collision data.
+        self.collisions.clear()
+        self.env_collisions.clear()
+        # Get each collision.
+        for i in range(len(resp) - 1):
+            r_id = OutputData.get_data_type_id(resp[i])
+            if r_id == "coll":
+                coll = Collision(resp[i])
+                collider_id = coll.get_collider_id()
+                collidee_id = coll.get_collidee_id()
+                # Check if the collision includes a body part.
+                if collider_id in self.body_parts_static and collidee_id not in self.body_parts_static:
+                    if collider_id not in self.collisions:
+                        self.collisions[collider_id] = []
+                    self.collisions[collider_id].append(collidee_id)
+                elif collidee_id in self.body_parts_static and collider_id not in self.body_parts_static:
+                    if collidee_id not in self.collisions:
+                        self.collisions[collidee_id] = []
+                    self.collisions[collidee_id].append(collider_id)
+            elif r_id == "enco":
+                coll = EnvironmentCollision(resp[i])
+                collider_id = coll.get_object_id()
+                if collider_id in self.body_parts_static:
+                    self.env_collisions.append(collider_id)
 
         # Check if IK goals are done.
         temp_goals: Dict[Arm, Optional[_IKGoal]] = dict()
