@@ -874,6 +874,37 @@ class StickyMittenAvatarController(Controller):
                            "axis": joint.axis,
                            "avatar_id": avatar_id}])
 
+    def rotate_camera_by(self, avatar_id: str = "a", pitch: float = 0, yaw: float = 0, roll: float = 0) -> None:
+        """
+        Rotate an avatar's camera around each axis.
+        The head of the avatar won't visually rotate (as this could put the avatar off-balance).
+        Advances the simulation by 1 frame.
+
+        :param avatar_id: The ID of the avatar.
+        :param pitch: Pitch (nod your head "yes") the camera by this angle, in degrees.
+        :param yaw: Yaw (shake your head "no") the camera by this angle, in degrees.
+        :param roll: Roll (put your ear to your shoulder) the camera by this angle, in degrees.
+        """
+
+        commands = []
+        for angle, axis in zip([pitch, yaw, roll], ["pitch", "yaw", "roll"]):
+            commands.append({"$type": "rotate_sensor_container_by",
+                             "axis": axis,
+                             "angle": angle,
+                             "avatar_id": avatar_id})
+        self.communicate(commands)
+
+    def reset_camera_rotation(self, avatar_id: str = "a") -> None:
+        """
+        Reset the rotation of the avatar's camera.
+        Advances the simulation by 1 frame.
+
+        :param avatar_id: The ID of the avatar.
+        """
+
+        self.communicate({"$type": "reset_sensor_container_rotation",
+                          "avatar_id": avatar_id})
+
     def add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c",
                             images: str = "all") -> None:
         """

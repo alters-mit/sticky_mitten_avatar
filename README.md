@@ -39,18 +39,20 @@ Each of these functions advance the simulation 1 frame.
 
 By default, all of these functions will advance the simulation _n_ frames. Each of them has a success state as well as a [**fail state**](Documentation/fail_state.md).
 
-| Function            | Description                                     |
-| ------------------- | ----------------------------------------------- |
-| `bend_arm()`        | Bend the arm of an avatar to a target position. |
-| `pick_up()`         | Try to pick up an object.                       |
-| `put_down()`        | Put down all held objects.                      |
-| `turn_to()`         | Face a target position or object.               |
-| `turn_by()`         | Turn by an angle.                               |
-| `go_to()`           | Go to a target position or object.              |
-| `move_forward_by()` | Move forward by a given distance.               |
-| `shake()`           | Shake a joint back and forth.                   |
-| `reset_arms()`      | Return the arms to their "neutral" positions.   |
-| `stop_avatar()`     | Stop the avatar's movement and rotation.        |
+| Function                  | Description                                     |
+| ------------------------- | ----------------------------------------------- |
+| `bend_arm()`              | Bend the arm of an avatar to a target position. |
+| `pick_up()`               | Try to pick up an object.                       |
+| `put_down()`              | Put down all held objects.                      |
+| `turn_to()`               | Face a target position or object.               |
+| `turn_by()`               | Turn by an angle.                               |
+| `go_to()`                 | Go to a target position or object.              |
+| `move_forward_by()`       | Move forward by a given distance.               |
+| `shake()`                 | Shake a joint back and forth.                   |
+| `reset_arms()`            | Return the arms to their "neutral" positions.   |
+| `stop_avatar()`           | Stop the avatar's movement and rotation.        |
+| `rotate_camera_by()`      | Rotate the avatar's camera.                     |
+| `reset_camera_rotation()` | Reset the rotation of the avatar's camera.      |
 
 #### Fields (Output Data)
 
@@ -141,6 +143,8 @@ All example controllers can be found in: `controllers/`
   - `_destroy_avatar()`
 - Set a default value for the `avatar_id` for most `StickyMittenAvatarController` API calls.
 - Added: `StickyMittenAvatarController.static_avatar_data`.
+- Added: `StickyMittenAvatar.rotate_camera_by()`.
+- Added: `StickyMittenAvatar.reset_camera_rotation()`.
 - Removed: `StickyMittenAvatarController.get_container_records()`
 - Removed: `StickyMittenAvatarController.on_resp` (functionality can be replicated with `Controller.communite()`)
 - Added: `test_controller.py` Initialize a simple scene and an avatar in debug mode. 

@@ -239,6 +239,32 @@ The motion ends when all of the avatar's joints have stopped moving.
 
 ***
 
+#### `rotate_camera_by(self, avatar_id: str = "a", pitch: float = 0, yaw: float = 0, roll: float = 0) -> None`
+
+Rotate an avatar's camera around each axis.
+The head of the avatar won't visually rotate (as this could put the avatar off-balance).
+Advances the simulation by 1 frame.
+
+| Parameter | Description |
+| --- | --- |
+| avatar_id | The ID of the avatar. |
+| pitch | Pitch (nod your head "yes") the camera by this angle, in degrees. |
+| yaw | Yaw (shake your head "no") the camera by this angle, in degrees. |
+| roll | Roll (put your ear to your shoulder) the camera by this angle, in degrees. |
+
+***
+
+#### `reset_camera_rotation(self, avatar_id: str = "a") -> None`
+
+Reset the rotation of the avatar's camera.
+Advances the simulation by 1 frame.
+
+| Parameter | Description |
+| --- | --- |
+| avatar_id | The ID of the avatar. |
+
+***
+
 #### `add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c", images: str = "all") -> None`
 
 Add an overhead third-person camera to the scene.
