@@ -7,6 +7,7 @@ from enum import Enum
 from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds, Collision, \
     EnvironmentCollision
 from tdw.tdw_utils import TDWUtils
+from tdw.py_impact import ObjectInfo, AudioMaterial
 from sticky_mitten_avatar.util import get_angle_between, rotate_point_around, FORWARD
 
 
@@ -22,18 +23,28 @@ class Arm(Enum):
 class BodyPartStatic:
     """
     Static data for a body part in an avatar.
+
+    Fields:
+
+    - `object_id` The object ID of the body part.
+    - `color` The segmentation color of the body part.
+    - `name` The name of the body part.
+    - `audio` [Audio values](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#objectinfo) for the body part.
     """
 
-    def __init__(self, o_id: int, color: Tuple[float, float, float], name: str):
+    def __init__(self, object_id: int, color: Tuple[float, float, float], name: str, mass: float):
         """
-        :param o_id: The object ID of the part.
-        :param color: The segmentation color of the part.
+        :param object_id: The object ID of the body part.
+        :param color: The segmentation color of the body part.
         :param name: The name of the body part.
+        :param mass: The mass of the body part.
         """
 
-        self.o_id = o_id
+        self.object_id = object_id
         self.color = color
         self.name = name
+        self.audio = ObjectInfo(name=self.name, amp=0.01, mass=mass, material=AudioMaterial.ceramic, library="",
+                                bounciness=0.1)
 
 
 class Joint:
@@ -127,18 +138,29 @@ class Avatar(ABC):
                     smsc = q
                     break
         assert smsc is not None, f"No avatar segmentation colors found for {avatar_id}"
+
+        # Get data for the current frame.
+        self.frame = self._get_frame(resp)
+        # Get the masses of each body part.
+        body_part_masses: Dict[int, float] = dict()
+        for i in range(self.frame.get_num_rigidbody_parts()):
+            body_part_masses[self.frame.get_rigidbody_part_id(i)] = self.frame.get_rigidbody_part_mass(i)
+
         # Cache static data of body parts.
         self.body_parts_static: Dict[int, BodyPartStatic] = dict()
         for i in range(smsc.get_num_body_parts()):
             body_part_id = smsc.get_body_part_id(i)
-            bps = BodyPartStatic(o_id=body_part_id,
+            if body_part_id in body_part_masses:
+                mass = body_part_masses[body_part_id]
+            else:
+                mass = 0.1
+            bps = BodyPartStatic(object_id=body_part_id,
                                  color=smsc.get_body_part_segmentation_color(i),
-                                 name=smsc.get_body_part_name(i))
+                                 name=smsc.get_body_part_name(i),
+                                 mass=mass)
             self.body_parts_static[body_part_id] = bps
 
-        # Get data for the current frame.
         # Start dynamic data.
-        self.frame = self._get_frame(resp)
         self.collisions: Dict[int, List[int]] = dict()
         self.env_collisions: List[int] = list()
 
