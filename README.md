@@ -42,6 +42,7 @@ By default, all of these functions will advance the simulation _n_ frames. Each 
 | `pick_up()`         | Try to pick up an object.                       |
 | `put_down()`        | Put down all held objects.                      |
 | `turn_to()`         | Face a target position or object.               |
+| `turn_by()`         | Turn by an angle.                               |
 | `go_to()`           | Go to a target position or object.              |
 | `move_forward_by()` | Move forward by a given distance.               |
 | `shake()`           | Shake a joint back and forth.                   |

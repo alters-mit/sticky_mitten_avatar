@@ -5,12 +5,12 @@ from pkg_resources import resource_filename
 from typing import Dict, List, Union, Optional, Tuple
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
-from tdw.librarian import ModelLibrarian, ModelRecord
+from tdw.librarian import ModelLibrarian
 from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Volumes
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
-from sticky_mitten_avatar.util import get_data, get_angle, get_closest_point_in_bounds
+from sticky_mitten_avatar.util import get_data, get_angle, get_closest_point_in_bounds, rotate_point_around
 from sticky_mitten_avatar.dynamic_object_info import DynamicObjectInfo
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
@@ -660,6 +660,28 @@ class StickyMittenAvatarController(Controller):
             i += 1
         self._stop_avatar(avatar_id=avatar_id)
         return False
+
+    def turn_by(self, avatar_id: str, angle: float, force: float = 1000,
+                stopping_threshold: float = 0.15) -> bool:
+        """
+        Turn the avatar by an angle.
+        The motion continues until the avatar is either facing the target, overshoots it, or rotates a full 360 degrees.
+
+        :param avatar_id: The unique ID of the avatar.
+        :param angle: The angle to turn to in degrees. If > 0, turn clockwise; if < 0, turn counterclockwise.
+        :param force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
+        :param stopping_threshold: Stop when the avatar is within this many degrees of the target.
+
+        :return: True if the avatar succeeded in turning to face the target.
+        """
+
+        # Rotate the forward directional vector.
+        p0 = self._avatars[avatar_id].frame.get_forward()
+        p1 = rotate_point_around(origin=np.array([0, 0, 0]), point=p0, angle=angle)
+        # Get a point to look at.
+        p1 = np.array(self._avatars[avatar_id].frame.get_position()) + (p1 * 1000)
+        return self.turn_to(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(p1), force=force,
+                            stopping_threshold=stopping_threshold)
 
     def go_to(self, avatar_id: str, target: Union[Dict[str, float], int],
               turn_force: float = 1000, turn_stopping_threshold: float = 0.15,

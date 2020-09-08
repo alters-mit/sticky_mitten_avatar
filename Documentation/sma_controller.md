@@ -166,6 +166,22 @@ _Returns:_  True if the avatar succeeded in turning to face the target.
 
 ***
 
+#### `turn_by(self, avatar_id: str, angle: float, force: float = 1000, stopping_threshold: float = 0.15) -> bool`
+
+Turn the avatar by an angle.
+The motion continues until the avatar is either facing the target, overshoots it, or rotates a full 360 degrees.
+
+| Parameter | Description |
+| --- | --- |
+| avatar_id | The unique ID of the avatar. |
+| angle | The angle to turn to in degrees. If > 0, turn clockwise; if < 0, turn counterclockwise. |
+| force | The force at which the avatar will turn. More force = faster, but might overshoot the target. |
+| stopping_threshold | Stop when the avatar is within this many degrees of the target. |
+
+_Returns:_  True if the avatar succeeded in turning to face the target.
+
+***
+
 #### `go_to(self, avatar_id: str, target: Union[Dict[str, float], int], turn_force: float = 1000, turn_stopping_threshold: float = 0.15, move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool`
 
 Move the avatar to a target position or object.
