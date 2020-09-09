@@ -3,6 +3,7 @@ from typing import Dict, Union, List, Optional
 import numpy as np
 from abc import ABC, abstractmethod
 from ikpy.chain import Chain
+from ikpy.utils import geometry
 from enum import Enum
 from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds, Collision, \
     EnvironmentCollision
@@ -151,17 +152,25 @@ class Avatar(ABC):
             if self._debug:
                 print(f"Target {target} is too close to the avatar: {np.linalg.norm(d)}")
             return False
-        if arm == Arm.left:
-            d = np.linalg.norm(target - [-0.225, 0.565, 0.075])
-        else:
-            d = np.linalg.norm(target - [0.225, 0.565, 0.075])
-        if d > 0.52:
-            if self._debug:
-                print(f"Target {target} is too far away from the {arm} shoulder: {d}")
-            return False
         if target[2] < 0:
             if self._debug:
                 print(f"Target {target} z < 0")
+            return False
+
+        # Check if the IK solution reaches the target.
+        chain = self._arms[arm]
+        joints, ik_target = self._get_ik(target=target, arm=arm)
+        transformation_matrixes = chain.forward_kinematics(list(joints), full_kinematics=True)
+        nodes = []
+        for (index, link) in enumerate(chain.links):
+            (node, orientation) = geometry.from_transformation_matrix(transformation_matrixes[index])
+            nodes.append(node)
+        destination = np.array(nodes[-1][:-1])
+
+        d = np.linalg.norm(destination - target)
+        if d > 0.125:
+            if self._debug:
+                print(f"Target {target} is too far away from the {arm} shoulder: {d}")
             return False
         return True
 
@@ -176,15 +185,14 @@ class Avatar(ABC):
         :return: A list of commands to begin bending the arm.
         """
 
-        ik_target = np.array(target)
+        # Get the IK solution.
+        rotations, ik_target = self._get_ik(target=target, arm=arm, target_orientation=target_orientation)
 
         angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
         target = rotate_point_around(point=ik_target, angle=angle) + self.frame.get_position()
 
         self._ik_goals[arm] = _IKGoal(target=target)
 
-        # Get the IK solution.
-        rotations = self._arms[arm].inverse_kinematics(target_position=ik_target, target_orientation=target_orientation)
         commands = []
         if self._debug:
             print([np.rad2deg(r) for r in rotations])
@@ -529,3 +537,18 @@ class Avatar(ABC):
 
         chain.plot(chain.inverse_kinematics(target_position=target), ax, target=target)
         matplotlib.pyplot.show()
+
+    def _get_ik(self, target: np.array, arm: Arm, target_orientation: np.array = None) -> (List[float], np.array):
+        """
+        :param target: The target position.
+        :param arm: The arm.
+        :param target_orientation: The target orientation. Can be None.
+
+        :return: The IK angles and the IK target.
+        """
+
+        ik_target = np.array(target)
+
+        # Get the IK solution.
+        rotations = self._arms[arm].inverse_kinematics(target_position=ik_target, target_orientation=target_orientation)
+        return rotations, ik_target

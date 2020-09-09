@@ -6,11 +6,11 @@ from typing import Dict, List, Union, Optional, Tuple
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
 from tdw.librarian import ModelLibrarian
-from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Volumes
+from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Volumes, Raycast
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
-from sticky_mitten_avatar.util import get_data, get_angle, get_closest_point_in_bounds, rotate_point_around
+from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around
 from sticky_mitten_avatar.dynamic_object_info import DynamicObjectInfo
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
@@ -743,7 +743,7 @@ class StickyMittenAvatarController(Controller):
         initial_position = avatar.frame.get_position()
 
         # Set the target. If it's an object, the target is the nearest point on the bounds.
-        target = self._get_position(target=target, nearest_on_bounds=True, avatar_id=avatar_id)
+        target = self._get_position(target=target, avatar_id=avatar_id)
         # Get the distance to the target.
         initial_distance = np.linalg.norm(np.array(initial_position) - target)
 
@@ -972,6 +972,49 @@ class StickyMittenAvatarController(Controller):
         self.communicate({"$type": "destroy_avatar",
                           "avatar_id": avatar_id})
 
+    def tap(self, object_id: int, arm: Arm, avatar_id: str = "a") -> bool:
+        avatar = self._avatars[avatar_id]
+        # Get the origin of the raycast.
+        if arm == Arm.left:
+            origin = np.array(avatar.frame.get_mitten_center_left_position())
+        else:
+            origin = avatar.frame.get_mitten_center_right_position()
+        # Get the destination of the raycast.
+        resp = self.communicate({"$type": "send_bounds",
+                                 "frequency": "once",
+                                 "ids": [object_id]})
+        # Get the center of the object.
+        bounds = get_data(resp=resp, d_type=Bounds)
+        bottom = bounds.get_bottom(0)
+        # The object is too high up.
+        if bottom[1] > 0.5:
+            return False
+        top = bounds.get_top(0)
+        # Target the bottom third.
+        y = bottom[1] + ((top[1] - bottom[1]) / 3)
+
+        target = {"x": bottom[0], "y": y, "z": bottom[2]}
+
+        # Get the raycast.
+        resp = self.communicate({"$type": "raycast",
+                                 "origin": TDWUtils.array_to_vector3(origin),
+                                 "destination": target})
+        raycast = get_data(resp=resp, d_type=Raycast)
+
+        # Couldn't find the object.
+        if not raycast.get_hit():
+            return False
+
+        # Didn't hit the object.
+        if raycast.get_object_id() is None or raycast.get_object_id() != object_id:
+            return False
+
+        # Couldn't bend the arm to the target.
+        if not self.bend_arm(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(raycast.get_point()), arm=arm):
+            self.communicate({"$type": "add_position_marker", "position": TDWUtils.array_to_vector3(raycast.get_point())})
+            return False
+        return True
+
     def end(self) -> None:
         """
         End the simulation. Terminate the build process.
@@ -979,15 +1022,12 @@ class StickyMittenAvatarController(Controller):
 
         self.communicate({"$type": "terminate"})
 
-    def _get_position(self, target: Union[Dict[str, float], np.array, int],
-                      nearest_on_bounds: bool = False, avatar_id: str = None) -> np.array:
+    def _get_position(self, target: Union[np.array, int], avatar_id: str = "a") -> np.array:
         """
         Convert the target to a numpy array. If the target is an object ID, get the object's position.
 
         :param target: The target position or object.
         :param avatar_id: The ID of the avatar. Used only if `nearest_on_bounds == True` and if `target` is an int.
-        :param nearest_on_bounds: If True, `avatar_id is not None`, and `target` is an int, set the target position to
-                                  the nearest point on the object bounds from the avatar's position.
 
         :return: The position.
         """
@@ -996,21 +1036,42 @@ class StickyMittenAvatarController(Controller):
         if isinstance(target, int):
             if target not in self._dynamic_object_info:
                 raise Exception(f"Object not found: {target}")
-            # Get the nearest point from the avatar.
-            if nearest_on_bounds and (avatar_id is not None):
-                resp = self.communicate({"$type": "send_bounds",
-                                         "ids": [target],
-                                         "frequency": "once"})
-                bounds = get_data(resp=resp, d_type=Bounds)
-                return get_closest_point_in_bounds(bounds=bounds,
-                                                   origin=self._avatars[avatar_id].frame.get_position(),
-                                                   index=0)
-            # Get the object's position.
-            return self._dynamic_object_info[target].position
+            return self._get_raycast_point(object_id=target, avatar_id=avatar_id,
+                                           origin=np.array(self._avatars[avatar_id].frame.get_position()))[1]
         elif isinstance(target, dict):
             return TDWUtils.vector3_to_array(target)
         else:
             return target
+
+    def _get_raycast_point(self, object_id: int, origin: np.array, avatar_id: str = "a", forward: float = 0.2) -> \
+            (bool, np.array):
+        """
+        Raycast to a target object from the avatar.
+
+        :param object_id: The object ID.
+        :param avatar_id: The avatar ID.
+        :param forward: Extend the origin along the avatar's forward directional vector by this length.
+
+        :return: The point of the raycast hit and whether the raycast hit the object.
+        """
+
+        resp = self.communicate({"$type": "send_bounds",
+                                 "ids": [object_id],
+                                 "frequency": "once"})
+        bounds = get_data(resp=resp, d_type=Bounds)
+        # Raycast to the center of the bounds to get the nearest point.
+        destination = TDWUtils.array_to_vector3(bounds.get_center(0))
+        # Add a forward directional vector.
+        origin += np.array(self._avatars[avatar_id].frame.get_forward()) * forward
+        origin[1] = destination["y"]
+        resp = self.communicate({"$type": "raycast",
+                                 "origin": TDWUtils.array_to_vector3(origin),
+                                 "destination": destination})
+        raycast = get_data(resp=resp, d_type=Raycast)
+        point = np.array(raycast.get_point())
+        # Clamp the y value.
+        point[1] = 0
+        return raycast.get_hit() and raycast.get_object_id() is not None and raycast.get_object_id() == object_id, point
 
     def _get_audio_commands(self) -> List[dict]:
         """
