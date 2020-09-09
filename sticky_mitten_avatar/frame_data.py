@@ -3,7 +3,7 @@ from typing import List, Dict, Optional, Tuple
 from PIL import Image
 from tdw.tdw_utils import TDWUtils
 from tdw.output_data import OutputData, Rigidbodies, Images, Transforms
-from tdw.py_impact import PyImpact, AudioMaterial, Base64Sound
+from tdw.py_impact import PyImpact, AudioMaterial, Base64Sound, ObjectInfo
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.avatars.avatar import Avatar
 from sticky_mitten_avatar.util import get_data
@@ -77,7 +77,7 @@ class FrameData:
                           See `AvatarCollisions` for more information.
     """
 
-    _P = PyImpact(initial_amp=0.01)
+    _P = PyImpact(initial_amp=0.03)
 
     def __init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], surface_material: AudioMaterial,
                  avatars: Dict[str, Avatar]):
@@ -104,16 +104,34 @@ class FrameData:
 
         # Get the audio of each collision.
         for coll in collisions:
-            collider_id = coll.get_collider_id()
-            collidee_id = coll.get_collidee_id()
-
-            if collider_id not in objects or collidee_id not in objects:
-                continue
             if not FrameData._P.is_valid_collision(coll):
                 continue
 
-            collider_info = objects[collider_id].audio
-            collidee_info = objects[collidee_id].audio
+            collider_id = coll.get_collider_id()
+            collidee_id = coll.get_collidee_id()
+
+            collider_info: Optional[ObjectInfo] = None
+            collidee_info: Optional[ObjectInfo] = None
+
+            if collider_id in objects:
+                collider_info = objects[collider_id].audio
+            # Check if the object is a body part.
+            else:
+                for avatar_id in avatars:
+                    if collider_id in avatars[avatar_id].body_parts_static:
+                        collider_info = avatars[avatar_id].body_parts_static[collider_id].audio
+            if collidee_id in objects:
+                collidee_info = objects[collidee_id].audio
+            # Check if the object is a body part.
+            else:
+                for avatar_id in avatars:
+                    if collidee_id in avatars[avatar_id].body_parts_static:
+                        collidee_info = avatars[avatar_id].body_parts_static[collidee_id].audio
+
+            # If either object isn't a cached object, don't try to add audio.
+            if collider_info is None or collidee_info is None:
+                continue
+
             if collider_info.mass < collidee_info.mass:
                 target_id = collider_id
                 target_amp = collider_info.amp
