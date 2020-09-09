@@ -10,7 +10,7 @@ from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors,
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
-from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around
+from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD
 from sticky_mitten_avatar.dynamic_object_info import DynamicObjectInfo
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
@@ -611,6 +611,7 @@ class StickyMittenAvatarController(Controller):
 
         # Set the target if it wasn't already a numpy array (for example, if it's an object ID).
         target = self._get_position(target=target)
+        target[1] = 0
 
         # Get the initial angle to the target.
         initial_angle = get_angle(origin=np.array(avatar.frame.get_position()),
@@ -979,39 +980,18 @@ class StickyMittenAvatarController(Controller):
             origin = np.array(avatar.frame.get_mitten_center_left_position())
         else:
             origin = avatar.frame.get_mitten_center_right_position()
-        # Get the destination of the raycast.
-        resp = self.communicate({"$type": "send_bounds",
-                                 "frequency": "once",
-                                 "ids": [object_id]})
-        # Get the center of the object.
-        bounds = get_data(resp=resp, d_type=Bounds)
-        bottom = bounds.get_bottom(0)
-        # The object is too high up.
-        if bottom[1] > 0.5:
-            return False
-        top = bounds.get_top(0)
-        # Target the bottom third.
-        y = bottom[1] + ((top[1] - bottom[1]) / 3)
 
-        target = {"x": bottom[0], "y": y, "z": bottom[2]}
+        success, target = self._get_raycast_point(object_id=object_id, origin=np.array(origin), forward=0.01)
 
-        # Get the raycast.
-        resp = self.communicate({"$type": "raycast",
-                                 "origin": TDWUtils.array_to_vector3(origin),
-                                 "destination": target})
-        raycast = get_data(resp=resp, d_type=Raycast)
-
-        # Couldn't find the object.
-        if not raycast.get_hit():
+        # The raycast didn't hit the target.
+        if not success:
             return False
 
-        # Didn't hit the object.
-        if raycast.get_object_id() is None or raycast.get_object_id() != object_id:
-            return False
+        angle = get_angle_between(v1=FORWARD, v2=avatar.frame.get_forward())
+        target = rotate_point_around(point=target - avatar.frame.get_position(), angle=-angle)
 
         # Couldn't bend the arm to the target.
-        if not self.bend_arm(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(raycast.get_point()), arm=arm):
-            self.communicate({"$type": "add_position_marker", "position": TDWUtils.array_to_vector3(raycast.get_point())})
+        if not self.bend_arm(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(target), arm=arm):
             return False
         return True
 
@@ -1069,8 +1049,6 @@ class StickyMittenAvatarController(Controller):
                                  "destination": destination})
         raycast = get_data(resp=resp, d_type=Raycast)
         point = np.array(raycast.get_point())
-        # Clamp the y value.
-        point[1] = 0
         return raycast.get_hit() and raycast.get_object_id() is not None and raycast.get_object_id() == object_id, point
 
     def _get_audio_commands(self) -> List[dict]:
