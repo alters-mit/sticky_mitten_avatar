@@ -6,7 +6,7 @@ from typing import Dict, List, Union, Optional, Tuple
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
 from tdw.librarian import ModelLibrarian
-from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Volumes, Raycast
+from tdw.output_data import OutputData, Bounds, Transforms, Rigidbodies, SegmentationColors, Volumes, Raycast, Collision
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
@@ -446,7 +446,8 @@ class StickyMittenAvatarController(Controller):
         self.model_librarian = self._lib_core
         return commands
 
-    def bend_arm(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, avatar_id: str = "a") -> bool:
+    def bend_arm(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, avatar_id: str = "a",
+                 check_if_possible: bool = True) -> bool:
         """
         Bend an arm of an avatar until the mitten is at the target position.
         If the position is sufficiently out of reach, the arm won't bend.
@@ -456,13 +457,14 @@ class StickyMittenAvatarController(Controller):
         :param target: The target position for the mitten relative to the avatar.
         :param avatar_id: The unique ID of the avatar.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
+        :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
 
         :return: True if the mitten is near the target position.
         """
 
         target = TDWUtils.vector3_to_array(target)
 
-        if not self._avatars[avatar_id].can_bend_to(target=target, arm=arm):
+        if check_if_possible and not self._avatars[avatar_id].can_bend_to(target=target, arm=arm):
             return False
 
         self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm, target=target))
@@ -974,6 +976,20 @@ class StickyMittenAvatarController(Controller):
                           "avatar_id": avatar_id})
 
     def tap(self, object_id: int, arm: Arm, avatar_id: str = "a") -> bool:
+        """
+        Try to tap an object.
+
+        - If there is no line of sight between the mitten and the object, the task fails (avatar doesn't bend the arm).
+        - If the object is out of reach, the task fails (avatar doesn't bend the arm).
+        - If the avatar fails to tap the object, the task fails (avatar does bend the arm).
+
+        :param object_id: The ID of the object.
+        :param arm: The arm.
+        :param avatar_id: The ID of the avatar.
+
+        :return: True if the task succeeded.
+        """
+
         avatar = self._avatars[avatar_id]
         # Get the origin of the raycast.
         if arm == Arm.left:
@@ -993,7 +1009,34 @@ class StickyMittenAvatarController(Controller):
         # Couldn't bend the arm to the target.
         if not self.bend_arm(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(target), arm=arm):
             return False
-        return True
+
+        # Tap the object.
+        p = target + np.array(avatar.frame.get_forward()) * 1.1
+        self.bend_arm(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(p), arm=arm, check_if_possible=False,
+                      do_motion=False)
+        # Get the mitten ID.
+        mitten_id = 0
+        for o_id in avatar.body_parts_static:
+            if avatar.body_parts_static[o_id].name == f"mitten_{arm.name}":
+                mitten_id = o_id
+                break
+        # Let the arm bend until the mitten collides with the object.
+        mitten_collision = False
+        count = 0
+        while not mitten_collision and count < 200:
+            resp = self.communicate([])
+            for i in range(len(resp) - 1):
+                r_id = OutputData.get_data_type_id(resp[i])
+                if r_id == "coll":
+                    collision = Collision(resp[i])
+                    id_0 = collision.get_collider_id()
+                    id_1 = collision.get_collidee_id()
+                    if (id_0 == mitten_id and id_1 == object_id) or (id_1 == mitten_id and id_0 == object_id):
+                        mitten_collision = True
+                        break
+            count += 1
+        self.reset_arms()
+        return mitten_collision
 
     def end(self) -> None:
         """

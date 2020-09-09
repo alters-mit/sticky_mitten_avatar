@@ -19,5 +19,5 @@ class Tap(TestController):
 if __name__ == "__main__":
     c = Tap(launch_build=False)
     c.init_scene()
-    c.go_to(target=c.object_id, move_stopping_threshold=0.4)
+    c.go_to(target=c.object_id, move_stopping_threshold=0.3)
     c.tap(object_id=c.object_id, arm=Arm.left)
