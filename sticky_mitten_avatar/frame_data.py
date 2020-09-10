@@ -196,7 +196,7 @@ class FrameData:
             with p.open("wb") as f:
                 f.write(image)
 
-    def get_pil_images(self) -> Tuple[Image, Image]:
+    def get_pil_images(self) -> tuple:
         """
         Convert the ID pass (segmentation colors) and the depth pass to PIL images.
 
