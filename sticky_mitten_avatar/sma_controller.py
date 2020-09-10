@@ -1087,7 +1087,7 @@ class StickyMittenAvatarController(Controller):
         # Add a forward directional vector.
         origin += np.array(self._avatars[avatar_id].frame.get_forward()) * forward
         origin[1] = destination["y"]
-        resp = self.communicate({"$type": "raycast",
+        resp = self.communicate({"$type": "send_raycast",
                                  "origin": TDWUtils.array_to_vector3(origin),
                                  "destination": destination})
         raycast = get_data(resp=resp, d_type=Raycast)
