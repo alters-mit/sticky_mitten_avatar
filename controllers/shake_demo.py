@@ -18,7 +18,7 @@ if __name__ == "__main__":
     for container in [c.container_0, c.container_1]:
         c.go_to(target=container, move_stopping_threshold=0.7)
         success, arm = c.pick_up(object_id=container)
-        c.bend_arm(arm=arm, target={"x": 0.1 * 1 if arm == Arm.right else -1, "y": 0.4, "z": 0.485})
+        c.reach_for_target(arm=arm, target={"x": 0.1 * 1 if arm == Arm.right else -1, "y": 0.4, "z": 0.485})
         c.shake(joint_name=f"elbow_{arm.name}")
         c.put_down(do_motion=False)
     # Pick up the first container again.
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     # The "target" values are hardcoded for now; in the future, there will be better avatar navigation.
     c.go_to(target={"x": 1.721, "y": 0, "z": -1.847}, turn_stopping_threshold=2, move_stopping_threshold=0.2)
     c.turn_to(target={"x": 2.024, "y": 0.46, "z": -2.399})
-    c.bend_arm(arm=arm, target={"x": 0, "y": 0.4, "z": 1}, do_motion=False)
+    c.reach_for_target(arm=arm, target={"x": 0, "y": 0.4, "z": 1}, do_motion=False)
     for i in range(20):
         c.communicate([])
     c.put_down()

@@ -446,8 +446,8 @@ class StickyMittenAvatarController(Controller):
         self.model_librarian = self._lib_core
         return commands
 
-    def bend_arm(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, avatar_id: str = "a",
-                 check_if_possible: bool = True) -> bool:
+    def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, avatar_id: str = "a",
+                         check_if_possible: bool = True) -> bool:
         """
         Bend an arm of an avatar until the mitten is at the target position.
         If the position is sufficiently out of reach, the arm won't bend.
@@ -464,10 +464,10 @@ class StickyMittenAvatarController(Controller):
 
         target = TDWUtils.vector3_to_array(target)
 
-        if check_if_possible and not self._avatars[avatar_id].can_bend_to(target=target, arm=arm):
+        if check_if_possible and not self._avatars[avatar_id].can_reach_target(target=target, arm=arm):
             return False
 
-        self._avatar_commands.extend(self._avatars[avatar_id].bend_arm(arm=arm, target=target))
+        self._avatar_commands.extend(self._avatars[avatar_id].reach_for_target(arm=arm, target=target))
 
         if do_motion:
             self._do_joint_motion()
@@ -1007,13 +1007,13 @@ class StickyMittenAvatarController(Controller):
         target = rotate_point_around(point=target - avatar.frame.get_position(), angle=-angle)
 
         # Couldn't bend the arm to the target.
-        if not self.bend_arm(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(target), arm=arm):
+        if not self.reach_for_target(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(target), arm=arm):
             return False
 
         # Tap the object.
         p = target + np.array(avatar.frame.get_forward()) * 1.1
-        self.bend_arm(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(p), arm=arm, check_if_possible=False,
-                      do_motion=False)
+        self.reach_for_target(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(p), arm=arm, check_if_possible=False,
+                              do_motion=False)
         # Get the mitten ID.
         mitten_id = 0
         for o_id in avatar.body_parts_static:

@@ -79,11 +79,11 @@ class PutObjectInContainer(StickyMittenAvatarController):
         # Pick up the object.
         self.pick_up(object_id=self.o_id)
         # Lift the object up a bit.
-        self.bend_arm(target={"x": -0.3, "y": 0.5, "z": 0.22}, arm=Arm.left)
+        self.reach_for_target(target={"x": -0.3, "y": 0.5, "z": 0.22}, arm=Arm.left)
         # Go to the bowl.
         self.go_to(target=self.bowl_id, move_stopping_threshold=0.2)
         # Lift the object up a bit.
-        self.bend_arm(target={"x": -0.1, "y": 0.6, "z": 0.5}, arm=Arm.left)
+        self.reach_for_target(target={"x": -0.1, "y": 0.6, "z": 0.5}, arm=Arm.left)
         # Drop the object in the container.
         self.put_down()
         for i in range(50):

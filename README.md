@@ -84,7 +84,7 @@ from sticky_mitten_avatar.test_controller import TestController
 
 c = TestController()
 c.init_scene()
-c.bend_arm(arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
+c.reach_for_target(arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
 ```
 
 ...or this:
@@ -94,7 +94,7 @@ from sticky_mitten_avatar.test_controller import TestController
 
 class MyController(TestController):
     def my_function(self):
-        self.bend_arm(arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
+        self.reach_for_target(arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
 
 if __name__ == "__main__":
     c = MyController()

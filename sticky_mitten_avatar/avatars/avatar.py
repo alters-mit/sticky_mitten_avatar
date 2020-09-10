@@ -138,7 +138,7 @@ class Avatar(ABC):
         self.collisions: Dict[int, List[int]] = dict()
         self.env_collisions: List[int] = list()
 
-    def can_bend_to(self, target: np.array, arm: Arm) -> bool:
+    def can_reach_target(self, target: np.array, arm: Arm) -> bool:
         """
         :param target: The target position.
         :param arm: The arm that is bending to the target.
@@ -174,7 +174,7 @@ class Avatar(ABC):
             return False
         return True
 
-    def bend_arm(self, arm: Arm, target: np.array, target_orientation: np.array = None) -> List[dict]:
+    def reach_for_target(self, arm: Arm, target: np.array, target_orientation: np.array = None) -> List[dict]:
         """
         Get an IK solution to move a mitten to a target position.
 
@@ -263,7 +263,7 @@ class Avatar(ABC):
 
         target = rotate_point_around(point=center - self.frame.get_position(), angle=-angle)
 
-        commands = self.bend_arm(arm=arm, target=target, target_orientation=target_orientation)
+        commands = self.reach_for_target(arm=arm, target=target, target_orientation=target_orientation)
         self._ik_goals[arm].pick_up_id = object_id
         return commands, arm
 

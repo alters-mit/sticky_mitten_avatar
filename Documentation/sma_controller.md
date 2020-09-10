@@ -93,7 +93,7 @@ _Returns:_  The response from the build.
 
 ***
 
-#### `bend_arm(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, avatar_id: str = "a", check_if_possible: bool = True) -> bool`
+#### `reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, avatar_id: str = "a", check_if_possible: bool = True) -> bool`
 
 Bend an arm of an avatar until the mitten is at the target position.
 If the position is sufficiently out of reach, the arm won't bend.

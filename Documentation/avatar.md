@@ -68,7 +68,7 @@ Fields:
 
 ***
 
-#### `can_bend_to(self, target: np.array, arm: Arm) -> bool`
+#### `can_reach_target(self, target: np.array, arm: Arm) -> bool`
 
 
 | Parameter | Description |
@@ -80,7 +80,7 @@ _Returns:_  True if the avatar can bend the arm to the target (assuming no obstr
 
 ***
 
-#### `bend_arm(self, arm: Arm, target: np.array, target_orientation: np.array = None) -> List[dict]`
+#### `reach_for_target(self, arm: Arm, target: np.array, target_orientation: np.array = None) -> List[dict]`
 
 Get an IK solution to move a mitten to a target position.
 
