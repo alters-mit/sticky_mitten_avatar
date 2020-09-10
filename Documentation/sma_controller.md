@@ -93,7 +93,7 @@ _Returns:_  The response from the build.
 
 ***
 
-#### `bend_arm(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, avatar_id: str = "a") -> bool`
+#### `bend_arm(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, avatar_id: str = "a", check_if_possible: bool = True) -> bool`
 
 Bend an arm of an avatar until the mitten is at the target position.
 If the position is sufficiently out of reach, the arm won't bend.
@@ -105,6 +105,7 @@ Otherwise, the motion continues until the mitten is either at the target positio
 | target | The target position for the mitten relative to the avatar. |
 | avatar_id | The unique ID of the avatar. |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
+| check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
 
 _Returns:_  True if the mitten is near the target position.
 
@@ -280,6 +281,23 @@ Add an overhead third-person camera to the scene.
 | target_object | Always point the camera at this object or avatar. |
 | position | The position of the camera. |
 | images | Image capture behavior. Choices: |
+
+***
+
+#### `tap(self, object_id: int, arm: Arm, avatar_id: str = "a") -> bool`
+
+Try to tap an object.
+- If there is no line of sight between the mitten and the object, the task fails (avatar doesn't bend the arm).
+- If the object is out of reach, the task fails (avatar doesn't bend the arm).
+- If the avatar fails to tap the object, the task fails (avatar does bend the arm).
+
+| Parameter | Description |
+| --- | --- |
+| object_id | The ID of the object. |
+| arm | The arm. |
+| avatar_id | The ID of the avatar. |
+
+_Returns:_  True if the task succeeded.
 
 ***
 

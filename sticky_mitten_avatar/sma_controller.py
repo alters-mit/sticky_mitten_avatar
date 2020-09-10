@@ -256,7 +256,7 @@ class StickyMittenAvatarController(Controller):
                           "angular_drag": self._STOP_DRAG,
                           "avatar_id": avatar_id},
                          {"$type": "set_pass_masks",
-                          "pass_masks": ["_img", "_id"],
+                          "pass_masks": ["_id", "_depth_simple"],
                           "avatar_id": avatar_id},
                          {"$type": "send_images",
                           "frequency": "always"},
