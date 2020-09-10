@@ -10,6 +10,7 @@ from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, Av
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.util import get_angle_between, rotate_point_around, FORWARD
 from sticky_mitten_avatar.body_part_static import BodyPartStatic
+from sticky_mitten_avatar import TaskResult
 
 
 class Arm(Enum):
@@ -138,12 +139,12 @@ class Avatar(ABC):
         self.collisions: Dict[int, List[int]] = dict()
         self.env_collisions: List[int] = list()
 
-    def can_reach_target(self, target: np.array, arm: Arm) -> bool:
+    def can_reach_target(self, target: np.array, arm: Arm) -> TaskResult:
         """
         :param target: The target position.
         :param arm: The arm that is bending to the target.
 
-        :return: True if the avatar can bend the arm to the target (assuming no obstructions or other factors).
+        :return: A `TaskResult` value describing whether the avatar can reach the target and, if not, why.
         """
 
         pos = np.array([target[0], target[2]])
@@ -151,11 +152,11 @@ class Avatar(ABC):
         if d < 0.25:
             if self._debug:
                 print(f"Target {target} is too close to the avatar: {np.linalg.norm(d)}")
-            return False
+            return TaskResult.too_close_to_reach
         if target[2] < 0:
             if self._debug:
                 print(f"Target {target} z < 0")
-            return False
+            return TaskResult.behind_avatar
 
         # Check if the IK solution reaches the target.
         chain = self._arms[arm]
@@ -171,8 +172,8 @@ class Avatar(ABC):
         if d > 0.125:
             if self._debug:
                 print(f"Target {target} is too far away from the {arm} shoulder: {d}")
-            return False
-        return True
+            return TaskResult.too_far_to_reach
+        return TaskResult.ok
 
     def reach_for_target(self, arm: Arm, target: np.array, target_orientation: np.array = None) -> List[dict]:
         """

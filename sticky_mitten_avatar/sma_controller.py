@@ -14,6 +14,7 @@ from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, 
 from sticky_mitten_avatar.dynamic_object_info import DynamicObjectInfo
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
+from sticky_mitten_avatar import TaskResult
 
 
 class _TaskState(Enum):
@@ -447,7 +448,7 @@ class StickyMittenAvatarController(Controller):
         return commands
 
     def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, avatar_id: str = "a",
-                         check_if_possible: bool = True) -> bool:
+                         check_if_possible: bool = True) -> TaskResult:
         """
         Bend an arm of an avatar until the mitten is at the target position.
         If the position is sufficiently out of reach, the arm won't bend.
@@ -459,13 +460,16 @@ class StickyMittenAvatarController(Controller):
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
 
-        :return: True if the mitten is near the target position.
+        :return: A `TaskResult` value describing whether the avatar's mitten reached the target and, if not, why.
         """
 
         target = TDWUtils.vector3_to_array(target)
 
-        if check_if_possible and not self._avatars[avatar_id].can_reach_target(target=target, arm=arm):
-            return False
+        # Check if it's possible to reach for the target. If not, don't try, and return the result value.
+        if check_if_possible:
+            result = self._avatars[avatar_id].can_reach_target(target=target, arm=arm)
+            if result != TaskResult.ok:
+                return result
 
         self._avatar_commands.extend(self._avatars[avatar_id].reach_for_target(arm=arm, target=target))
 
