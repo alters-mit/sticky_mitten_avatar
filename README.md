@@ -130,11 +130,35 @@ All example controllers can be found in: `controllers/`
 
 ## Changelog
 
+### 0.2.3
+
+#### High-Level
+
+- Added: `StickyMittenAvatarController.tap()`
+- `avatar_id` parameter of all API functions in `StickyMittenAvatarController` has a default value of `"a"`
+- Renamed: `StickyMittenAvatarController.bend_arm()` to `StickyMittenAvatarController.reach_for_target()`
+- Added optional parameter `check_if_possible` to `StickyMittenAvatarController.reach_for_target()`
+- `StickyMittenAvatarController` gathers `_id` and `_depth_simple` image passes instead of `_img` and `_id`.
+- Fixed: `put_object_in_container.py` doesn't work.
+- `FrameData` records audio due to collisions with avatar body parts.
+- Renamed: `FrameData.segmentation_image` to `FrameData.id_pass`
+- Renamed: `FrameData.depth_map` to `FrameData.depth_pass`
+  - `FrameData.depth_pass` can be converted to a grayscale image instead of being a numpy array of floats
+- Added: `FrameData.save_images()`
+- Added: `FrameData.get_pil_images()`
+- Added test controller: `tap.py`
+- Added video: `put_object_in_container.mp4`
+
+#### Low-Level
+
+- Renamed: `Avatar.can_bend_to()` to `Avatar.can_reach_target()`
+- Fixed: `Avatar.can_bend_to()` is inaccurate.
+
 ### 0.2.2
 
 #### High-Level
 
-- Made the following functions in `StickyMittenController` private (added a `_` prefix), thereby hiding them from the API:
+- Made the following functions in `StickyMittenAvatarController` private (added a `_` prefix), thereby hiding them from the API:
   - `_create_avatar()`
   - `get_add_object()` (renamed to `_add_object()`)
   - `get_add_container()` (renamed to `_add_container()`)

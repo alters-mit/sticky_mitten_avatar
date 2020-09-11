@@ -98,7 +98,7 @@ For example, the depth pass on the first frame will be named: `00000000_depth.pn
 
 ***
 
-#### `get_pil_images(self) -> Tuple[Image, Image]`
+#### `get_pil_images(self) -> tuple`
 
 Convert the ID pass (segmentation colors) and the depth pass to PIL images.
 
