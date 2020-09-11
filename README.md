@@ -19,7 +19,9 @@ A high-level API for [TDW's](https://github.com/threedworld-mit/tdw/) [Sticky Mi
 
 **For a detailed API, [read this](Documentation/sma_controller.md).** Use the StickyMittenAvatarController to move an avatar in a scene with a high-level API. 
 
-At the start of the simulation, the controller caches [static object info](Documentation/static_object_info.md) per object in the scene and [static avatar info](Documentation/body_part_static.md). At the end of every action, the controller receives [frame data](Documentation/frame_data.md).
+- At the start of the simulation, the controller caches [static object info](Documentation/static_object_info.md) per object in the scene and [static avatar info](Documentation/body_part_static.md).
+- Each API function returns a [TaskStatus](Documentation/task_status.md) indicating whether the action succeeded and if not, why.
+- After calling each function, the controller updates its [FrameData](Documentation/frame_data.md). This data can be used to decide what the avatar's next action will be (pick up an object, navigate around a room, etc.)
 
 ### API (low-level)
 
@@ -41,7 +43,6 @@ To use these controllers, do this:
 ```python
 from sticky_mitten_avatar.avatars import Arm
 from sticky_mitten_avatar.test_controller import TestController
-
 
 c = TestController()
 c.init_scene()
