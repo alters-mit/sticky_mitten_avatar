@@ -97,12 +97,15 @@ All example controllers can be found in: `controllers/`
 
 #### High-Level
 
+- Each API call returns a `TaskStatus` instead of a `bool`. The `TaskStatus` indicates whether the task was a success and if not, why.
 - There is always exactly 1 avatar per scene.
   - Removed `avatar_id` parameter from all API and output data. 
   - `FrameData.avatar_collision` is an `AvatarCollisions` object (was a dictionary mapped to avatar IDs)
   - `StickyMittenAvatarController.static_avatar_data` is a dictionary of `BodyPartStatic` (was a dictionary of dictionaries, mapped to avatar IDs)
 - Better formatting for API document headers.
 - Cleaned up API section of README document.
+- Removed: `fail_state.md`
+- `StickyMittenAvatarController.md` (API document) includes all possible `TaskStatus` return values per function.
 
 ***
 
