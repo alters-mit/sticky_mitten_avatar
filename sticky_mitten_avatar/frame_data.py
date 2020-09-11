@@ -79,7 +79,7 @@ class FrameData:
                           See `AvatarCollisions` for more information.
     """
 
-    _P = PyImpact(initial_amp=0.03)
+    _P = PyImpact(initial_amp=0.01)
     _FRAME_COUNT = 0
 
     def __init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], surface_material: AudioMaterial,
