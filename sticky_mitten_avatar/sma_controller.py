@@ -1058,16 +1058,10 @@ class StickyMittenAvatarController(Controller):
         mitten_collision = False
         count = 0
         while not mitten_collision and count < 200:
-            resp = self.communicate([])
-            for i in range(len(resp) - 1):
-                r_id = OutputData.get_data_type_id(resp[i])
-                if r_id == "coll":
-                    collision = Collision(resp[i])
-                    id_0 = collision.get_collider_id()
-                    id_1 = collision.get_collidee_id()
-                    if (id_0 == mitten_id and id_1 == object_id) or (id_1 == mitten_id and id_0 == object_id):
-                        mitten_collision = True
-                        break
+            self.communicate([])
+            if object_id in self.frame.avatar_collisions.objects[mitten_id]:
+                mitten_collision = True
+                break
             count += 1
         self.reset_arms()
         self._avatar.status = TaskStatus.idle
@@ -1192,3 +1186,4 @@ class StickyMittenAvatarController(Controller):
         status = self._avatar.status
         self._avatar.status = TaskStatus.idle
         return status
+
