@@ -35,7 +35,7 @@ Fields:
 
 ***
 
-#### __init__
+#### \_\_init\_\_
 
 **`def __init__(self, avatar: Avatar)`**
 
@@ -75,7 +75,7 @@ Fields:
 
 ***
 
-#### __init__
+#### \_\_init\_\_
 
 **`def __init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], surface_material: AudioMaterial, avatar: Avatar)`**
 

@@ -16,6 +16,7 @@ class PyDocGen:
         doc = "# `" + filename.split("/")[-1] + "`\n\n"
 
         lines: List[str] = Path(filename).read_text().split("\n")
+        lines: List[str] = Path(filename).read_text().split("\n")
 
         for i in range(len(lines)):
             # Create a class description.
@@ -114,7 +115,9 @@ class PyDocGen:
             def_str = match.group(1) + " -> " + match.group(2)
             def_str = " ".join(def_str.split())
         # Used the shortened def string for the header.
-        shortened_def_str = def_str.split("(")[0]
+        shortened_def_str = def_str.split("(")[0].replace("__", "\\_\\_")
+
+        def_str = def_str.replace("\\ ", "")
 
         # Get the name of the function.
         match = re.search("def (.*):", lines[start_index])
@@ -174,7 +177,7 @@ class PyDocGen:
         :param start_index: The line of the class defintion.
         """
 
-        enum_desc = "Enum values:\n"
+        enum_desc = "| Value | Description |\n| --- | --- |\n"
         began_class_desc = False
         end_class_desc = False
         for i in range(start_index + 1, len(lines)):
@@ -190,8 +193,15 @@ class PyDocGen:
                 continue
             if not end_class_desc:
                 continue
-            enum_desc += "\n- `" + lines[i].strip().split(" = ")[0] + "`"
-        return enum_desc
+            line_split = lines[i].strip().split(" = ")
+            val = f"`{line_split[0]}`"
+            desc_split = lines[i].strip().split("#")
+            if len(desc_split) > 1:
+                desc = desc_split[1].strip()
+            else:
+                desc = ""
+            enum_desc += f"| {val} | {desc} |\n"
+        return enum_desc.strip()
 
     @staticmethod
     def generate() -> None:
@@ -205,7 +215,7 @@ class PyDocGen:
                  "sticky_mitten_avatar/frame_data.py",
                  "sticky_mitten_avatar/util.py",
                  "sticky_mitten_avatar/body_part_static.py",
-                 "sticky_mitten_avatar/task_result.py"]
+                 "sticky_mitten_avatar/task_status.py"]
 
         output_directory = Path("Documentation")
         if not output_directory.exists():

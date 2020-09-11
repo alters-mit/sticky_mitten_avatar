@@ -18,7 +18,7 @@ This class is used in the StickyMittenAvatarController.
 
 ***
 
-#### __init__
+#### \_\_init\_\_
 
 **`def __init__(self, o_id: int, tran: Transforms, rigi: Rigidbodies, tr_index: int)`**
 

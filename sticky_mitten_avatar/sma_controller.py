@@ -1,5 +1,4 @@
 import random
-from enum import Enum
 import numpy as np
 from pkg_resources import resource_filename
 from typing import Dict, List, Union, Optional, Tuple
@@ -14,16 +13,7 @@ from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, 
 from sticky_mitten_avatar.dynamic_object_info import DynamicObjectInfo
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
-
-
-class _TaskState(Enum):
-    """
-    The state of an avatar's motion.
-    """
-
-    ongoing = 1,
-    success = 2,
-    failure = 4
+from sticky_mitten_avatar.task_status import TaskStatus
 
 
 class StickyMittenAvatarController(Controller):
@@ -49,9 +39,31 @@ class StickyMittenAvatarController(Controller):
     segmentation_colors = c.frame.segmentation_image
     ```
 
+    All parameters of type `Dict[str, float]` are Vector3 dictionaries formatted like this:
+
+    ```json
+    {"x": -0.2, "y": 0.21, "z": 0.385}
+    ```
+
+    `y` is the up direction.
+
+    To convert from or to a numpy array:
+
+    ```python
+    from tdw.tdw_utils import TDWUtils
+
+    target = {"x": 1, "y": 0, "z": 0}
+    target = TDWUtils.vector3_to_array(target)
+    print(target) # [1 0 0]
+    target = TDWUtils.array_to_vector3(target)
+    print(target) # {'x': 1.0, 'y': 0.0, 'z': 0.0}
+    ```
+
+    A parameter of type `Union[Dict[str, float], int]]` can be either a Vector3 or an integer (an object ID).
+
     ***
 
-    Fields:
+    ## Fields
 
     - `frame` Dynamic data for the current frame, updated per frame. [Read this](frame_data.md) for a full API.
       Note: Most of the avatar API advances the simulation multiple frames. `frame` is current to frame at the end of an action.
@@ -71,7 +83,6 @@ class StickyMittenAvatarController(Controller):
 
     - `static_avatar_data` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API.
 
-
     ```python
     for body_part_id in c.static_avatar_data.avatar:
         body_part = c.static_avatar_data.avatars[body_part_id]
@@ -79,6 +90,9 @@ class StickyMittenAvatarController(Controller):
         print(body_part.color) # The segmentation color.
         print(body_part.name) # The name of the body part.
     ```
+
+    ## Functions
+
     """
 
     # A high drag value to stop movement.
@@ -445,41 +459,58 @@ class StickyMittenAvatarController(Controller):
         return commands
 
     def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True,
-                         check_if_possible: bool = True) -> bool:
+                         check_if_possible: bool = True) -> TaskStatus:
         """
-        Bend an arm of an avatar until the mitten is at the target position.
-        If the position is sufficiently out of reach, the arm won't bend.
-        Otherwise, the motion continues until the mitten is either at the target position or the arm stops moving.
+        Bend an arm joints of an avatar to reach for a target position.
+
+        Possible [return values](task_status.md):
+
+        - `success` (The avatar's arm's mitten reached the target position.)
+        - `too_close_to_reach`
+        - `too_far_to_reach`
+        - `behind_avatar`
+        - `no_longer_bending`
 
         :param arm: The arm (left or right).
         :param target: The target position for the mitten relative to the avatar.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
 
-        :return: True if the mitten is near the target position.
+        :return: A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
         """
 
         target = TDWUtils.vector3_to_array(target)
 
-        if check_if_possible and not self._avatar.can_reach_target(target=target, arm=arm):
-            return False
+        # Check if it is possible for the avatar to reach the target.
+        if check_if_possible:
+            status = self._avatar.can_reach_target(target=target, arm=arm)
+            if status != TaskStatus.success:
+                return status
 
         self._avatar_commands.extend(self._avatar.reach_for_target(arm=arm, target=target))
-
+        self._avatar.status = TaskStatus.ongoing
         if do_motion:
             self._do_joint_motion()
-        return True
+        return self._get_avatar_status()
 
-    def pick_up(self, object_id: int, do_motion: bool = True) -> (bool, Arm):
+    def pick_up(self, object_id: int, do_motion: bool = True, check_if_possible: bool = True) -> Tuple[TaskStatus, Arm]:
         """
         Bend the arm of an avatar towards an object. Per frame, try to pick up the object.
-        If the position is sufficiently out of reach, the arm won't bend.
-        The motion continues until either the object is picked up or the arm stops moving.
+
+        Possible [return values](task_status.md):
+
+        - `success` (The avatar picked up the object.)
+        - `too_close_to_reach`
+        - `too_far_to_reach`
+        - `behind_avatar`
+        - `no_longer_bending`
+        - `failed_to_pick_up`
 
         :param object_id: The ID of the target object.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
+        :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
 
-        :return: Tuple: True if the avatar picked up the object, and the arm that is picking up the object.
+        :return: Tuple: A `TaskStatus` indicating whether the avatar picked up the object and if not, why; and the arm that picked up the object (if any).
         """
 
         # Get the bounds of the object.
@@ -487,18 +518,32 @@ class StickyMittenAvatarController(Controller):
                                  "frequency": "once",
                                  "ids": [object_id]})
         bounds = get_data(resp=resp, d_type=Bounds)
-        commands, arm = self._avatar.pick_up(bounds=bounds, object_id=object_id)
-        self._avatar_commands.extend(commands)
+        # Get commands to pick up the target.
+        commands, arm, target = self._avatar.pick_up(bounds=bounds, object_id=object_id)
+        # Check if it's possible to pick up the target.
+        if check_if_possible:
+            status = self._avatar.can_reach_target(target=target, arm=arm)
+            if status != TaskStatus.success:
+                return status, arm
 
+        self._avatar_commands.extend(commands)
+        self._avatar.status = TaskStatus.ongoing
         if do_motion:
             self._do_joint_motion()
+        # The avatar failed to reach the target.
+        if self._avatar.status != TaskStatus.success:
+            return self._get_avatar_status(), arm
 
-        return self._avatar.is_holding(object_id=object_id)
+        # Return whether the avatar picked up the object.
+        self._avatar.status = TaskStatus.idle
+        if self._avatar.is_holding(object_id=object_id):
+            return TaskStatus.success, arm
+        else:
+            return TaskStatus.failed_to_pick_up, arm
 
     def put_down(self, reset_arms: bool = True, do_motion: bool = True) -> None:
         """
-        Begin to put down all objects.
-        The motion continues until the arms have reset to their neutral positions.
+        Drop any held objects and reset the arms to their neutral positions.
 
         :param reset_arms: If True, reset arm positions to "neutral".
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
@@ -510,8 +555,7 @@ class StickyMittenAvatarController(Controller):
 
     def reset_arms(self, do_motion: bool = True) -> None:
         """
-        Reset the avatar's arm joint positions.
-        The motion continues until the arms have reset to their neutral positions.
+        Reset the avatar's arms to their neutral positions.
 
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         """
@@ -545,21 +589,27 @@ class StickyMittenAvatarController(Controller):
                           "drag": self._STOP_DRAG,
                           "angular_drag": self._STOP_DRAG,
                           "avatar_id": self._avatar.id})
+        self._avatar.status = TaskStatus.idle
 
     def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000,
-                stopping_threshold: float = 0.15) -> bool:
+                stopping_threshold: float = 0.15) -> TaskStatus:
         """
-        Turn the avatar to face a target.
-        The motion continues until the avatar is either facing the target, overshoots it, or rotates a full 360 degrees.
+        Turn the avatar to face a target position or object.
 
-        :param target: The target position or object ID.
+        Possible [return values](task_status.md):
+
+        - `success` (The avatar turned to face the target.)
+        - `turned_360`
+        - `too_long`
+
+        :param target: Either the target position or the ID of the target object.
         :param force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param stopping_threshold: Stop when the avatar is within this many degrees of the target.
 
-        :return: True if the avatar succeeded in turning to face the target.
+        :return: A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
         """
 
-        def _get_turn_state() -> _TaskState:
+        def _get_turn_state() -> TaskStatus:
             """
             :return: Whether avatar succeed, failed, or is presently turning.
             """
@@ -569,20 +619,20 @@ class StickyMittenAvatarController(Controller):
                               position=target)
 
             # Failure because the avatar turned all the way around without aligning with the target.
-            if angle - initial_angle >= 180:
-                return _TaskState.failure
+            if angle - initial_angle >= 360:
+                return TaskStatus.turned_360
 
             if angle > 180:
                 angle -= 360
 
             # Success because the avatar is facing the target.
             if np.abs(angle) < stopping_threshold:
-                return _TaskState.success
+                return TaskStatus.success
             # Overshot the turn. Stop.
             if (direction < 0 and angle >= 0) or (direction > 0 and angle <= 0):
-                return _TaskState.success
+                return TaskStatus.success
 
-            return _TaskState.ongoing
+            return TaskStatus.ongoing
 
         # Set the target if it wasn't already a numpy array (for example, if it's an object ID).
         target = self._get_position(target=target)
@@ -597,6 +647,8 @@ class StickyMittenAvatarController(Controller):
             direction = -1
         else:
             direction = 1
+
+        self._avatar.status = TaskStatus.ongoing
 
         # Set a low drag.
         self.communicate({"$type": "set_avatar_drag",
@@ -617,37 +669,46 @@ class StickyMittenAvatarController(Controller):
             while coasting:
                 coasting = np.linalg.norm(self._avatar.frame.get_angular_velocity()) > 0.3
                 state = _get_turn_state()
-                if state == _TaskState.success:
+                # The turn succeeded!
+                if state == TaskStatus.success:
                     self._stop_avatar()
-                    return True
-                elif state == _TaskState.failure:
+                    return state
+                # The turn failed.
+                elif state != TaskStatus.ongoing:
                     self._stop_avatar()
-                    return False
+                    return state
                 self.communicate([])
 
             # Turn.
             self.communicate(turn_command)
             state = _get_turn_state()
-            if state == _TaskState.success:
+            # The turn succeeded!
+            if state == TaskStatus.success:
                 self._stop_avatar()
-                return True
-            elif state == _TaskState.failure:
+                return state
+            # The turn failed.
+            elif state != TaskStatus.ongoing:
                 self._stop_avatar()
-                return False
+                return state
             i += 1
         self._stop_avatar()
-        return False
+        return TaskStatus.too_long
 
-    def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15) -> bool:
+    def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15) -> TaskStatus:
         """
         Turn the avatar by an angle.
-        The motion continues until the avatar is either facing the target, overshoots it, or rotates a full 360 degrees.
+
+        Possible [return values](task_status.md):
+
+        - `success` (The avatar turned by the angle.)
+        - `turned_360`
+        - `too_long`
 
         :param angle: The angle to turn to in degrees. If > 0, turn clockwise; if < 0, turn counterclockwise.
         :param force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param stopping_threshold: Stop when the avatar is within this many degrees of the target.
 
-        :return: True if the avatar succeeded in turning to face the target.
+        :return: A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
         """
 
         # Rotate the forward directional vector.
@@ -658,26 +719,29 @@ class StickyMittenAvatarController(Controller):
         return self.turn_to(target=TDWUtils.array_to_vector3(p1), force=force, stopping_threshold=stopping_threshold)
 
     def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80,
-              turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35) -> bool:
+              turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35) -> TaskStatus:
         """
         Move the avatar to a target position or object.
-        If the avatar isn't facing the target, it will turn to face it (see `turn_to()`).
-        The motion continues until the avatar reaches the destination, or if:
 
-        - The avatar overshot the target.
-        - The avatar's body collided with a heavy object (mass >= 90)
-        - The avatar collided with part of the environment (such as a wall).
+        Possible [return values](task_status.md):
 
-        :param target: The target position or object ID.
+        - `success` (The avatar arrived at the target.)
+        - `turned_360`
+        - `too_long`
+        - `overshot`
+        - `collided_with_something_heavy`
+        - `collided_with_environment`
+
+        :param target: Either the target position or the ID of the target object.
         :param turn_force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param turn_stopping_threshold: Stop when the avatar is within this many degrees of the target.
         :param move_force: The force at which the avatar will move. More force = faster, but might overshoot the target.
         :param move_stopping_threshold: Stop within this distance of the target.
 
-        :return: True if the avatar arrived at the destination.
+        :return:  A `TaskStatus` indicating whether the avatar arrived at the target and if not, why.
         """
 
-        def _get_state() -> _TaskState:
+        def _get_state() -> TaskStatus:
             """
             :return: Whether the avatar is at its destination, overshot it, or still going to it.
             """
@@ -689,25 +753,24 @@ class StickyMittenAvatarController(Controller):
                     for o_id in self._avatar.collisions[body_part_id]:
                         collidee_mass = self.static_object_info[o_id].mass
                         if collidee_mass >= 90:
-                            print("hit something heavy")
-                            return _TaskState.failure
+                            return TaskStatus.collided_with_something_heavy
             # If the avatar's body collided with the environment (e.g. a wall), stop movement.
             for body_part_id in self._avatar.env_collisions:
                 name = self._avatar.body_parts_static[body_part_id].name
                 if name.startswith("A_StickyMitten"):
-                    return _TaskState.failure
+                    return TaskStatus.collided_with_environment
 
             p = np.array(self._avatar.frame.get_position())
             d_from_initial = np.linalg.norm(initial_position - p)
             # Overshot. End.
             if d_from_initial > initial_distance:
-                return _TaskState.failure
+                return TaskStatus.overshot
             # We're here! End.
             d = np.linalg.norm(p - target)
             if d <= move_stopping_threshold:
-                return _TaskState.success
+                return TaskStatus.success
             # Keep truckin' along.
-            return _TaskState.ongoing
+            return TaskStatus.ongoing
 
         initial_position = self._avatar.frame.get_position()
 
@@ -717,7 +780,11 @@ class StickyMittenAvatarController(Controller):
         initial_distance = np.linalg.norm(np.array(initial_position) - target)
 
         # Turn to the target.
-        self.turn_to(target=target, force=turn_force, stopping_threshold=turn_stopping_threshold)
+        status = self.turn_to(target=target, force=turn_force, stopping_threshold=turn_stopping_threshold)
+        if status != TaskStatus.success:
+            return status
+
+        self._avatar.status = TaskStatus.ongoing
 
         # Go to the target.
         self.communicate({"$type": "set_avatar_drag",
@@ -731,41 +798,47 @@ class StickyMittenAvatarController(Controller):
                               "magnitude": move_force,
                               "avatar_id": self._avatar.id})
             t = _get_state()
-            if t == _TaskState.success:
+            if t == TaskStatus.success:
                 self._stop_avatar()
-                return True
-            elif t == _TaskState.failure:
+                return t
+            elif t != TaskStatus.ongoing:
                 self._stop_avatar()
-                return False
+                return t
             # Glide.
             while np.linalg.norm(self._avatar.frame.get_velocity()) > 0.1:
                 self.communicate([])
                 t = _get_state()
-                if t == _TaskState.success:
+                if t == TaskStatus.success:
                     self._stop_avatar()
-                    return True
-                elif t == _TaskState.failure:
+                    return t
+                elif t != TaskStatus.ongoing:
                     self._stop_avatar()
-                    return False
+                    return t
             i += 1
         self._stop_avatar()
-        return False
+        return TaskStatus.too_long
 
-    def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool:
+    def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35) -> \
+            TaskStatus:
         """
         Move the avatar forward by a distance along the avatar's current forward directional vector.
-        The motion continues until the avatar reaches the destination, or if:
 
-        - The avatar overshot the target.
-        - The avatar's body collided with a heavy object (mass >= 90)
-        - The avatar collided with part of the environment (such as a wall).
+        Possible [return values](task_status.md):
+
+        - `success` (The avatar moved forward by the distance.)
+        - `turned_360`
+        - `too_long`
+        - `overshot`
+        - `collided_with_something_heavy`
+        - `collided_with_environment`
 
         :param distance: The distance that the avatar will travel. If < 0, the avatar will move backwards.
         :param move_force: The force at which the avatar will move. More force = faster, but might overshoot the target.
         :param move_stopping_threshold: Stop within this distance of the target.
 
-        :return: True if the avatar arrived at the destination.
+        :return: A `TaskStatus` indicating whether the avatar moved forward by the distance and if not, why.
         """
+
         # The target is at `distance` away from the avatar's position along the avatar's forward directional vector.
         target = np.array(self._avatar.frame.get_position()) + (np.array(self._avatar.frame.get_forward()) * distance)
         return self.go_to(target=target, move_force=move_force, move_stopping_threshold=move_stopping_threshold)
@@ -932,18 +1005,24 @@ class StickyMittenAvatarController(Controller):
         self.communicate({"$type": "destroy_avatar",
                           "avatar_id": avatar_id})
 
-    def tap(self, object_id: int, arm: Arm) -> bool:
+    def tap(self, object_id: int, arm: Arm) -> TaskStatus:
         """
         Try to tap an object.
 
-        - If there is no line of sight between the mitten and the object, the task fails (avatar doesn't bend the arm).
-        - If the object is out of reach, the task fails (avatar doesn't bend the arm).
-        - If the avatar fails to tap the object, the task fails (avatar does bend the arm).
+        Possible [return values](task_status.md):
+
+        - `success` (The avatar tapped the object.)
+        - `too_close_to_reach`
+        - `too_far_to_reach`
+        - `behind_avatar`
+        - `no_longer_bending`
+        - `bad_raycast`
+        - `failed_to_tap`
 
         :param object_id: The ID of the object.
         :param arm: The arm.
 
-        :return: True if the task succeeded.
+        :return: A `TaskStatus` indicating whether the avatar tapped the object and if not, why.
         """
 
         # Get the origin of the raycast.
@@ -956,14 +1035,15 @@ class StickyMittenAvatarController(Controller):
 
         # The raycast didn't hit the target.
         if not success:
-            return False
+            return TaskStatus.bad_raycast
 
         angle = get_angle_between(v1=FORWARD, v2=self._avatar.frame.get_forward())
         target = rotate_point_around(point=target - self._avatar.frame.get_position(), angle=-angle)
 
         # Couldn't bend the arm to the target.
-        if not self.reach_for_target(target=TDWUtils.array_to_vector3(target), arm=arm):
-            return False
+        reach_status = self.reach_for_target(target=TDWUtils.array_to_vector3(target), arm=arm)
+        if reach_status != TaskStatus.success:
+            return reach_status
 
         # Tap the object.
         p = target + np.array(self._avatar.frame.get_forward()) * 1.1
@@ -990,7 +1070,11 @@ class StickyMittenAvatarController(Controller):
                         break
             count += 1
         self.reset_arms()
-        return mitten_collision
+        self._avatar.status = TaskStatus.idle
+        if mitten_collision:
+            return TaskStatus.success
+        else:
+            return TaskStatus.failed_to_tap
 
     def end(self) -> None:
         """
@@ -1097,3 +1181,14 @@ class StickyMittenAvatarController(Controller):
         """
 
         self._create_avatar(avatar_id="a")
+
+    def _get_avatar_status(self) -> TaskStatus:
+        """
+        Get the avatar's status and set the status to `idle`.
+
+        :return: The avatar's status.
+        """
+
+        status = self._avatar.status
+        self._avatar.status = TaskStatus.idle
+        return status

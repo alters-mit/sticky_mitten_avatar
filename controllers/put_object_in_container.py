@@ -53,7 +53,7 @@ class PutObjectInContainer(StickyMittenAvatarController):
         commands = super()._get_scene_init_commands_early()
         # Add a jug.
         commands.extend(self._add_object("jug05",
-                                         position={"x": -0.2, "y": 0, "z": 0.385},
+                                         position={"x": -0.2, "y": 0, "z": 0.285},
                                          object_id=self.o_id,
                                          scale={"x": 0.8, "y": 0.8, "z": 0.8}))
         # Add a container.
@@ -79,9 +79,10 @@ class PutObjectInContainer(StickyMittenAvatarController):
         # Pick up the object.
         self.pick_up(object_id=self.o_id)
         # Lift the object up a bit.
-        self.reach_for_target(target={"x": -0.3, "y": 0.3, "z": 0.22}, arm=Arm.left)
+        self.reach_for_target(target={"x": -0.1, "y": 0.6, "z": 0.32}, arm=Arm.left)
         # Go to the bowl.
-        self.go_to(target=self.bowl_id, move_stopping_threshold=0.2)
+        self.go_to(target=self.bowl_id, move_stopping_threshold=0.3)
+        self.turn_to(target=self.bowl_id)
         # Lift the object up a bit.
         self.reach_for_target(target={"x": -0.1, "y": 0.6, "z": 0.5}, arm=Arm.left)
         # Drop the object in the container.

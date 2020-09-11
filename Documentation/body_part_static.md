@@ -15,7 +15,7 @@ Fields:
 
 ***
 
-#### __init__
+#### \_\_init\_\_
 
 **`def __init__(self, object_id: int, color: Tuple[float, float, float], name: str, mass: float)`**
 

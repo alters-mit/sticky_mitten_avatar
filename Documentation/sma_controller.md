@@ -25,9 +25,31 @@ c.bend_arm(target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
 segmentation_colors = c.frame.segmentation_image
 ```
 
+All parameters of type `Dict[str, float]` are Vector3 dictionaries formatted like this:
+
+```json
+{"x": -0.2, "y": 0.21, "z": 0.385}
+```
+
+`y` is the up direction.
+
+To convert from or to a numpy array:
+
+```python
+from tdw.tdw_utils import TDWUtils
+
+target = {"x": 1, "y": 0, "z": 0}
+target = TDWUtils.vector3_to_array(target)
+print(target) # [1 0 0]
+target = TDWUtils.array_to_vector3(target)
+print(target) # {'x': 1.0, 'y': 0.0, 'z': 0.0}
+```
+
+A parameter of type `Union[Dict[str, float], int]]` can be either a Vector3 or an integer (an object ID).
+
 ***
 
-Fields:
+## Fields
 
 - `frame` Dynamic data for the current frame, updated per frame. [Read this](frame_data.md) for a full API.
   Note: Most of the avatar API advances the simulation multiple frames. `frame` is current to frame at the end of an action.
@@ -47,7 +69,6 @@ segmentation_color = c.static_object_info[object_id].segmentation_color
 
 - `static_avatar_data` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API.
 
-
 ```python
 for body_part_id in c.static_avatar_data.avatar:
     body_part = c.static_avatar_data.avatars[body_part_id]
@@ -56,9 +77,11 @@ for body_part_id in c.static_avatar_data.avatar:
     print(body_part.name) # The name of the body part.
 ```
 
+## Functions
+
 ***
 
-#### __init__
+#### \_\_init\_\_
 
 **`def __init__(self, port: int = 1071, launch_build: bool = True, audio_playback_mode: str = None)`**
 
@@ -100,11 +123,15 @@ _Returns:_  The response from the build.
 
 #### reach_for_target
 
-**`def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, check_if_possible: bool = True) -> bool`**
+**`def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, check_if_possible: bool = True) -> TaskStatus`**
 
-Bend an arm of an avatar until the mitten is at the target position.
-If the position is sufficiently out of reach, the arm won't bend.
-Otherwise, the motion continues until the mitten is either at the target position or the arm stops moving.
+Bend an arm joints of an avatar to reach for a target position.
+Possible [return values](task_status.md):
+- `success` (The avatar's arm's mitten reached the target position.)
+- `too_close_to_reach`
+- `too_far_to_reach`
+- `behind_avatar`
+- `no_longer_bending`
 
 | Parameter | Description |
 | --- | --- |
@@ -113,24 +140,30 @@ Otherwise, the motion continues until the mitten is either at the target positio
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
 | check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
 
-_Returns:_  True if the mitten is near the target position.
+_Returns:_  A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
 
 ***
 
 #### pick_up
 
-**`def pick_up(self, object_id: int, do_motion: bool = True) -> (bool, Arm)`**
+**`def pick_up(self, object_id: int, do_motion: bool = True, check_if_possible: bool = True) -> Tuple[TaskStatus, Arm]`**
 
 Bend the arm of an avatar towards an object. Per frame, try to pick up the object.
-If the position is sufficiently out of reach, the arm won't bend.
-The motion continues until either the object is picked up or the arm stops moving.
+Possible [return values](task_status.md):
+- `success` (The avatar picked up the object.)
+- `too_close_to_reach`
+- `too_far_to_reach`
+- `behind_avatar`
+- `no_longer_bending`
+- `failed_to_pick_up`
 
 | Parameter | Description |
 | --- | --- |
 | object_id | The ID of the target object. |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
+| check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
 
-_Returns:_  Tuple: True if the avatar picked up the object, and the arm that is picking up the object.
+_Returns:_  Tuple: A `TaskStatus` indicating whether the avatar picked up the object and if not, why; and the arm that picked up the object (if any).
 
 ***
 
@@ -138,8 +171,7 @@ _Returns:_  Tuple: True if the avatar picked up the object, and the arm that is 
 
 **`def put_down(self, reset_arms: bool = True, do_motion: bool = True) -> None`**
 
-Begin to put down all objects.
-The motion continues until the arms have reset to their neutral positions.
+Drop any held objects and reset the arms to their neutral positions.
 
 | Parameter | Description |
 | --- | --- |
@@ -152,8 +184,7 @@ The motion continues until the arms have reset to their neutral positions.
 
 **`def reset_arms(self, do_motion: bool = True) -> None`**
 
-Reset the avatar's arm joint positions.
-The motion continues until the arms have reset to their neutral positions.
+Reset the avatar's arms to their neutral positions.
 
 | Parameter | Description |
 | --- | --- |
@@ -163,27 +194,33 @@ The motion continues until the arms have reset to their neutral positions.
 
 #### turn_to
 
-**`def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15) -> bool`**
+**`def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15) -> TaskStatus`**
 
-Turn the avatar to face a target.
-The motion continues until the avatar is either facing the target, overshoots it, or rotates a full 360 degrees.
+Turn the avatar to face a target position or object.
+Possible [return values](task_status.md):
+- `success` (The avatar turned to face the target.)
+- `turned_360`
+- `too_long`
 
 | Parameter | Description |
 | --- | --- |
-| target | The target position or object ID. |
+| target | Either the target position or the ID of the target object. |
 | force | The force at which the avatar will turn. More force = faster, but might overshoot the target. |
 | stopping_threshold | Stop when the avatar is within this many degrees of the target. |
 
-_Returns:_  True if the avatar succeeded in turning to face the target.
+_Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
 
 ***
 
 #### turn_by
 
-**`def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15) -> bool`**
+**`def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15) -> TaskStatus`**
 
 Turn the avatar by an angle.
-The motion continues until the avatar is either facing the target, overshoots it, or rotates a full 360 degrees.
+Possible [return values](task_status.md):
+- `success` (The avatar turned by the angle.)
+- `turned_360`
+- `too_long`
 
 | Parameter | Description |
 | --- | --- |
@@ -191,42 +228,47 @@ The motion continues until the avatar is either facing the target, overshoots it
 | force | The force at which the avatar will turn. More force = faster, but might overshoot the target. |
 | stopping_threshold | Stop when the avatar is within this many degrees of the target. |
 
-_Returns:_  True if the avatar succeeded in turning to face the target.
+_Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
 
 ***
 
 #### go_to
 
-**`def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80, turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35) -> bool`**
+**`def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80, turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35) -> TaskStatus`**
 
 Move the avatar to a target position or object.
-If the avatar isn't facing the target, it will turn to face it (see `turn_to()`).
-The motion continues until the avatar reaches the destination, or if:
-- The avatar overshot the target.
-- The avatar's body collided with a heavy object (mass >= 90)
-- The avatar collided with part of the environment (such as a wall).
+Possible [return values](task_status.md):
+- `success` (The avatar arrived at the target.)
+- `turned_360`
+- `too_long`
+- `overshot`
+- `collided_with_something_heavy`
+- `collided_with_environment`
 
 | Parameter | Description |
 | --- | --- |
-| target | The target position or object ID. |
+| target | Either the target position or the ID of the target object. |
 | turn_force | The force at which the avatar will turn. More force = faster, but might overshoot the target. |
 | turn_stopping_threshold | Stop when the avatar is within this many degrees of the target. |
 | move_force | The force at which the avatar will move. More force = faster, but might overshoot the target. |
 | move_stopping_threshold | Stop within this distance of the target. |
 
-_Returns:_  True if the avatar arrived at the destination.
+_Returns:_   A `TaskStatus` indicating whether the avatar arrived at the target and if not, why.
 
 ***
 
 #### move_forward_by
 
-**`def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool`**
+**`def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35) -> TaskStatus`**
 
 Move the avatar forward by a distance along the avatar's current forward directional vector.
-The motion continues until the avatar reaches the destination, or if:
-- The avatar overshot the target.
-- The avatar's body collided with a heavy object (mass >= 90)
-- The avatar collided with part of the environment (such as a wall).
+Possible [return values](task_status.md):
+- `success` (The avatar moved forward by the distance.)
+- `turned_360`
+- `too_long`
+- `overshot`
+- `collided_with_something_heavy`
+- `collided_with_environment`
 
 | Parameter | Description |
 | --- | --- |
@@ -234,7 +276,7 @@ The motion continues until the avatar reaches the destination, or if:
 | move_force | The force at which the avatar will move. More force = faster, but might overshoot the target. |
 | move_stopping_threshold | Stop within this distance of the target. |
 
-_Returns:_  True if the avatar arrived at the destination.
+_Returns:_  A `TaskStatus` indicating whether the avatar moved forward by the distance and if not, why.
 
 ***
 
@@ -301,19 +343,24 @@ Add an overhead third-person camera to the scene.
 
 #### tap
 
-**`def tap(self, object_id: int, arm: Arm) -> bool`**
+**`def tap(self, object_id: int, arm: Arm) -> TaskStatus`**
 
 Try to tap an object.
-- If there is no line of sight between the mitten and the object, the task fails (avatar doesn't bend the arm).
-- If the object is out of reach, the task fails (avatar doesn't bend the arm).
-- If the avatar fails to tap the object, the task fails (avatar does bend the arm).
+Possible [return values](task_status.md):
+- `success` (The avatar tapped the object.)
+- `too_close_to_reach`
+- `too_far_to_reach`
+- `behind_avatar`
+- `no_longer_bending`
+- `bad_raycast`
+- `failed_to_tap`
 
 | Parameter | Description |
 | --- | --- |
 | object_id | The ID of the object. |
 | arm | The arm. |
 
-_Returns:_  True if the task succeeded.
+_Returns:_  A `TaskStatus` indicating whether the avatar tapped the object and if not, why.
 
 ***
 

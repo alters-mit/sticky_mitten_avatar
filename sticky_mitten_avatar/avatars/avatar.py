@@ -1,5 +1,5 @@
 import matplotlib.pyplot
-from typing import Dict, Union, List, Optional
+from typing import Dict, Union, List, Optional, Tuple
 import numpy as np
 from abc import ABC, abstractmethod
 from ikpy.chain import Chain
@@ -10,7 +10,7 @@ from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, Av
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.util import get_angle_between, rotate_point_around, FORWARD
 from sticky_mitten_avatar.body_part_static import BodyPartStatic
-from sticky_mitten_avatar import TaskResult
+from sticky_mitten_avatar.task_status import TaskStatus
 
 
 class Arm(Enum):
@@ -70,6 +70,7 @@ class Avatar(ABC):
     - `id` The ID of the avatar.
     - `body_parts_static` Static body parts data. Key = the name of the part. See `BodyPartsStatic`
     - `frame` Dynamic info for the avatar on this frame, such as its position. See `tdw.output_data.AvatarStickyMitten`
+    - `status` The current `TaskStatus` of the avatar.
     """
 
     JOINTS: List[Joint] = [Joint(arm="left", axis="pitch", part="shoulder"),
@@ -139,7 +140,9 @@ class Avatar(ABC):
         self.collisions: Dict[int, List[int]] = dict()
         self.env_collisions: List[int] = list()
 
-    def can_reach_target(self, target: np.array, arm: Arm) -> TaskResult:
+        self.status = TaskStatus.idle
+
+    def can_reach_target(self, target: np.array, arm: Arm) -> TaskStatus:
         """
         :param target: The target position.
         :param arm: The arm that is bending to the target.
@@ -152,11 +155,11 @@ class Avatar(ABC):
         if d < 0.25:
             if self._debug:
                 print(f"Target {target} is too close to the avatar: {np.linalg.norm(d)}")
-            return TaskResult.too_close_to_reach
+            return TaskStatus.too_close_to_reach
         if target[2] < 0:
             if self._debug:
                 print(f"Target {target} z < 0")
-            return TaskResult.behind_avatar
+            return TaskStatus.behind_avatar
 
         # Check if the IK solution reaches the target.
         chain = self._arms[arm]
@@ -172,8 +175,8 @@ class Avatar(ABC):
         if d > 0.125:
             if self._debug:
                 print(f"Target {target} is too far away from the {arm} shoulder: {d}")
-            return TaskResult.too_far_to_reach
-        return TaskResult.ok
+            return TaskStatus.too_far_to_reach
+        return TaskStatus.success
 
     def reach_for_target(self, arm: Arm, target: np.array, target_orientation: np.array = None) -> List[dict]:
         """
@@ -227,7 +230,7 @@ class Avatar(ABC):
                               "avatar_id": self.id}])
         return commands
 
-    def pick_up(self, object_id: int, bounds: Bounds) -> (List[dict], Arm):
+    def pick_up(self, object_id: int, bounds: Bounds) -> Tuple[List[dict], Arm, np.array]:
         """
         Begin to try to pick up an object,
         Get an IK solution to a target position.
@@ -235,7 +238,7 @@ class Avatar(ABC):
         :param object_id: The ID of the target object.
         :param bounds: Bounds output data.
 
-        :return: A list of commands to begin bending the arm and the arm doing the pick-up action.
+        :return: Tuple: A list of commands; the arm and the arm doing the pick-up action; and the target position.
         """
 
         center: Optional[np.array] = None
@@ -266,12 +269,13 @@ class Avatar(ABC):
 
         commands = self.reach_for_target(arm=arm, target=target, target_orientation=target_orientation)
         self._ik_goals[arm].pick_up_id = object_id
-        return commands, arm
+        return commands, arm, target
 
     def on_frame(self, resp: List[bytes]) -> List[dict]:
         """
         Update the avatar based on its current arm-bending goals and its state.
         If the avatar has achieved a goal (for example, picking up an object), it will stop moving that arm.
+        Update the avatar's state as needed.
 
         :param resp: The response from the build.
 
@@ -329,6 +333,7 @@ class Avatar(ABC):
                         print(f"{arm.name} mitten is at target position {self._ik_goals[arm].target}. Stopping.")
                     commands.extend(self._stop_arms(arm=arm))
                     temp_goals[arm] = None
+                    self.status = TaskStatus.success
                 else:
                     # Are we trying to pick up an object?
                     if self._ik_goals[arm].pick_up_id is not None:
@@ -339,6 +344,7 @@ class Avatar(ABC):
                                 print(f"{arm.name} mitten picked up {self._ik_goals[arm].pick_up_id}. Stopping.")
                             commands.extend(self._stop_arms(arm=arm))
                             temp_goals[arm] = None
+                            self.status = TaskStatus.success
                         # Keep bending the arm and trying to pick up the object.
                         else:
                             commands.extend([{"$type": "pick_up_proximity",
@@ -386,6 +392,7 @@ class Avatar(ABC):
                 else:
                     if self._debug:
                         print(f"{arm.name} is no longer bending. Cancelling.")
+                    self.status = TaskStatus.no_longer_bending
                     temp_goals[arm] = None
         self._ik_goals = temp_goals
         self.frame = frame

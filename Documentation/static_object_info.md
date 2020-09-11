@@ -18,7 +18,7 @@ Fields:
 
 ***
 
-#### __init__
+#### \_\_init\_\_
 
 **`def __init__(self, index: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors, bounds: Bounds, volumes: Volumes, audio: ObjectInfo)`**
 

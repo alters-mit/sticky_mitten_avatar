@@ -6,10 +6,10 @@
 
 The side that an arm is on.
 
-Enum values:
-
-- `left`
-- `right`
+| Value | Description |
+| --- | --- |
+| `left` |  |
+| `right` |  |
 
 ***
 
@@ -21,7 +21,7 @@ A joint, a side, and an axis.
 
 ***
 
-#### __init__
+#### \_\_init\_\_
 
 **`def __init__(self, part: str, arm: str, axis: str)`**
 
@@ -34,7 +34,7 @@ A joint, a side, and an axis.
 
 ***
 
-#### __init__
+#### \_\_init\_\_
 
 **`def __init__(self, target: Union[np.array, list, None], pick_up_id: int = None)`**
 
@@ -58,10 +58,11 @@ Fields:
 - `id` The ID of the avatar.
 - `body_parts_static` Static body parts data. Key = the name of the part. See `BodyPartsStatic`
 - `frame` Dynamic info for the avatar on this frame, such as its position. See `tdw.output_data.AvatarStickyMitten`
+- `status` The current `TaskStatus` of the avatar.
 
 ***
 
-#### __init__
+#### \_\_init\_\_
 
 **`def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False)`**
 
@@ -76,7 +77,7 @@ Fields:
 
 #### can_reach_target
 
-**`def can_reach_target(self, target: np.array, arm: Arm) -> bool`**
+**`def can_reach_target(self, target: np.array, arm: Arm) -> TaskStatus`**
 
 
 | Parameter | Description |
@@ -84,7 +85,7 @@ Fields:
 | target | The target position. |
 | arm | The arm that is bending to the target. |
 
-_Returns:_  True if the avatar can bend the arm to the target (assuming no obstructions or other factors).
+_Returns:_  A `TaskResult` value describing whether the avatar can reach the target and, if not, why.
 
 ***
 
@@ -106,7 +107,7 @@ _Returns:_  A list of commands to begin bending the arm.
 
 #### pick_up
 
-**`def pick_up(self, object_id: int, bounds: Bounds) -> (List[dict], Arm)`**
+**`def pick_up(self, object_id: int, bounds: Bounds) -> Tuple[List[dict], Arm, np.array]`**
 
 Begin to try to pick up an object,
 Get an IK solution to a target position.
@@ -116,7 +117,7 @@ Get an IK solution to a target position.
 | object_id | The ID of the target object. |
 | bounds | Bounds output data. |
 
-_Returns:_  A list of commands to begin bending the arm and the arm doing the pick-up action.
+_Returns:_  Tuple: A list of commands; the arm and the arm doing the pick-up action; and the target position.
 
 ***
 
@@ -126,6 +127,7 @@ _Returns:_  A list of commands to begin bending the arm and the arm doing the pi
 
 Update the avatar based on its current arm-bending goals and its state.
 If the avatar has achieved a goal (for example, picking up an object), it will stop moving that arm.
+Update the avatar's state as needed.
 
 | Parameter | Description |
 | --- | --- |
