@@ -1,4 +1,4 @@
-# `sticky_mitten_avatar/avatars/baby.py`
+# `baby.py`
 
 ## `Baby(Avatar)`
 

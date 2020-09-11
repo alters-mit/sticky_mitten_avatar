@@ -1,4 +1,4 @@
-# `sticky_mitten_avatar/avatars/avatar.py`
+# `avatar.py`
 
 ## `Arm(Enum)`
 
@@ -21,7 +21,9 @@ A joint, a side, and an axis.
 
 ***
 
-#### `__init__(self, part: str, arm: str, axis: str)`
+#### __init__
+
+**`def __init__(self, part: str, arm: str, axis: str)`**
 
 
 | Parameter | Description |
@@ -32,7 +34,9 @@ A joint, a side, and an axis.
 
 ***
 
-#### `__init__(self, target: Union[np.array, list, None], pick_up_id: int = None)`
+#### __init__
+
+**`def __init__(self, target: Union[np.array, list, None], pick_up_id: int = None)`**
 
 
 | Parameter | Description |
@@ -57,7 +61,9 @@ Fields:
 
 ***
 
-#### `__init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False)`
+#### __init__
+
+**`def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False)`**
 
 
 | Parameter | Description |
@@ -68,7 +74,9 @@ Fields:
 
 ***
 
-#### `can_reach_target(self, target: np.array, arm: Arm) -> bool`
+#### can_reach_target
+
+**`def can_reach_target(self, target: np.array, arm: Arm) -> bool`**
 
 
 | Parameter | Description |
@@ -80,7 +88,9 @@ _Returns:_  True if the avatar can bend the arm to the target (assuming no obstr
 
 ***
 
-#### `reach_for_target(self, arm: Arm, target: np.array, target_orientation: np.array = None) -> List[dict]`
+#### reach_for_target
+
+**`def reach_for_target(self, arm: Arm, target: np.array, target_orientation: np.array = None) -> List[dict]`**
 
 Get an IK solution to move a mitten to a target position.
 
@@ -94,7 +104,9 @@ _Returns:_  A list of commands to begin bending the arm.
 
 ***
 
-#### `pick_up(self, object_id: int, bounds: Bounds) -> (List[dict], Arm)`
+#### pick_up
+
+**`def pick_up(self, object_id: int, bounds: Bounds) -> (List[dict], Arm)`**
 
 Begin to try to pick up an object,
 Get an IK solution to a target position.
@@ -108,7 +120,9 @@ _Returns:_  A list of commands to begin bending the arm and the arm doing the pi
 
 ***
 
-#### `on_frame(self, resp: List[bytes]) -> List[dict]`
+#### on_frame
+
+**`def on_frame(self, resp: List[bytes]) -> List[dict]`**
 
 Update the avatar based on its current arm-bending goals and its state.
 If the avatar has achieved a goal (for example, picking up an object), it will stop moving that arm.
@@ -121,13 +135,17 @@ _Returns:_  A list of commands to pick up, stop moving, etc.
 
 ***
 
-#### `is_ik_done(self) -> bool`
+#### is_ik_done
+
+**`def is_ik_done(self) -> bool`**
 
 _Returns:_  True if the IK goals are complete, False if the arms are still moving/trying to pick up/etc.
 
 ***
 
-#### `put_down(self, reset_arms: bool = True) -> List[dict]`
+#### put_down
+
+**`def put_down(self, reset_arms: bool = True) -> List[dict]`**
 
 Put down the object.
 
@@ -139,20 +157,26 @@ _Returns:_  A list of commands to put down the object.
 
 ***
 
-#### `reset_arms(self) -> List[dict]`
+#### reset_arms
+
+**`def reset_arms(self) -> List[dict]`**
 
 _Returns:_  A list of commands to drop arms to their starting positions.
 
 ***
 
-#### `set_dummy_ik_goals(self) -> None`
+#### set_dummy_ik_goals
+
+**`def set_dummy_ik_goals(self) -> None`**
 
 Set "dummy" IK goals.
 There's no target, so the avatar will just bend the arms until they stop moving.
 
 ***
 
-#### `is_holding(self, object_id: int) -> (bool, Arm)`
+#### is_holding
+
+**`def is_holding(self, object_id: int) -> (bool, Arm)`**
 
 
 | Parameter | Description |

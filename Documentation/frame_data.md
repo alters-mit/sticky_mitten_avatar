@@ -1,4 +1,4 @@
-# `sticky_mitten_avatar/frame_data.py`
+# `frame_data.py`
 
 ## `AvatarCollisions`
 
@@ -15,18 +15,17 @@ c.init_scene()
 
 # Your code here.
 
-for avatar_id in c.frame.avatar_collisions:
-    # Get each body part that collided with an object.
-    for body_part_id in c.frame.avatar_collisions[avatar_id].objects:
-        body_part = c.static_avatar_info[avatar_id][body_part_id]
-        print(body_part.color)
-        print(body_part.name)
-        for object_id in c.frame.avatar_collisions[avatar_id].objects[body_part_id]:
-            print(object_id)
-    # Get each body part that collided with the environment.
-    for body_part_id in c.frame.avatar_collisions[avatar_id].env:
-        body_part = c.static_avatar_info[avatar_id][body_part_id]
-        print(body_part.name + " collided with the environment.")
+# Get each body part that collided with an object.
+for body_part_id in c.frame.avatar_collisions.objects:
+    body_part = c.static_avatar_info[body_part_id]
+    print(body_part.color)
+    print(body_part.name)
+    for object_id in c.frame.avatar_collisions.objects[body_part_id]:
+        print(object_id)
+# Get each body part that collided with the environment.
+for body_part_id in c.frame.avatar_collisions.env:
+    body_part = c.static_avatar_info[body_part_id]
+    print(body_part.name + " collided with the environment.")
 ```
 
 Fields:
@@ -36,7 +35,9 @@ Fields:
 
 ***
 
-#### `__init__(self, avatar: Avatar)`
+#### __init__
+
+**`def __init__(self, avatar: Avatar)`**
 
 
 | Parameter | Description |
@@ -69,12 +70,14 @@ Fields:
           The second element is the ID of the "target" (smaller) object.
 - `id_pass` Image pass of object color segmentation as a numpy array.
 - `depth_pass` Image pass of depth values per pixel as a numpy array. Can be None.
-- `avatar_collisions` Collisions per avatar between any of its body parts and another object or the environment.
-                      See `AvatarCollisions` for more information.
+- `avatar_collisions` Collisions between the avatar's body parts and other objects or the environment.
+                      See `AvatarCollisions` in this document for more information.
 
 ***
 
-#### `__init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], surface_material: AudioMaterial, avatars: Dict[str, Avatar])`
+#### __init__
+
+**`def __init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], surface_material: AudioMaterial, avatar: Avatar)`**
 
 
 | Parameter | Description |
@@ -82,11 +85,13 @@ Fields:
 | resp | The response from the build. |
 | objects | Static object info per object. Key = the ID of the object in the scene. |
 | surface_material | The floor's [audio material](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#audiomaterialenum). |
-| avatars | Each avatar in the scene. |
+| avatar | The avatar in the scene. |
 
 ***
 
-#### `save_images(self, output_directory: Union[str, Path]) -> None`
+#### save_images
+
+**`def save_images(self, output_directory: Union[str, Path]) -> None`**
 
 Save the ID pass (segmentation colors) and the depth pass to disk.
 Images will be named: `[frame_number]_[pass_name].png`
@@ -98,7 +103,9 @@ For example, the depth pass on the first frame will be named: `00000000_depth.pn
 
 ***
 
-#### `get_pil_images(self) -> Tuple[Image, Image]`
+#### get_pil_images
+
+**`def get_pil_images(self) -> tuple`**
 
 Convert the ID pass (segmentation colors) and the depth pass to PIL images.
 

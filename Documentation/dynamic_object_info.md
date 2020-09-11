@@ -1,4 +1,4 @@
-# `sticky_mitten_avatar/dynamic_object_info.py`
+# `dynamic_object_info.py`
 
 ## `DynamicObjectInfo`
 
@@ -18,7 +18,9 @@ This class is used in the StickyMittenAvatarController.
 
 ***
 
-#### `__init__(self, o_id: int, tran: Transforms, rigi: Rigidbodies, tr_index: int)`
+#### __init__
+
+**`def __init__(self, o_id: int, tran: Transforms, rigi: Rigidbodies, tr_index: int)`**
 
 
 | Parameter | Description |

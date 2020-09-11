@@ -1,6 +1,6 @@
 # Sticky Mitten Avatar API
 
-A high-level API for TDW's [Sticky Mitten Avatar](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/sticky_mitten_avatar.md). 
+A high-level API for [TDW's](https://github.com/threedworld-mit/tdw/) [Sticky Mitten Avatar](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/sticky_mitten_avatar.md). 
 
 ## Installation
 
@@ -15,56 +15,17 @@ A high-level API for TDW's [Sticky Mitten Avatar](https://github.com/threedworld
 
 ## Usage
 
-Use the [StickyMittenAvatarController](Documentation/sma_controller.md) to create avatars and move them around the scene with a high-level API. **For a detailed API, [read this](Documentation/sma_controller.md).**
+### API
 
-- For the API for output data (data received from the build), see **Fields (Output Data)** below.
-- For how and why API calls might fail, [read this](Documentation/fail_state.md).
+**For a detailed API, [read this](Documentation/sma_controller.md).** Use the StickyMittenAvatarController to move an avatar in a scene with a high-level API. 
+
+At the start of the simulation, the controller caches [static object info](Documentation/static_object_info.md) per object in the scene and [static avatar info](Documentation/body_part_static.md). At the end of every action, the controller receives [frame data](Documentation/frame_data.md).
+
+### API (low-level)
 
 - For further lower-level documentation, [read these documents](https://github.com/alters-mit/sticky_mitten_avatar/tree/master/Documentation).
-
 - For more information regarding TDW, see the [TDW repo](https://github.com/threedworld-mit/tdw/).
-
-#### General
-
-Each of these functions advance the simulation 1 frame.
-
-| Function                | Description                                                  |
-| ----------------------- | ------------------------------------------------------------ |
-| `init_scene()`          | Initialize the scene.                                        |
-| `add_overhead_camera()` | Add a third-person camera to the scene.                      |
-| `end()`                 | Stop the controller and kill the simulation process.         |
-| `communicate()`         | Low-level. Send [commands](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/command_api.md) to the build and receive a response. |
-
-#### Avatar
-
-By default, all of these functions will advance the simulation _n_ frames. Each of them has a success state as well as a [**fail state**](Documentation/fail_state.md).
-
-| Function                  | Description                                     |
-| ------------------------- | ----------------------------------------------- |
-| `bend_arm()`              | Bend the arm of an avatar to a target position. |
-| `pick_up()`               | Try to pick up an object.                       |
-| `put_down()`              | Put down all held objects.                      |
-| `turn_to()`               | Face a target position or object.               |
-| `turn_by()`               | Turn by an angle.                               |
-| `go_to()`                 | Go to a target position or object.              |
-| `move_forward_by()`       | Move forward by a given distance.               |
-| `shake()`                 | Shake a joint back and forth.                   |
-| `reset_arms()`            | Return the arms to their "neutral" positions.   |
-| `stop_avatar()`           | Stop the avatar's movement and rotation.        |
-| `rotate_camera_by()`      | Rotate the avatar's camera.                     |
-| `reset_camera_rotation()` | Reset the rotation of the avatar's camera.      |
-
-#### Fields (Output Data)
-
-| Field | Description |
-| ----- | ----------- |
-| `static_object_info`    | [Static object info](Documentation/static_object_info.md) per object in the scene. |
-| `static_avatar_info` | [Static avatar info](Documentation/body_part_static.md) per avatar in the scene as a dictionary. Key = the ID of the body part. |
-| `frame`                 | [Frame data](Documentation/frame_data.md) for the most recent frame. |
-
-#### Commands
-
-You can, if you wish, use [TDW's low-level Command API](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/command_api.md). For more information regarding TDW's low-level Sticky Mitten Avatar API, [read this](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/sticky_mitten_avatar.md).
+- For more information regarding TDW's low-level Sticky Mitten Avatar API, [read this](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/sticky_mitten_avatar.md).
 
 ## Controllers
 
@@ -130,11 +91,50 @@ All example controllers can be found in: `controllers/`
 
 ## Changelog
 
+### 0.3.0
+
+#### High-Level
+
+- There is always exactly 1 avatar per scene.
+  - Removed `avatar_id` parameter from all API and output data. 
+  - `FrameData.avatar_collision` is an `AvatarCollisions` object (was a dictionary mapped to avatar IDs)
+  - `StickyMittenAvatarController.static_avatar_data` is a dictionary of `BodyPartStatic` (was a dictionary of dictionaries, mapped to avatar IDs)
+- Better formatting for API document headers.
+- Cleaned up API section of README document.
+
+***
+
+### 0.2.3
+
+#### High-Level
+
+- Added: `StickyMittenAvatarController.tap()`
+- `avatar_id` parameter of all API functions in `StickyMittenAvatarController` has a default value of `"a"`
+- Renamed: `StickyMittenAvatarController.bend_arm()` to `StickyMittenAvatarController.reach_for_target()`
+- Added optional parameter `check_if_possible` to `StickyMittenAvatarController.reach_for_target()`
+- `StickyMittenAvatarController` gathers `_id` and `_depth_simple` image passes instead of `_img` and `_id`.
+- Fixed: `put_object_in_container.py` doesn't work.
+- `FrameData` records audio due to collisions with avatar body parts.
+- Renamed: `FrameData.segmentation_image` to `FrameData.id_pass`
+- Renamed: `FrameData.depth_map` to `FrameData.depth_pass`
+  - `FrameData.depth_pass` can be converted to a grayscale image instead of being a numpy array of floats
+- Added: `FrameData.save_images()`
+- Added: `FrameData.get_pil_images()`
+- Added test controller: `tap.py`
+- Added video: `put_object_in_container.mp4`
+
+#### Low-Level
+
+- Renamed: `Avatar.can_bend_to()` to `Avatar.can_reach_target()`
+- Fixed: `Avatar.can_bend_to()` is inaccurate.
+
+***
+
 ### 0.2.2
 
 #### High-Level
 
-- Made the following functions in `StickyMittenController` private (added a `_` prefix), thereby hiding them from the API:
+- Made the following functions in `StickyMittenAvatarController` private (added a `_` prefix), thereby hiding them from the API:
   - `_create_avatar()`
   - `get_add_object()` (renamed to `_add_object()`)
   - `get_add_container()` (renamed to `_add_container()`)
@@ -164,6 +164,8 @@ All example controllers can be found in: `controllers/`
 #### Low-Level
 
 - Added: `Avatar.can_bend_to()` True if the avatar can bend the arm to the target (assuming no obstructions or other factors).
+
+***
 
 ### 0.2.1
 

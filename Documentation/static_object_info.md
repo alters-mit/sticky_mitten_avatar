@@ -1,4 +1,4 @@
-# `sticky_mitten_avatar/static_object_info.py`
+# `static_object_info.py`
 
 ## `StaticObjectInfo`
 
@@ -18,7 +18,9 @@ Fields:
 
 ***
 
-#### `__init__(self, index: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors, bounds: Bounds, volumes: Volumes, audio: ObjectInfo)`
+#### __init__
+
+**`def __init__(self, index: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors, bounds: Bounds, volumes: Volumes, audio: ObjectInfo)`**
 
 
 | Parameter | Description |

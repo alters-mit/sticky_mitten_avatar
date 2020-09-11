@@ -14,7 +14,6 @@ from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, 
 from sticky_mitten_avatar.dynamic_object_info import DynamicObjectInfo
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
-from sticky_mitten_avatar import TaskResult
 
 
 class _TaskState(Enum):
@@ -30,7 +29,7 @@ class _TaskState(Enum):
 class StickyMittenAvatarController(Controller):
     """
     High-level API controller for sticky mitten avatars. Use this with the `Baby` and `Adult` avatar classes.
-    This controller will cache static data for the avatars (such as segmentation colors) and automatically update
+    This controller will cache static data for the avatar (such as segmentation colors) and automatically update
     dynamic data (such as position). The controller also has useful wrapper functions to handle the avatar API.
 
     ```python
@@ -46,7 +45,7 @@ class StickyMittenAvatarController(Controller):
     # Bend an arm.
     c.bend_arm(target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
 
-    # Get the segementation color pass for the avatar after bending the arm.
+    # Get the segmentation color pass for the avatar after bending the arm.
     segmentation_colors = c.frame.segmentation_image
     ```
 
@@ -70,16 +69,15 @@ class StickyMittenAvatarController(Controller):
     segmentation_color = c.static_object_info[object_id].segmentation_color
     ```
 
-    - `static_avatar_data` Static info for the body parts of each avatar in the scene. [Read this](body_part_static.md) for a full API.
+    - `static_avatar_data` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API.
 
 
     ```python
-    for avatar_id in c.static_avatar_data.avatars:
-        for body_part_id in c.static_avatar_data.avatars[avatar_id]:
-            body_part = c.static_avatar_data.avatars[avatar_id][body_part_id]
-            print(body_part.object_id) # The object ID of the body part (matches body_part_id).
-            print(body_part.color) # The segmentation color.
-            print(body_part.name) # The name of the body part.
+    for body_part_id in c.static_avatar_data.avatar:
+        body_part = c.static_avatar_data.avatars[body_part_id]
+        print(body_part.object_id) # The object ID of the body part (matches body_part_id).
+        print(body_part.color) # The segmentation color.
+        print(body_part.name) # The name of the body part.
     ```
     """
 
@@ -112,14 +110,14 @@ class StickyMittenAvatarController(Controller):
         self._lib_core = ModelLibrarian()
 
         # Cache the entities.
-        self._avatars: Dict[str, Avatar] = dict()
+        self._avatar: Optional[Avatar] = None
         # Commands sent by avatars.
         self._avatar_commands: List[dict] = []
         # Per-frame object physics info.
         self._dynamic_object_info: Dict[int, DynamicObjectInfo] = dict()
         # Cache static data.
         self.static_object_info: Dict[int, StaticObjectInfo] = dict()
-        self.static_avatar_info: Dict[str, Dict[int, BodyPartStatic]] = dict()
+        self.static_avatar_info: Dict[int, BodyPartStatic] = dict()
         self._surface_material = AudioMaterial.hardwood
         self._audio_playback_mode = audio_playback_mode
         # Load default audio values for objects.
@@ -301,8 +299,8 @@ class StickyMittenAvatarController(Controller):
         else:
             raise Exception(f"Avatar not defined: {avatar_type}")
         # Cache the avatar.
-        self._avatars[avatar_id] = avatar
-        self.static_avatar_info[avatar_id] = self._avatars[avatar_id].body_parts_static
+        self._avatar = avatar
+        self.static_avatar_info = self._avatar.body_parts_static
 
     def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
         """
@@ -347,15 +345,14 @@ class StickyMittenAvatarController(Controller):
 
         # Update the frame data.
         self.frame = FrameData(resp=resp, objects=self.static_object_info, surface_material=self._surface_material,
-                               avatars=self._avatars)
+                               avatar=self._avatar)
 
         for i in range(tran.get_num()):
             o_id = tran.get_id(i)
             self._dynamic_object_info[o_id] = DynamicObjectInfo(o_id=o_id, rigi=rigi, tran=tran, tr_index=i)
 
-        # Update the avatars. Add new avatar commands for the next frame.
-        for a_id in self._avatars:
-            self._avatar_commands.extend(self._avatars[a_id].on_frame(resp=resp))
+        # Update the avatar. Add new avatar commands for the next frame.
+        self._avatar_commands.extend(self._avatar.on_frame(resp=resp))
 
         return resp
 
@@ -447,8 +444,8 @@ class StickyMittenAvatarController(Controller):
         self.model_librarian = self._lib_core
         return commands
 
-    def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, avatar_id: str = "a",
-                         check_if_possible: bool = True) -> TaskResult:
+    def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True,
+                         check_if_possible: bool = True) -> bool:
         """
         Bend an arm of an avatar until the mitten is at the target position.
         If the position is sufficiently out of reach, the arm won't bend.
@@ -456,35 +453,30 @@ class StickyMittenAvatarController(Controller):
 
         :param arm: The arm (left or right).
         :param target: The target position for the mitten relative to the avatar.
-        :param avatar_id: The unique ID of the avatar.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
 
-        :return: A `TaskResult` value describing whether the avatar's mitten reached the target and, if not, why.
+        :return: True if the mitten is near the target position.
         """
 
         target = TDWUtils.vector3_to_array(target)
 
-        # Check if it's possible to reach for the target. If not, don't try, and return the result value.
-        if check_if_possible:
-            result = self._avatars[avatar_id].can_reach_target(target=target, arm=arm)
-            if result != TaskResult.ok:
-                return result
+        if check_if_possible and not self._avatar.can_reach_target(target=target, arm=arm):
+            return False
 
-        self._avatar_commands.extend(self._avatars[avatar_id].reach_for_target(arm=arm, target=target))
+        self._avatar_commands.extend(self._avatar.reach_for_target(arm=arm, target=target))
 
         if do_motion:
             self._do_joint_motion()
         return True
 
-    def pick_up(self, object_id: int, do_motion: bool = True, avatar_id: str = "a") -> (bool, Arm):
+    def pick_up(self, object_id: int, do_motion: bool = True) -> (bool, Arm):
         """
         Bend the arm of an avatar towards an object. Per frame, try to pick up the object.
         If the position is sufficiently out of reach, the arm won't bend.
         The motion continues until either the object is picked up or the arm stops moving.
 
         :param object_id: The ID of the target object.
-        :param avatar_id: The unique ID of the avatar.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
 
         :return: Tuple: True if the avatar picked up the object, and the arm that is picking up the object.
@@ -495,92 +487,71 @@ class StickyMittenAvatarController(Controller):
                                  "frequency": "once",
                                  "ids": [object_id]})
         bounds = get_data(resp=resp, d_type=Bounds)
-        commands, arm = self._avatars[avatar_id].pick_up(bounds=bounds, object_id=object_id)
+        commands, arm = self._avatar.pick_up(bounds=bounds, object_id=object_id)
         self._avatar_commands.extend(commands)
 
         if do_motion:
             self._do_joint_motion()
 
-        return self._avatars[avatar_id].is_holding(object_id=object_id)
+        return self._avatar.is_holding(object_id=object_id)
 
-    def put_down(self, reset_arms: bool = True, do_motion: bool = True, avatar_id: str = "a") -> None:
+    def put_down(self, reset_arms: bool = True, do_motion: bool = True) -> None:
         """
         Begin to put down all objects.
         The motion continues until the arms have reset to their neutral positions.
 
-        :param avatar_id: The unique ID of the avatar.
         :param reset_arms: If True, reset arm positions to "neutral".
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         """
 
-        self._avatar_commands.extend(self._avatars[avatar_id].put_down(reset_arms=reset_arms))
+        self._avatar_commands.extend(self._avatar.put_down(reset_arms=reset_arms))
         if do_motion:
             self._do_joint_motion()
 
-    def reset_arms(self, do_motion: bool = True, avatar_id: str = "a") -> None:
+    def reset_arms(self, do_motion: bool = True) -> None:
         """
         Reset the avatar's arm joint positions.
         The motion continues until the arms have reset to their neutral positions.
 
-        :param avatar_id: The ID of the avatar.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         """
 
-        self._avatar_commands.extend(self._avatars[avatar_id].reset_arms())
+        self._avatar_commands.extend(self._avatar.reset_arms())
         if do_motion:
             self._do_joint_motion()
 
     def _do_joint_motion(self) -> None:
         """
         Step through the simulation until the joints of all avatars are done moving.
-        Useful when you want concurrent action (for example, multiple avatars in the same scene):
-
-        ```python
-        c = StickyMittenAvatarController()
-
-        c.create_avatar(avatar_id="a")
-        c.create_avatar(avatar_id="b")
-
-        # Tell both avatars to start bending arms to different positions.
-        # Set do_motion to False so that the avatars can act at the same time.
-        c.bend_arm(avatar_id="a", target=pos_a, arm=Arm.left, do_motion=False)
-        c.bend_arm(avatar_id="b", target=pos_b, arm=Arm.left, do_motion=False)
-
-        # Wait until both avatars are done moving.
-        self.do_joint_motion()
-        ```
+        Useful when you want concurrent action.
         """
 
         done = False
         while not done:
             done = True
             # The loop is done if the IK goals are done.
-            for avatar in self._avatars.values():
-                if not avatar.is_ik_done():
-                    done = False
+            if not self._avatar.is_ik_done():
+                done = False
             # Keep looping.
             if not done:
                 self.communicate([])
 
-    def _stop_avatar(self, avatar_id: str) -> None:
+    def _stop_avatar(self) -> None:
         """
         Advance 1 frame and stop the avatar's movement and turning.
-
-        :param avatar_id: The ID of the avatar.
         """
 
         self.communicate({"$type": "set_avatar_drag",
                           "drag": self._STOP_DRAG,
                           "angular_drag": self._STOP_DRAG,
-                          "avatar_id": avatar_id})
+                          "avatar_id": self._avatar.id})
 
     def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000,
-                stopping_threshold: float = 0.15, avatar_id: str = "a") -> bool:
+                stopping_threshold: float = 0.15) -> bool:
         """
         Turn the avatar to face a target.
         The motion continues until the avatar is either facing the target, overshoots it, or rotates a full 360 degrees.
 
-        :param avatar_id: The unique ID of the avatar.
         :param target: The target position or object ID.
         :param force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param stopping_threshold: Stop when the avatar is within this many degrees of the target.
@@ -593,8 +564,8 @@ class StickyMittenAvatarController(Controller):
             :return: Whether avatar succeed, failed, or is presently turning.
             """
 
-            angle = get_angle(origin=np.array(avatar.frame.get_position()),
-                              forward=np.array(avatar.frame.get_forward()),
+            angle = get_angle(origin=np.array(self._avatar.frame.get_position()),
+                              forward=np.array(self._avatar.frame.get_forward()),
                               position=target)
 
             # Failure because the avatar turned all the way around without aligning with the target.
@@ -613,15 +584,13 @@ class StickyMittenAvatarController(Controller):
 
             return _TaskState.ongoing
 
-        avatar = self._avatars[avatar_id]
-
         # Set the target if it wasn't already a numpy array (for example, if it's an object ID).
         target = self._get_position(target=target)
         target[1] = 0
 
         # Get the initial angle to the target.
-        initial_angle = get_angle(origin=np.array(avatar.frame.get_position()),
-                                  forward=np.array(avatar.frame.get_forward()),
+        initial_angle = get_angle(origin=np.array(self._avatar.frame.get_position()),
+                                  forward=np.array(self._avatar.frame.get_forward()),
                                   position=np.array(target))
         # Decide which direction to turn.
         if initial_angle > 180:
@@ -633,11 +602,11 @@ class StickyMittenAvatarController(Controller):
         self.communicate({"$type": "set_avatar_drag",
                           "drag": 0,
                           "angular_drag": 0.05,
-                          "avatar_id": avatar_id})
+                          "avatar_id": self._avatar.id})
 
         turn_command = {"$type": "turn_avatar_by",
                         "torque": force * direction,
-                        "avatar_id": avatar_id}
+                        "avatar_id": self._avatar.id}
 
         # Begin to turn.
         self.communicate(turn_command)
@@ -646,13 +615,13 @@ class StickyMittenAvatarController(Controller):
             # Coast to a stop.
             coasting = True
             while coasting:
-                coasting = np.linalg.norm(avatar.frame.get_angular_velocity()) > 0.3
+                coasting = np.linalg.norm(self._avatar.frame.get_angular_velocity()) > 0.3
                 state = _get_turn_state()
                 if state == _TaskState.success:
-                    self._stop_avatar(avatar_id=avatar_id)
+                    self._stop_avatar()
                     return True
                 elif state == _TaskState.failure:
-                    self._stop_avatar(avatar_id=avatar_id)
+                    self._stop_avatar()
                     return False
                 self.communicate([])
 
@@ -660,22 +629,20 @@ class StickyMittenAvatarController(Controller):
             self.communicate(turn_command)
             state = _get_turn_state()
             if state == _TaskState.success:
-                self._stop_avatar(avatar_id=avatar_id)
+                self._stop_avatar()
                 return True
             elif state == _TaskState.failure:
-                self._stop_avatar(avatar_id=avatar_id)
+                self._stop_avatar()
                 return False
             i += 1
-        self._stop_avatar(avatar_id=avatar_id)
+        self._stop_avatar()
         return False
 
-    def turn_by(self, angle: float, force: float = 1000,
-                stopping_threshold: float = 0.15, avatar_id: str = "a") -> bool:
+    def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15) -> bool:
         """
         Turn the avatar by an angle.
         The motion continues until the avatar is either facing the target, overshoots it, or rotates a full 360 degrees.
 
-        :param avatar_id: The unique ID of the avatar.
         :param angle: The angle to turn to in degrees. If > 0, turn clockwise; if < 0, turn counterclockwise.
         :param force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param stopping_threshold: Stop when the avatar is within this many degrees of the target.
@@ -684,16 +651,14 @@ class StickyMittenAvatarController(Controller):
         """
 
         # Rotate the forward directional vector.
-        p0 = self._avatars[avatar_id].frame.get_forward()
+        p0 = self._avatar.frame.get_forward()
         p1 = rotate_point_around(origin=np.array([0, 0, 0]), point=p0, angle=angle)
         # Get a point to look at.
-        p1 = np.array(self._avatars[avatar_id].frame.get_position()) + (p1 * 1000)
-        return self.turn_to(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(p1), force=force,
-                            stopping_threshold=stopping_threshold)
+        p1 = np.array(self._avatar.frame.get_position()) + (p1 * 1000)
+        return self.turn_to(target=TDWUtils.array_to_vector3(p1), force=force, stopping_threshold=stopping_threshold)
 
-    def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000,
-              turn_stopping_threshold: float = 0.15, move_force: float = 80, move_stopping_threshold: float = 0.35,
-              avatar_id: str = "a") -> bool:
+    def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80,
+              turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35) -> bool:
         """
         Move the avatar to a target position or object.
         If the avatar isn't facing the target, it will turn to face it (see `turn_to()`).
@@ -703,8 +668,6 @@ class StickyMittenAvatarController(Controller):
         - The avatar's body collided with a heavy object (mass >= 90)
         - The avatar collided with part of the environment (such as a wall).
 
-        :param avatar_id: The ID of the avatar.
-        :param avatar_id: The unique ID of the avatar.
         :param target: The target position or object ID.
         :param turn_force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param turn_stopping_threshold: Stop when the avatar is within this many degrees of the target.
@@ -720,21 +683,21 @@ class StickyMittenAvatarController(Controller):
             """
 
             # Check if the root object of the avatar collided with anything large. If so, stop movement.
-            for body_part_id in avatar.collisions:
-                name = avatar.body_parts_static[body_part_id].name
+            for body_part_id in self._avatar.collisions:
+                name = self._avatar.body_parts_static[body_part_id].name
                 if name.startswith("A_StickyMitten"):
-                    for o_id in avatar.collisions[body_part_id]:
+                    for o_id in self._avatar.collisions[body_part_id]:
                         collidee_mass = self.static_object_info[o_id].mass
                         if collidee_mass >= 90:
                             print("hit something heavy")
                             return _TaskState.failure
             # If the avatar's body collided with the environment (e.g. a wall), stop movement.
-            for body_part_id in avatar.env_collisions:
-                name = avatar.body_parts_static[body_part_id].name
+            for body_part_id in self._avatar.env_collisions:
+                name = self._avatar.body_parts_static[body_part_id].name
                 if name.startswith("A_StickyMitten"):
                     return _TaskState.failure
 
-            p = np.array(avatar.frame.get_position())
+            p = np.array(self._avatar.frame.get_position())
             d_from_initial = np.linalg.norm(initial_position - p)
             # Overshot. End.
             if d_from_initial > initial_distance:
@@ -746,51 +709,49 @@ class StickyMittenAvatarController(Controller):
             # Keep truckin' along.
             return _TaskState.ongoing
 
-        avatar = self._avatars[avatar_id]
-        initial_position = avatar.frame.get_position()
+        initial_position = self._avatar.frame.get_position()
 
         # Set the target. If it's an object, the target is the nearest point on the bounds.
-        target = self._get_position(target=target, avatar_id=avatar_id)
+        target = self._get_position(target=target)
         # Get the distance to the target.
         initial_distance = np.linalg.norm(np.array(initial_position) - target)
 
         # Turn to the target.
-        self.turn_to(avatar_id=avatar_id, target=target, force=turn_force, stopping_threshold=turn_stopping_threshold)
+        self.turn_to(target=target, force=turn_force, stopping_threshold=turn_stopping_threshold)
 
         # Go to the target.
         self.communicate({"$type": "set_avatar_drag",
                           "drag": 0.1,
                           "angular_drag": 100,
-                          "avatar_id": avatar_id})
+                          "avatar_id": self._avatar.id})
         i = 0
         while i < 200:
             # Start gliding.
             self.communicate({"$type": "move_avatar_forward_by",
                               "magnitude": move_force,
-                              "avatar_id": avatar_id})
+                              "avatar_id": self._avatar.id})
             t = _get_state()
             if t == _TaskState.success:
-                self._stop_avatar(avatar_id=avatar_id)
+                self._stop_avatar()
                 return True
             elif t == _TaskState.failure:
-                self._stop_avatar(avatar_id=avatar_id)
+                self._stop_avatar()
                 return False
             # Glide.
-            while np.linalg.norm(avatar.frame.get_velocity()) > 0.1:
+            while np.linalg.norm(self._avatar.frame.get_velocity()) > 0.1:
                 self.communicate([])
                 t = _get_state()
                 if t == _TaskState.success:
-                    self._stop_avatar(avatar_id=avatar_id)
+                    self._stop_avatar()
                     return True
                 elif t == _TaskState.failure:
-                    self._stop_avatar(avatar_id=avatar_id)
+                    self._stop_avatar()
                     return False
             i += 1
-        self._stop_avatar(avatar_id=avatar_id)
+        self._stop_avatar()
         return False
 
-    def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35,
-                        avatar_id: str = "a") -> bool:
+    def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool:
         """
         Move the avatar forward by a distance along the avatar's current forward directional vector.
         The motion continues until the avatar reaches the destination, or if:
@@ -799,7 +760,6 @@ class StickyMittenAvatarController(Controller):
         - The avatar's body collided with a heavy object (mass >= 90)
         - The avatar collided with part of the environment (such as a wall).
 
-        :param avatar_id: The ID of the avatar.
         :param distance: The distance that the avatar will travel. If < 0, the avatar will move backwards.
         :param move_force: The force at which the avatar will move. More force = faster, but might overshoot the target.
         :param move_stopping_threshold: Stop within this distance of the target.
@@ -807,20 +767,16 @@ class StickyMittenAvatarController(Controller):
         :return: True if the avatar arrived at the destination.
         """
         # The target is at `distance` away from the avatar's position along the avatar's forward directional vector.
-        target = np.array(self._avatars[avatar_id].frame.get_position()) + (np.array(self._avatars[avatar_id].
-                                                                                     frame.get_forward()) * distance)
-        return self.go_to(avatar_id=avatar_id, target=target, move_force=move_force,
-                          move_stopping_threshold=move_stopping_threshold)
+        target = np.array(self._avatar.frame.get_position()) + (np.array(self._avatar.frame.get_forward()) * distance)
+        return self.go_to(target=target, move_force=move_force, move_stopping_threshold=move_stopping_threshold)
 
     def shake(self, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30),
-              num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000), avatar_id: str = "a") -> \
-            None:
+              num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> None:
         """
         Shake an avatar's arm for multiple iterations.
         Per iteration, the joint will bend forward by an angle and then bend back by an angle.
         The motion ends when all of the avatar's joints have stopped moving.
 
-        :param avatar_id: The ID of the avatar.
         :param joint_name: The name of the joint.
         :param axis: The axis of the joint's rotation.
         :param angle: Each shake will bend the joint by a angle in degrees within this range.
@@ -844,12 +800,12 @@ class StickyMittenAvatarController(Controller):
                            "delta": force,
                            "joint": joint.joint,
                            "axis": joint.axis,
-                           "avatar_id": avatar_id},
+                           "avatar_id": self._avatar.id},
                           {"$type": "adjust_joint_damper_by",
                            "delta": -damper,
                            "joint": joint.joint,
                            "axis": joint.axis,
-                           "avatar_id": avatar_id}])
+                           "avatar_id": self._avatar.id}])
         # Do each iteration.
         for i in range(random.randint(num_shakes[0], num_shakes[1])):
             a = random.uniform(angle[0], angle[1])
@@ -858,7 +814,7 @@ class StickyMittenAvatarController(Controller):
                               "angle": a,
                               "joint": joint.joint,
                               "axis": joint.axis,
-                              "avatar_id": avatar_id})
+                              "avatar_id": self._avatar.id})
             for j in range(10):
                 self.communicate([])
             # Bend the arm back.
@@ -866,7 +822,7 @@ class StickyMittenAvatarController(Controller):
                               "angle": -(a / 2),
                               "joint": joint.joint,
                               "axis": joint.axis,
-                              "avatar_id": avatar_id})
+                              "avatar_id": self._avatar.id})
             for j in range(50):
                 self.communicate([])
             # Apply the motion.
@@ -876,20 +832,19 @@ class StickyMittenAvatarController(Controller):
                            "delta": -force,
                            "joint": joint.joint,
                            "axis": joint.axis,
-                           "avatar_id": avatar_id},
+                           "avatar_id": self._avatar.id},
                           {"$type": "adjust_joint_damper_by",
                            "delta": damper,
                            "joint": joint.joint,
                            "axis": joint.axis,
-                           "avatar_id": avatar_id}])
+                           "avatar_id": self._avatar.id}])
 
-    def rotate_camera_by(self, avatar_id: str = "a", pitch: float = 0, yaw: float = 0, roll: float = 0) -> None:
+    def rotate_camera_by(self, pitch: float = 0, yaw: float = 0, roll: float = 0) -> None:
         """
         Rotate an avatar's camera around each axis.
         The head of the avatar won't visually rotate (as this could put the avatar off-balance).
         Advances the simulation by 1 frame.
 
-        :param avatar_id: The ID of the avatar.
         :param pitch: Pitch (nod your head "yes") the camera by this angle, in degrees.
         :param yaw: Yaw (shake your head "no") the camera by this angle, in degrees.
         :param roll: Roll (put your ear to your shoulder) the camera by this angle, in degrees.
@@ -900,19 +855,17 @@ class StickyMittenAvatarController(Controller):
             commands.append({"$type": "rotate_sensor_container_by",
                              "axis": axis,
                              "angle": angle,
-                             "avatar_id": avatar_id})
+                             "avatar_id": self._avatar.id})
         self.communicate(commands)
 
-    def reset_camera_rotation(self, avatar_id: str = "a") -> None:
+    def reset_camera_rotation(self) -> None:
         """
         Reset the rotation of the avatar's camera.
         Advances the simulation by 1 frame.
-
-        :param avatar_id: The ID of the avatar.
         """
 
         self.communicate({"$type": "reset_sensor_container_rotation",
-                          "avatar_id": avatar_id})
+                          "avatar_id": self._avatar.id})
 
     def add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c",
                             images: str = "all") -> None:
@@ -953,10 +906,9 @@ class StickyMittenAvatarController(Controller):
                              "avatar_id": cam_id})
         if images == "cam":
             # Disable avatar cameras.
-            for avatar_id in self._avatars:
-                commands.append({"$type": "toggle_image_sensor",
-                                 "sensor_name": "SensorContainer",
-                                 "avatar_id": avatar_id})
+            commands.append({"$type": "toggle_image_sensor",
+                             "sensor_name": "SensorContainer"})
+
             commands.append({"$type": "send_images",
                              "ids": [cam_id],
                              "frequency": "always"})
@@ -971,15 +923,16 @@ class StickyMittenAvatarController(Controller):
 
         :param avatar_id: The ID of the avatar or camera.
         """
-        if avatar_id in self._avatars:
-            self._avatars.pop(avatar_id)
+
+        if avatar_id == self._avatar.id:
+            self._avatar = None
         # Remove commands for this avatar.
         self._avatar_commands = [cmd for cmd in self._avatar_commands if ("avatar_id" not in cmd) or
                                  (cmd["avatar_id"] != avatar_id)]
         self.communicate({"$type": "destroy_avatar",
                           "avatar_id": avatar_id})
 
-    def tap(self, object_id: int, arm: Arm, avatar_id: str = "a") -> bool:
+    def tap(self, object_id: int, arm: Arm) -> bool:
         """
         Try to tap an object.
 
@@ -989,17 +942,15 @@ class StickyMittenAvatarController(Controller):
 
         :param object_id: The ID of the object.
         :param arm: The arm.
-        :param avatar_id: The ID of the avatar.
 
         :return: True if the task succeeded.
         """
 
-        avatar = self._avatars[avatar_id]
         # Get the origin of the raycast.
         if arm == Arm.left:
-            origin = np.array(avatar.frame.get_mitten_center_left_position())
+            origin = np.array(self._avatar.frame.get_mitten_center_left_position())
         else:
-            origin = avatar.frame.get_mitten_center_right_position()
+            origin = self._avatar.frame.get_mitten_center_right_position()
 
         success, target = self._get_raycast_point(object_id=object_id, origin=np.array(origin), forward=0.01)
 
@@ -1007,21 +958,20 @@ class StickyMittenAvatarController(Controller):
         if not success:
             return False
 
-        angle = get_angle_between(v1=FORWARD, v2=avatar.frame.get_forward())
-        target = rotate_point_around(point=target - avatar.frame.get_position(), angle=-angle)
+        angle = get_angle_between(v1=FORWARD, v2=self._avatar.frame.get_forward())
+        target = rotate_point_around(point=target - self._avatar.frame.get_position(), angle=-angle)
 
         # Couldn't bend the arm to the target.
-        if not self.reach_for_target(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(target), arm=arm):
+        if not self.reach_for_target(target=TDWUtils.array_to_vector3(target), arm=arm):
             return False
 
         # Tap the object.
-        p = target + np.array(avatar.frame.get_forward()) * 1.1
-        self.reach_for_target(avatar_id=avatar_id, target=TDWUtils.array_to_vector3(p), arm=arm, check_if_possible=False,
-                              do_motion=False)
+        p = target + np.array(self._avatar.frame.get_forward()) * 1.1
+        self.reach_for_target(target=TDWUtils.array_to_vector3(p), arm=arm, check_if_possible=False, do_motion=False)
         # Get the mitten ID.
         mitten_id = 0
-        for o_id in avatar.body_parts_static:
-            if avatar.body_parts_static[o_id].name == f"mitten_{arm.name}":
+        for o_id in self._avatar.body_parts_static:
+            if self._avatar.body_parts_static[o_id].name == f"mitten_{arm.name}":
                 mitten_id = o_id
                 break
         # Let the arm bend until the mitten collides with the object.
@@ -1049,12 +999,11 @@ class StickyMittenAvatarController(Controller):
 
         self.communicate({"$type": "terminate"})
 
-    def _get_position(self, target: Union[np.array, int], avatar_id: str = "a") -> np.array:
+    def _get_position(self, target: Union[np.array, int]) -> np.array:
         """
         Convert the target to a numpy array. If the target is an object ID, get the object's position.
 
         :param target: The target position or object.
-        :param avatar_id: The ID of the avatar. Used only if `nearest_on_bounds == True` and if `target` is an int.
 
         :return: The position.
         """
@@ -1063,20 +1012,17 @@ class StickyMittenAvatarController(Controller):
         if isinstance(target, int):
             if target not in self._dynamic_object_info:
                 raise Exception(f"Object not found: {target}")
-            return self._get_raycast_point(object_id=target, avatar_id=avatar_id,
-                                           origin=np.array(self._avatars[avatar_id].frame.get_position()))[1]
+            return self._get_raycast_point(object_id=target, origin=np.array(self._avatar.frame.get_position()))[1]
         elif isinstance(target, dict):
             return TDWUtils.vector3_to_array(target)
         else:
             return target
 
-    def _get_raycast_point(self, object_id: int, origin: np.array, avatar_id: str = "a", forward: float = 0.2) -> \
-            (bool, np.array):
+    def _get_raycast_point(self, object_id: int, origin: np.array, forward: float = 0.2) -> (bool, np.array):
         """
         Raycast to a target object from the avatar.
 
         :param object_id: The object ID.
-        :param avatar_id: The avatar ID.
         :param forward: Extend the origin along the avatar's forward directional vector by this length.
 
         :return: The point of the raycast hit and whether the raycast hit the object.
@@ -1089,7 +1035,7 @@ class StickyMittenAvatarController(Controller):
         # Raycast to the center of the bounds to get the nearest point.
         destination = TDWUtils.array_to_vector3(bounds.get_center(0))
         # Add a forward directional vector.
-        origin += np.array(self._avatars[avatar_id].frame.get_forward()) * forward
+        origin += np.array(self._avatar.frame.get_forward()) * forward
         origin[1] = destination["y"]
         resp = self.communicate({"$type": "send_raycast",
                                  "origin": TDWUtils.array_to_vector3(origin),

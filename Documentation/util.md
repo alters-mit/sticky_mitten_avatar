@@ -1,6 +1,8 @@
-# `sticky_mitten_avatar/util.py`
+# `util.py`
 
-#### `get_data(resp: List[bytes], d_type: Type[T]) -> Optional[T]`
+#### get_data
+
+**`def get_data(resp: List[bytes], d_type: Type[T]) -> Optional[T]`**
 
 Parse the output data list of byte arrays to get a single type output data object.
 
@@ -13,7 +15,9 @@ _Returns:_  An object of type `d_type` from `resp`. If there is no object, retur
 
 ***
 
-#### `get_bounds_dict(bounds: Bounds, index: int) -> Dict[str, np.array]`
+#### get_bounds_dict
+
+**`def get_bounds_dict(bounds: Bounds, index: int) -> Dict[str, np.array]`**
 
 
 | Parameter | Description |
@@ -25,7 +29,9 @@ _Returns:_  A dictionary of the bounds. Key = the name of the position. Value = 
 
 ***
 
-#### `get_closest_point_in_bounds(origin: np.array, bounds: Bounds, index: int) -> np.array`
+#### get_closest_point_in_bounds
+
+**`def get_closest_point_in_bounds(origin: np.array, bounds: Bounds, index: int) -> np.array`**
 
 
 | Parameter | Description |
@@ -38,7 +44,9 @@ _Returns:_  The point on the object bounds closests to `origin`.
 
 ***
 
-#### `get_angle(forward: np.array, origin: np.array, position: np.array) -> float`
+#### get_angle
+
+**`def get_angle(forward: np.array, origin: np.array, position: np.array) -> float`**
 
 
 | Parameter | Description |
@@ -51,7 +59,9 @@ _Returns:_  The angle in degrees between `forward` and the direction vector from
 
 ***
 
-#### `get_angle_between(v1: np.array, v2: np.array) -> float`
+#### get_angle_between
+
+**`def get_angle_between(v1: np.array, v2: np.array) -> float`**
 
 
 | Parameter | Description |
@@ -63,7 +73,9 @@ _Returns:_  The angle in degrees between two directional vectors.
 
 ***
 
-#### `rotate_point_around(point: np.array, angle: float, origin: np.array = None) -> np.array`
+#### rotate_point_around
+
+**`def rotate_point_around(point: np.array, angle: float, origin: np.array = None) -> np.array`**
 
 Rotate a point counterclockwise by a given angle around a given origin.
 

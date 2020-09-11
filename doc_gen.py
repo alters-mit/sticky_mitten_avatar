@@ -13,7 +13,7 @@ class PyDocGen:
         """
 
         # Create the header.
-        doc = "# `" + filename + "`\n\n"
+        doc = "# `" + filename.split("/")[-1] + "`\n\n"
 
         lines: List[str] = Path(filename).read_text().split("\n")
 
@@ -113,11 +113,13 @@ class PyDocGen:
                 count += 1
             def_str = match.group(1) + " -> " + match.group(2)
             def_str = " ".join(def_str.split())
+        # Used the shortened def string for the header.
+        shortened_def_str = def_str.split("(")[0]
 
         # Get the name of the function.
         match = re.search("def (.*):", lines[start_index])
         assert match is not None, f"Bad def:\t{lines[start_index]}"
-        func_desc += "#### `" + def_str + "`\n\n"
+        func_desc += "#### " + shortened_def_str + f"\n\n**`def {def_str}`**\n\n"
 
         is_static = lines[start_index - 1].strip() == "@staticmethod"
         if is_static:
