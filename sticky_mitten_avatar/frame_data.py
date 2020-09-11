@@ -24,18 +24,17 @@ class AvatarCollisions:
 
     # Your code here.
 
-    for avatar_id in c.frame.avatar_collisions:
-        # Get each body part that collided with an object.
-        for body_part_id in c.frame.avatar_collisions[avatar_id].objects:
-            body_part = c.static_avatar_info[avatar_id][body_part_id]
-            print(body_part.color)
-            print(body_part.name)
-            for object_id in c.frame.avatar_collisions[avatar_id].objects[body_part_id]:
-                print(object_id)
-        # Get each body part that collided with the environment.
-        for body_part_id in c.frame.avatar_collisions[avatar_id].env:
-            body_part = c.static_avatar_info[avatar_id][body_part_id]
-            print(body_part.name + " collided with the environment.")
+    # Get each body part that collided with an object.
+    for body_part_id in c.frame.avatar_collisions.objects:
+        body_part = c.static_avatar_info[body_part_id]
+        print(body_part.color)
+        print(body_part.name)
+        for object_id in c.frame.avatar_collisions.objects[body_part_id]:
+            print(object_id)
+    # Get each body part that collided with the environment.
+    for body_part_id in c.frame.avatar_collisions.env:
+        body_part = c.static_avatar_info[body_part_id]
+        print(body_part.name + " collided with the environment.")
     ```
 
     Fields:
@@ -75,20 +74,20 @@ class FrameData:
               The second element is the ID of the "target" (smaller) object.
     - `id_pass` Image pass of object color segmentation as a numpy array.
     - `depth_pass` Image pass of depth values per pixel as a numpy array. Can be None.
-    - `avatar_collisions` Collisions per avatar between any of its body parts and another object or the environment.
-                          See `AvatarCollisions` for more information.
+    - `avatar_collisions` Collisions between the avatar's body parts and other objects or the environment.
+                          See `AvatarCollisions` in this document for more information.
     """
 
     _P = PyImpact(initial_amp=0.01)
     _FRAME_COUNT = 0
 
     def __init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], surface_material: AudioMaterial,
-                 avatars: Dict[str, Avatar]):
+                 avatar: Avatar):
         """
         :param resp: The response from the build.
         :param objects: Static object info per object. Key = the ID of the object in the scene.
         :param surface_material: The floor's [audio material](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#audiomaterialenum).
-        :param avatars: Each avatar in the scene.
+        :param avatar: The avatar in the scene.
         """
 
         FrameData._FRAME_COUNT += 1
@@ -97,9 +96,7 @@ class FrameData:
         collisions, env_collisions, rigidbodies = FrameData._P.get_collisions(resp=resp)
 
         # Record avatar collisions.
-        self.avatar_collisions: Dict[str, AvatarCollisions] = dict()
-        for avatar_id in avatars:
-            self.avatar_collisions[avatar_id] = AvatarCollisions(avatar=avatars[avatar_id])
+        self.avatar_collisions: AvatarCollisions = AvatarCollisions(avatar=avatar)
 
         self.positions: Dict[int, np.array] = dict()
         tr = get_data(resp=resp, d_type=Transforms)
@@ -122,16 +119,14 @@ class FrameData:
                 collider_info = objects[collider_id].audio
             # Check if the object is a body part.
             else:
-                for avatar_id in avatars:
-                    if collider_id in avatars[avatar_id].body_parts_static:
-                        collider_info = avatars[avatar_id].body_parts_static[collider_id].audio
+                if collider_id in avatar.body_parts_static:
+                    collider_info = avatar.body_parts_static[collider_id].audio
             if collidee_id in objects:
                 collidee_info = objects[collidee_id].audio
             # Check if the object is a body part.
             else:
-                for avatar_id in avatars:
-                    if collidee_id in avatars[avatar_id].body_parts_static:
-                        collidee_info = avatars[avatar_id].body_parts_static[collidee_id].audio
+                if collidee_id in avatar.body_parts_static:
+                    collidee_info = avatar.body_parts_static[collidee_id].audio
 
             # If either object isn't a cached object, don't try to add audio.
             if collider_info is None or collidee_info is None:

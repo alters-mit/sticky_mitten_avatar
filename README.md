@@ -130,6 +130,13 @@ All example controllers can be found in: `controllers/`
 
 ## Changelog
 
+### 0.3.0
+
+- There is always exactly 1 avatar per scene.
+  - Removed `avatar_id` parameter from all API and output data. 
+  - `FrameData.avatar_collision` is an `AvatarCollisions` object (was a dictionary mapped to avatar IDs)
+  - `StickyMittenAvatarController.static_avatar_data` is a dictionary of `BodyPartStatic` (was a dictionary of dictionaries, mapped to avatar IDs)
+
 ### 0.2.3
 
 #### High-Level
