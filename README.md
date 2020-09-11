@@ -22,6 +22,7 @@ A high-level API for [TDW's](https://github.com/threedworld-mit/tdw/) [Sticky Mi
 - At the start of the simulation, the controller caches [static object info](Documentation/static_object_info.md) per object in the scene and [static avatar info](Documentation/body_part_static.md).
 - Each API function returns a [TaskStatus](Documentation/task_status.md) indicating whether the action succeeded and if not, why.
 - After calling each function, the controller updates its [FrameData](Documentation/frame_data.md). This data can be used to decide what the avatar's next action will be (pick up an object, navigate around a room, etc.)
+- Most complex tasks, such as navigation/pathfinding are not implemented in this API because the problem is too unbounded for a simple algorithm. However, given the output data (static object info, static avatar info, and FrameData), an agent equipped with ML data can be trained to do any of these tasks successfully.
 
 ### API (low-level)
 
