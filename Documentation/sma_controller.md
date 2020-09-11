@@ -1,4 +1,4 @@
-# `sticky_mitten_avatar/sma_controller.py`
+# `sma_controller.py`
 
 ## `StickyMittenAvatarController(Controller)`
 
@@ -50,7 +50,7 @@ segmentation_color = c.static_object_info[object_id].segmentation_color
 
 ```python
 for body_part_id in c.static_avatar_data.avatar:
-    body_part = c.static_avatar_data.avatars[avatar_id][body_part_id]
+    body_part = c.static_avatar_data.avatars[body_part_id]
     print(body_part.object_id) # The object ID of the body part (matches body_part_id).
     print(body_part.color) # The segmentation color.
     print(body_part.name) # The name of the body part.
@@ -58,7 +58,9 @@ for body_part_id in c.static_avatar_data.avatar:
 
 ***
 
-#### `__init__(self, port: int = 1071, launch_build: bool = True, audio_playback_mode: str = None)`
+#### __init__
+
+**`def __init__(self, port: int = 1071, launch_build: bool = True, audio_playback_mode: str = None)`**
 
 
 | Parameter | Description |
@@ -69,7 +71,9 @@ for body_part_id in c.static_avatar_data.avatar:
 
 ***
 
-#### `init_scene(self) -> None`
+#### init_scene
+
+**`def init_scene(self) -> None`**
 
 Initialize a scene, populate it with objects, add the avatar, and set rendering options.
 Then, request data per frame (collisions, transforms, etc.), initialize image capture, and cache static data.
@@ -77,7 +81,9 @@ Each subclass of `StickyMittenAvatarController` overrides this function to have 
 
 ***
 
-#### `communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]`
+#### communicate
+
+**`def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]`**
 
 Overrides [`Controller.communicate()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md).
 Before sending commands, append any automatically-added commands (such as arm-bending or arm-stopping).
@@ -92,7 +98,9 @@ _Returns:_  The response from the build.
 
 ***
 
-#### `reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, check_if_possible: bool = True) -> bool`
+#### reach_for_target
+
+**`def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, check_if_possible: bool = True) -> bool`**
 
 Bend an arm of an avatar until the mitten is at the target position.
 If the position is sufficiently out of reach, the arm won't bend.
@@ -109,7 +117,9 @@ _Returns:_  True if the mitten is near the target position.
 
 ***
 
-#### `pick_up(self, object_id: int, do_motion: bool = True) -> (bool, Arm)`
+#### pick_up
+
+**`def pick_up(self, object_id: int, do_motion: bool = True) -> (bool, Arm)`**
 
 Bend the arm of an avatar towards an object. Per frame, try to pick up the object.
 If the position is sufficiently out of reach, the arm won't bend.
@@ -124,7 +134,9 @@ _Returns:_  Tuple: True if the avatar picked up the object, and the arm that is 
 
 ***
 
-#### `put_down(self, reset_arms: bool = True, do_motion: bool = True) -> None`
+#### put_down
+
+**`def put_down(self, reset_arms: bool = True, do_motion: bool = True) -> None`**
 
 Begin to put down all objects.
 The motion continues until the arms have reset to their neutral positions.
@@ -136,7 +148,9 @@ The motion continues until the arms have reset to their neutral positions.
 
 ***
 
-#### `reset_arms(self, do_motion: bool = True) -> None`
+#### reset_arms
+
+**`def reset_arms(self, do_motion: bool = True) -> None`**
 
 Reset the avatar's arm joint positions.
 The motion continues until the arms have reset to their neutral positions.
@@ -147,7 +161,9 @@ The motion continues until the arms have reset to their neutral positions.
 
 ***
 
-#### `turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15) -> bool`
+#### turn_to
+
+**`def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15) -> bool`**
 
 Turn the avatar to face a target.
 The motion continues until the avatar is either facing the target, overshoots it, or rotates a full 360 degrees.
@@ -162,7 +178,9 @@ _Returns:_  True if the avatar succeeded in turning to face the target.
 
 ***
 
-#### `turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15) -> bool`
+#### turn_by
+
+**`def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15) -> bool`**
 
 Turn the avatar by an angle.
 The motion continues until the avatar is either facing the target, overshoots it, or rotates a full 360 degrees.
@@ -177,7 +195,9 @@ _Returns:_  True if the avatar succeeded in turning to face the target.
 
 ***
 
-#### `go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80, turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35) -> bool`
+#### go_to
+
+**`def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80, turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35) -> bool`**
 
 Move the avatar to a target position or object.
 If the avatar isn't facing the target, it will turn to face it (see `turn_to()`).
@@ -198,7 +218,9 @@ _Returns:_  True if the avatar arrived at the destination.
 
 ***
 
-#### `move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool`
+#### move_forward_by
+
+**`def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35) -> bool`**
 
 Move the avatar forward by a distance along the avatar's current forward directional vector.
 The motion continues until the avatar reaches the destination, or if:
@@ -216,7 +238,9 @@ _Returns:_  True if the avatar arrived at the destination.
 
 ***
 
-#### `shake(self, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> None`
+#### shake
+
+**`def shake(self, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> None`**
 
 Shake an avatar's arm for multiple iterations.
 Per iteration, the joint will bend forward by an angle and then bend back by an angle.
@@ -232,7 +256,9 @@ The motion ends when all of the avatar's joints have stopped moving.
 
 ***
 
-#### `rotate_camera_by(self, pitch: float = 0, yaw: float = 0, roll: float = 0) -> None`
+#### rotate_camera_by
+
+**`def rotate_camera_by(self, pitch: float = 0, yaw: float = 0, roll: float = 0) -> None`**
 
 Rotate an avatar's camera around each axis.
 The head of the avatar won't visually rotate (as this could put the avatar off-balance).
@@ -246,14 +272,18 @@ Advances the simulation by 1 frame.
 
 ***
 
-#### `reset_camera_rotation(self) -> None`
+#### reset_camera_rotation
+
+**`def reset_camera_rotation(self) -> None`**
 
 Reset the rotation of the avatar's camera.
 Advances the simulation by 1 frame.
 
 ***
 
-#### `add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c", images: str = "all") -> None`
+#### add_overhead_camera
+
+**`def add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c", images: str = "all") -> None`**
 
 Add an overhead third-person camera to the scene.
 1. `"cam"` (only this camera captures images)
@@ -269,7 +299,9 @@ Add an overhead third-person camera to the scene.
 
 ***
 
-#### `tap(self, object_id: int, arm: Arm) -> bool`
+#### tap
+
+**`def tap(self, object_id: int, arm: Arm) -> bool`**
 
 Try to tap an object.
 - If there is no line of sight between the mitten and the object, the task fails (avatar doesn't bend the arm).
@@ -285,7 +317,9 @@ _Returns:_  True if the task succeeded.
 
 ***
 
-#### `end(self) -> None`
+#### end
+
+**`def end(self) -> None`**
 
 End the simulation. Terminate the build process.
 

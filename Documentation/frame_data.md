@@ -1,4 +1,4 @@
-# `sticky_mitten_avatar/frame_data.py`
+# `frame_data.py`
 
 ## `AvatarCollisions`
 
@@ -35,7 +35,9 @@ Fields:
 
 ***
 
-#### `__init__(self, avatar: Avatar)`
+#### __init__
+
+**`def __init__(self, avatar: Avatar)`**
 
 
 | Parameter | Description |
@@ -73,7 +75,9 @@ Fields:
 
 ***
 
-#### `__init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], surface_material: AudioMaterial, avatar: Avatar)`
+#### __init__
+
+**`def __init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], surface_material: AudioMaterial, avatar: Avatar)`**
 
 
 | Parameter | Description |
@@ -85,7 +89,9 @@ Fields:
 
 ***
 
-#### `save_images(self, output_directory: Union[str, Path]) -> None`
+#### save_images
+
+**`def save_images(self, output_directory: Union[str, Path]) -> None`**
 
 Save the ID pass (segmentation colors) and the depth pass to disk.
 Images will be named: `[frame_number]_[pass_name].png`
@@ -97,7 +103,9 @@ For example, the depth pass on the first frame will be named: `00000000_depth.pn
 
 ***
 
-#### `get_pil_images(self) -> tuple`
+#### get_pil_images
+
+**`def get_pil_images(self) -> tuple`**
 
 Convert the ID pass (segmentation colors) and the depth pass to PIL images.
 

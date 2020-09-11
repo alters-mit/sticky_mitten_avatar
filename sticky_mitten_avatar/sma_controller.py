@@ -74,7 +74,7 @@ class StickyMittenAvatarController(Controller):
 
     ```python
     for body_part_id in c.static_avatar_data.avatar:
-        body_part = c.static_avatar_data.avatars[avatar_id][body_part_id]
+        body_part = c.static_avatar_data.avatars[body_part_id]
         print(body_part.object_id) # The object ID of the body part (matches body_part_id).
         print(body_part.color) # The segmentation color.
         print(body_part.name) # The name of the body part.

@@ -1,4 +1,4 @@
-# `sticky_mitten_avatar/box_room_containers.py`
+# `box_room_containers.py`
 
 ## `BoxRoomContainers(StickyMittenAvatarController)`
 
@@ -11,7 +11,9 @@ This a subclass of the [StickyMittenAvatarController](sma_controller.md).
 
 ***
 
-#### `__init__(self, port: int = 1071, launch_build: bool = True, audio_playback_mode: str = None)`
+#### __init__
+
+**`def __init__(self, port: int = 1071, launch_build: bool = True, audio_playback_mode: str = None)`**
 
 ***
 

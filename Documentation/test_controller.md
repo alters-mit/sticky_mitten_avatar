@@ -1,4 +1,4 @@
-# `sticky_mitten_avatar/test_controller.py`
+# `test_controller.py`
 
 ## `TestController(StickyMittenAvatarController)`
 

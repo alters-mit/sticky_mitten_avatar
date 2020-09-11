@@ -1,4 +1,4 @@
-# `sticky_mitten_avatar/body_part_static.py`
+# `body_part_static.py`
 
 ## `BodyPartStatic`
 
@@ -15,7 +15,9 @@ Fields:
 
 ***
 
-#### `__init__(self, object_id: int, color: Tuple[float, float, float], name: str, mass: float)`
+#### __init__
+
+**`def __init__(self, object_id: int, color: Tuple[float, float, float], name: str, mass: float)`**
 
 
 | Parameter | Description |

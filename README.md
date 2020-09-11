@@ -132,10 +132,15 @@ All example controllers can be found in: `controllers/`
 
 ### 0.3.0
 
+#### High-Level
+
 - There is always exactly 1 avatar per scene.
   - Removed `avatar_id` parameter from all API and output data. 
   - `FrameData.avatar_collision` is an `AvatarCollisions` object (was a dictionary mapped to avatar IDs)
   - `StickyMittenAvatarController.static_avatar_data` is a dictionary of `BodyPartStatic` (was a dictionary of dictionaries, mapped to avatar IDs)
+- Better formatting for API document headers..
+
+***
 
 ### 0.2.3
 
@@ -160,6 +165,8 @@ All example controllers can be found in: `controllers/`
 
 - Renamed: `Avatar.can_bend_to()` to `Avatar.can_reach_target()`
 - Fixed: `Avatar.can_bend_to()` is inaccurate.
+
+***
 
 ### 0.2.2
 
@@ -195,6 +202,8 @@ All example controllers can be found in: `controllers/`
 #### Low-Level
 
 - Added: `Avatar.can_bend_to()` True if the avatar can bend the arm to the target (assuming no obstructions or other factors).
+
+***
 
 ### 0.2.1
 
