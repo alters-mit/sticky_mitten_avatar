@@ -205,14 +205,9 @@ class PyDocGen:
 
     @staticmethod
     def generate() -> None:
-        files = ["sticky_mitten_avatar/avatars/avatar.py",
-                 "sticky_mitten_avatar/avatars/baby.py",
-                 "sticky_mitten_avatar/static_object_info.py",
+        files = ["sticky_mitten_avatar/static_object_info.py",
                  "sticky_mitten_avatar/sma_controller.py",
-                 "sticky_mitten_avatar/box_room_containers.py",
-                 "sticky_mitten_avatar/test_controller.py",
                  "sticky_mitten_avatar/frame_data.py",
-                 "sticky_mitten_avatar/util.py",
                  "sticky_mitten_avatar/body_part_static.py",
                  "sticky_mitten_avatar/task_status.py"]
 

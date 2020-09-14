@@ -9,20 +9,22 @@ This controller will cache static data for the avatar (such as segmentation colo
 dynamic data (such as position). The controller also has useful wrapper functions to handle the avatar API.
 
 ```python
-from tdw.tdw_utils import TDWUtils
-from sticky_mitten_avatar.avatars import Arm
-from sticky_mitten_avatar import StickyMittenAvatarController
+from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 
 c = StickyMittenAvatarController()
 
 # Load a simple scene.
-avatar_id = c.init_scene()
+c.init_scene()
 
 # Bend an arm.
-c.bend_arm(target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
+task_status = c.reach_for_target(target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
+print(task_status) # TaskStatus.success
 
 # Get the segmentation color pass for the avatar after bending the arm.
-segmentation_colors = c.frame.segmentation_image
+# See FrameData.save_images and FrameData.get_pil_images
+segmentation_colors = c.frames[-1].id_pass
+
+c.end()
 ```
 
 All parameters of type `Dict[str, float]` are Vector3 dictionaries formatted like this:
@@ -51,12 +53,13 @@ A parameter of type `Union[Dict[str, float], int]]` can be either a Vector3 or a
 
 ## Fields
 
-- `frame` Dynamic data for the current frame, updated per frame. [Read this](frame_data.md) for a full API.
-  Note: Most of the avatar API advances the simulation multiple frames. `frame` is current to frame at the end of an action.
+- `frames` Dynamic data for all of the frames from the previous avatar API call (e.g. `reach_for_target()`). [Read this](frame_data.md) for a full API.
+  The next time an API call is made, this list is cleared and filled with new data.
 
 ```python
-segmentation_colors = c.frame.segmentation_image
-depth_map = c.frame.depth_map
+# Get the segmentation colors and depth map from the most recent frame.
+id_pass = c.frames[-1].id_pass
+depth_pass = c.frames[-1].depth_pass
 # etc.
 ```
 

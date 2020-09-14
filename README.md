@@ -15,6 +15,16 @@ A high-level API for [TDW's](https://github.com/threedworld-mit/tdw/) [Sticky Mi
 
 ## Usage
 
+```python
+from sticky_mitten_avatar import StickyMittenAvatarController, Arm
+
+c = StickyMittenAvatarController()
+c.init_scene()
+task_status = c.reach_for_target(arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
+print(task_status) # TaskStatus.success
+c.end()
+```
+
 ### API
 
 **For a detailed API, [read this](Documentation/sma_controller.md).** Use the StickyMittenAvatarController to move an avatar in a scene with a high-level API. 
@@ -26,7 +36,6 @@ A high-level API for [TDW's](https://github.com/threedworld-mit/tdw/) [Sticky Mi
 
 ### API (low-level)
 
-- For further lower-level documentation, [read these documents](https://github.com/alters-mit/sticky_mitten_avatar/tree/master/Documentation).
 - For more information regarding TDW, see the [TDW repo](https://github.com/threedworld-mit/tdw/).
 - For more information regarding TDW's low-level Sticky Mitten Avatar API, [read this](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/sticky_mitten_avatar.md).
 
@@ -37,32 +46,34 @@ Sub-classes of `StickyMittenAvatarController` have built-in scene setup recipes.
 | Controller                                                   | Description                                                  |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | [StickyMittenAvatarController](Documentation/sma_controller.md) | High-level API controller for sticky mitten avatars. Creates a simple scene. |
-| [BoxRoomContainers](Documentation/box_room_containers.md)    | Sub-class of StickyMittenAvatarController. When `init_scene()` is called, it will create a photorealistic room with furniture and two containers with different objects in them. |
-| [TestController](Documentation/test_controller.md)           | Output data returned from the build per frame.               |
+| BoxRoomContainers                                            | Sub-class of StickyMittenAvatarController. When `init_scene()` is called, it will create a photorealistic room with furniture and two containers with different objects in them. |
+| TestController                                               | Test controller. Shows the IK targets and generates image plots of IK solutions. |
 To use these controllers, do this:
 
 ```python
-from sticky_mitten_avatar.avatars import Arm
-from sticky_mitten_avatar.test_controller import TestController
+from sticky_mitten_avatar import TestController, Arm
 
 c = TestController()
 c.init_scene()
-c.reach_for_target(arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
+task_status = c.reach_for_target(arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
+print(task_status) # TaskStatus.success
+c.end()
 ```
 
 ...or this:
 
 ```python
-from sticky_mitten_avatar.test_controller import TestController
+from sticky_mitten_avatar import TestController, Arm
 
 class MyController(TestController):
     def my_function(self):
-        self.reach_for_target(arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
+        return self.reach_for_target(arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
 
 if __name__ == "__main__":
     c = MyController()
     c.init_scene()
-    c.my_function()
+    print(c.my_function()) # TaskStatus.success
+    c.end()
 ```
 
 To do something per-frame, regardless of whether the avatar is in the middle of an action, override the `communicate()` function. See [this controller](https://github.com/alters-mit/sticky_mitten_avatar/blob/master/controllers/put_object_in_container.py), which overrides `communicate()` in order to save an image every frame.

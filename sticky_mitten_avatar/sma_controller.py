@@ -22,20 +22,22 @@ class StickyMittenAvatarController(Controller):
     dynamic data (such as position). The controller also has useful wrapper functions to handle the avatar API.
 
     ```python
-    from tdw.tdw_utils import TDWUtils
-    from sticky_mitten_avatar.avatars import Arm
-    from sticky_mitten_avatar import StickyMittenAvatarController
+    from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 
     c = StickyMittenAvatarController()
 
     # Load a simple scene.
-    avatar_id = c.init_scene()
+    c.init_scene()
 
     # Bend an arm.
-    c.bend_arm(target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
+    task_status = c.reach_for_target(target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
+    print(task_status) # TaskStatus.success
 
     # Get the segmentation color pass for the avatar after bending the arm.
-    segmentation_colors = c.frame.segmentation_image
+    # See FrameData.save_images and FrameData.get_pil_images
+    segmentation_colors = c.frames[-1].id_pass
+
+    c.end()
     ```
 
     All parameters of type `Dict[str, float]` are Vector3 dictionaries formatted like this:

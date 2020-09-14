@@ -3,13 +3,14 @@ from PIL import Image
 from pathlib import Path
 import numpy as np
 from typing import List, Dict, Optional, Tuple, Union
+from tdw.controller import Controller
 from tdw.output_data import OutputData, Rigidbodies, Images, Transforms
 from tdw.py_impact import PyImpact, AudioMaterial, Base64Sound, ObjectInfo
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.avatars.avatar import Avatar
 from sticky_mitten_avatar.util import get_data
-from sticky_mitten_avatar import Arm
+from sticky_mitten_avatar.avatars import Arm
 
 
 class AvatarCollisions:
@@ -60,15 +61,20 @@ class FrameData:
     Access this data from the StickyMittenAvatarController:
 
     ```python
-    from sticky_mitten_avatar import StickyMittenAvatarController
+    from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 
     c = StickyMittenAvatarController()
     c.init_scene()
 
-    # Prints the positions of each object at the start of the most recent action.
-    print(c.frames[0].positions)
-    # Prints the positions of each object from the most recent frame.
-    print(c.frames[-1].positions)
+    # Look towards the left arm.
+    c.rotate_camera_by(pitch=70, yaw=-45)
+
+    c.reach_for_target(target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=Arm.left)
+
+    # Save each image from the start of the most recent API action to the end.
+    for frame in c.frames:
+        frame.save_images(output_directory="dist")
+    c.end()
     ```
 
     Fields:
@@ -96,7 +102,6 @@ class FrameData:
     """
 
     _P = PyImpact(initial_amp=0.01)
-    _FRAME_COUNT = 0
     _SURFACE_MATERIAL: AudioMaterial = AudioMaterial.hardwood
 
     def __init__(self, resp: List[bytes], objects: Dict[int, StaticObjectInfo], avatar: Avatar):
@@ -106,7 +111,7 @@ class FrameData:
         :param avatar: The avatar in the scene.
         """
 
-        FrameData._FRAME_COUNT += 1
+        self._frame_count = Controller.get_frame(resp[-1])
 
         self.audio: List[Tuple[Base64Sound, int]] = list()
         collisions, env_collisions, rigidbodies = FrameData._P.get_collisions(resp=resp)
@@ -216,19 +221,22 @@ class FrameData:
             output_directory = Path(output_directory)
         if not output_directory.exists():
             output_directory.mkdir(parents=True)
-        prefix = TDWUtils.zero_padding(FrameData._FRAME_COUNT, 8)
+        prefix = TDWUtils.zero_padding(self._frame_count, 8)
         # Save each image.
-        for img, pass_name, ext in zip([self.id_pass, self.depth_pass], ["img", "id", "depth"], ["jpg", "png", "png"]):
+        for image, pass_name, ext in zip([self.image_pass, self.id_pass, self.depth_pass], ["img", "id", "depth"],
+                                       ["jpg", "png", "png"]):
             p = output_directory.joinpath(f"{prefix}_{pass_name}.{ext}")
             with p.open("wb") as f:
-                f.write(img)
+                f.write(image)
 
-    def get_pil_images(self) -> Dict[str, Image]:
+    def get_pil_images(self) -> dict:
         """
         Convert each image pass to PIL images.
 
         :return: A dictionary of PIL images. Key = the name of the pass (img, id, depth)
         """
+
+        print(type(Image.open(BytesIO(self.image_pass))))
 
         return {"img": Image.open(BytesIO(self.image_pass)),
                 "id": Image.open(BytesIO(self.id_pass)),
