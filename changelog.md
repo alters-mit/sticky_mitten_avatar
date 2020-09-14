@@ -6,8 +6,24 @@
 
 - Moved changelog to this document.
 - Allow simpler import statements: `from sticky_mitten_avatar import Arm, TestController`
+- `StickyMittenAvatarController`:
+  - Replaced `frame` (a single `FrameData` object) with `frames` (all `FrameData` since the start of the previous action).
+  - **All API calls that returned a `bool` now return a `TaskStatus` instead.**
+  - Updated all example code for the API document.
+  - Documentation lists all possible `TaskStatus` values per function.
+  - Renamed: `tap()` to `_tap()` (hides it from the API, for now).
 - `FrameData`:
   - Added: `held_objects` A dictionary of IDs of objects held in each mitten.
+  - Added: `image_pass` The `_img` pass.
+  - Added: `set_surface_material()` Set the surface (floor) material.
+  - `get_pil_images()` returns a dictionary instead of a tuple where key = the name of the image pass.
+  - Removed: `AvatarCollisions` type and `FrameData.avatar_collisions`. The same data is now split between `FrameData.avatar_object_collisions` and `FrameData.avatar_env_collisions`.
+  - Updated all example code for the API document.
+- Added: `TaskStatus`. The current status of the avatar.
+- Fixed: `collision_test.py` and `ik_unit_tests.py` won't run.
+- Fixed: API document doesn't display `__init__` functions correctly.
+- Added: clearer example code to the README.
+- Removed: `fail_state.md` (redundant)
 
 
 ### Backend
