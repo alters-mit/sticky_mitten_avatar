@@ -8,6 +8,8 @@
 - Allow simpler import statements: `from sticky_mitten_avatar import Arm, TestController`
 - `StickyMittenAvatarController`:
   - Replaced `frame` (a single `FrameData` object) with `frames` (all `FrameData` since the start of the previous action).
+  - Renamed: `pick_up()` to `grasp_object()`
+  - Renamed: `put_down()` to `drop()`
   - **All API calls that returned a `bool` now return a `TaskStatus` instead.**
   - Updated all example code for the API document.
   - Documentation lists all possible `TaskStatus` values per function.
