@@ -16,7 +16,6 @@ class PyDocGen:
         doc = "# `" + filename.split("/")[-1] + "`\n\n"
 
         lines: List[str] = Path(filename).read_text().split("\n")
-        lines: List[str] = Path(filename).read_text().split("\n")
 
         for i in range(len(lines)):
             # Create a class description.

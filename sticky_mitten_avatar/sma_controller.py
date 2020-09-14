@@ -1076,7 +1076,7 @@ class StickyMittenAvatarController(Controller):
         count = 0
         while not mitten_collision and count < 200:
             self.communicate([])
-            if object_id in self.frames[-1].avatar_collisions.objects[mitten_id]:
+            if object_id in self.frames[-1].avatar_object_collisions[mitten_id]:
                 mitten_collision = True
                 break
             count += 1

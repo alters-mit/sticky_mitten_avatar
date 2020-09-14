@@ -1,8 +1,27 @@
 # Changelog
 
-### 0.3.0
+## 0.3.1
 
-#### High-Level
+### Frontend
+
+- Moved changelog to this document.
+- Allow simpler import statements: `from sticky_mitten_avatar import Arm, TestController`
+- `FrameData`:
+  - Added: `held_objects` A dictionary of IDs of objects held in each mitten.
+
+
+### Backend
+
+- Changed maximum shoulder roll angle to 45 (was 90).
+- Removed `surface_material` parameter from the `FrameData` constructor.
+- Removed: `dynamic_object_info.py`
+- Removed backend API documents.
+
+***
+
+## 0.3.0
+
+### High-Level
 
 - Each API call returns a `TaskStatus` instead of a `bool`. The `TaskStatus` indicates whether the task was a success and if not, why.
 - There is always exactly 1 avatar per scene.
@@ -16,9 +35,9 @@
 
 ***
 
-### 0.2.3
+## 0.2.3
 
-#### High-Level
+### High-Level
 
 - Added: `StickyMittenAvatarController.tap()`
 - `avatar_id` parameter of all API functions in `StickyMittenAvatarController` has a default value of `"a"`
@@ -35,16 +54,16 @@
 - Added test controller: `tap.py`
 - Added video: `put_object_in_container.mp4`
 
-#### Low-Level
+### Low-Level
 
 - Renamed: `Avatar.can_bend_to()` to `Avatar.can_reach_target()`
 - Fixed: `Avatar.can_bend_to()` is inaccurate.
 
 ***
 
-### 0.2.2
+## 0.2.2
 
-#### High-Level
+### High-Level
 
 - Made the following functions in `StickyMittenAvatarController` private (added a `_` prefix), thereby hiding them from the API:
   - `_create_avatar()`
@@ -79,9 +98,9 @@
 
 ***
 
-### 0.2.1
+## 0.2.1
 
-#### High-Level
+### High-Level
 
 - Improved the overall stability of `shake_demo.py`
 - Improved the positional accuracy of arm-bending API calls  by matching the IK parameters more closely to the avatar prefab parameters.
@@ -89,14 +108,14 @@
 - `StickyMittenAvatarController.bend_arm()` will increase the force and decrease the damper of all joints that are bending. When they are done bending, they will revert to the original values.
 - Added: `videos/shake_demo.mp4`
 
-#### Low-Level
+### Low-Level
 
 - Avatar IK arm chains now include `mitten`, the centerpoint of the mitten.
 - `Avatar.is_holding()` return a boolean and the arm holding the item (instead of just a boolean).
 
 ***
 
-### 0.2.0
+## 0.2.0
 
 - Parameter `target` in `Avatar.bend_arm` must be a numpy array (previously, could be a numpy array or a list).
 - Added: `Avatar.reset_arms()` Set the arms to a "neutral" position.
