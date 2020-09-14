@@ -98,17 +98,21 @@ class FrameData:
         collisions, env_collisions, rigidbodies = FrameData._P.get_collisions(resp=resp)
 
         # Record avatar collisions.
-        self.avatar_object_collisions = avatar.collisions
-        self.avatar_env_collisions = avatar.env_collisions
+        if avatar is not None:
+            self.avatar_object_collisions = avatar.collisions
+            self.avatar_env_collisions = avatar.env_collisions
+            self.held_objects = {Arm.left: avatar.frame.get_held_left(),
+                                 Arm.right: avatar.frame.get_held_right()}
+        else:
+            self.avatar_object_collisions = None
+            self.avatar_env_collisions = None
+            self.held_objects = None
 
         self.positions: Dict[int, np.array] = dict()
         tr = get_data(resp=resp, d_type=Transforms)
         for i in range(tr.get_num()):
             o_id = tr.get_id(i)
             self.positions[o_id] = np.array(tr.get_position(i))
-
-        self.held_objects = {Arm.left: avatar.frame.get_held_left(),
-                             Arm.right: avatar.frame.get_held_right()}
 
         # Get the audio of each collision.
         for coll in collisions:

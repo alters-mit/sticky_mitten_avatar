@@ -77,7 +77,7 @@ class PutObjectInContainer(StickyMittenAvatarController):
         self.init_scene()
 
         # Pick up the object.
-        self.grasp_object(object_id=self.o_id)
+        self.grasp_object(object_id=self.o_id, arm=Arm.left)
         # Lift the object up a bit.
         self.reach_for_target(target={"x": -0.1, "y": 0.6, "z": 0.32}, arm=Arm.left)
         # Go to the bowl.

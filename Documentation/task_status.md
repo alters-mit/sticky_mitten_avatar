@@ -36,7 +36,7 @@ Otherwise, the avatar may have tried moving, turning, bending an arm, etc. befor
 | `overshot` | The avatar stopped moving because it overshot the target. |
 | `collided_with_something_heavy` | The avatar stopped moving because collided with something heavy (mass > 90). |
 | `collided_with_environment` | The avatar stopped moving because it collided with the environment, e.g. a wall. |
-| `bad_raycast` | The avatar didn't try to tap the object because the ray it cast to the object was obstructed. |
+| `bad_raycast` | The avatar tried to cast array to the object but the ray was obstructed. |
 | `failed_to_tap` | The avatar tried to tap the object but the mitten never collided with it. |
 
 ***

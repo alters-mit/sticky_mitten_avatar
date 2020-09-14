@@ -147,9 +147,9 @@ _Returns:_  A `TaskStatus` indicating whether the avatar can reach the target an
 
 #### grasp_object
 
-**`def grasp_object(self, object_id: int, do_motion: bool = True, check_if_possible: bool = True) -> Tuple[TaskStatus, Arm]`**
+**`def grasp_object(self, object_id: int, arm: Arm, do_motion: bool = True, check_if_possible: bool = True) -> TaskStatus`**
 
-The arm nearest to the target object will reach for the object. Per frame, it will try to "grasp" the object.
+The avatar's arm will reach for the object. Per frame, the arm's mitten will try to "grasp" the object.
 A grasped object is attached to the avatar's mitten and its ID will be in [`FrameData.held_objects`](frame_data.md). There may be some empty space between a mitten and a grasped object.
 This task ends when the avatar grasps the object (at which point it will stop bending its arm), or if it fails to grasp the object (see below).
 Possible [return values](task_status.md):
@@ -159,14 +159,16 @@ Possible [return values](task_status.md):
 - `behind_avatar`
 - `no_longer_bending`
 - `failed_to_pick_up`
+- `bad_raycast`
 
 | Parameter | Description |
 | --- | --- |
 | object_id | The ID of the target object. |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
+| arm | The arm of the mitten that will try to grasp the object. |
 | check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
 
-_Returns:_  Tuple: A `TaskStatus` indicating whether the avatar picked up the object and if not, why; and the arm that picked up the object (if any).
+_Returns:_  A `TaskStatus` indicating whether the avatar picked up the object and if not, why.
 
 ***
 

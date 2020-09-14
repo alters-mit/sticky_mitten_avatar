@@ -1,5 +1,6 @@
 from sticky_mitten_avatar.avatars import Arm
 from sticky_mitten_avatar import StickyMittenAvatarController
+from sticky_mitten_avatar.task_status import TaskStatus
 
 
 class IKUnitTests(StickyMittenAvatarController):
@@ -77,18 +78,20 @@ class IKUnitTests(StickyMittenAvatarController):
                            "is_world": True,
                            "avatar_id": self.id}])
         self.communicate(self._add_object("jug05",
-                                          position={"x": 0.9, "y": 0, "z": 1.385},
+                                          position={"x": 1.05, "y": 0, "z": 1.245},
                                           object_id=o_id,
                                           scale={"x": 0.8, "y": 0.8, "z": 0.8}))
-        self.grasp_object(object_id=o_id)
-        assert o_id in self.frames[-1].held_objects[Arm.right]
+        result = self.grasp_object(object_id=o_id, arm=Arm.right)
+        assert result == TaskStatus.success, result
 
 
 if __name__ == "__main__":
     c = IKUnitTests()
     c.init_scene()
+
     c.do_test(c.symmetry)
     c.do_test(c.rotation)
     c.do_test(c.position)
+    c.do_test(c.pick_up_test)
     c.do_test(c.pick_up_test)
     c.end()

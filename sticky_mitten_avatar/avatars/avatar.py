@@ -1,11 +1,11 @@
 import matplotlib.pyplot
-from typing import Dict, Union, List, Optional, Tuple
+from typing import Dict, Union, List, Optional
 import numpy as np
 from abc import ABC, abstractmethod
 from ikpy.chain import Chain
 from ikpy.utils import geometry
 from enum import Enum
-from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Bounds, Collision, \
+from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Collision, \
     EnvironmentCollision
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.util import get_angle_between, rotate_point_around, FORWARD
@@ -86,7 +86,7 @@ class Avatar(ABC):
                            Joint(arm="right", axis="roll", part="wrist"),
                            Joint(arm="right", axis="pitch", part="wrist")]
     # Additional force applied to bending joints.
-    _BEND_FORCE = 80
+    _BEND_FORCE = 120
     # Damper delta when bending joints.
     _BEND_DAMPER = -300
 
@@ -152,7 +152,7 @@ class Avatar(ABC):
 
         pos = np.array([target[0], target[2]])
         d = np.linalg.norm(pos)
-        if d < 0.25:
+        if d < 0.2:
             if self._debug:
                 print(f"Target {target} is too close to the avatar: {np.linalg.norm(d)}")
             return TaskStatus.too_close_to_reach
@@ -174,7 +174,7 @@ class Avatar(ABC):
         d = np.linalg.norm(destination - target)
         if d > 0.125:
             if self._debug:
-                print(f"Target {target} is too far away from the {arm} shoulder: {d}")
+                print(f"Target {target} is too far away from {arm}: {d}")
             return TaskStatus.too_far_to_reach
         return TaskStatus.success
 
@@ -230,46 +230,30 @@ class Avatar(ABC):
                               "avatar_id": self.id}])
         return commands
 
-    def grasp_object(self, object_id: int, bounds: Bounds) -> Tuple[List[dict], Arm, np.array]:
+    def grasp_object(self, object_id: int, target: np.array, arm: Arm) -> List[dict]:
         """
-        Begin to try to pick up an object,
-        Get an IK solution to a target position.
+        Begin to try to grasp an object with a mitten. Get an IK solution to a target position.
 
         :param object_id: The ID of the target object.
-        :param bounds: Bounds output data.
+        :param target: Target position to for the IK solution.
+        :param arm: The arm that will try to grasp the object.
 
-        :return: Tuple: A list of commands; the arm and the arm doing the pick-up action; and the target position.
+        :return: A list of commands.
         """
 
-        center: Optional[np.array] = None
-
-        # Get the nearest point on the bounds.
-        for i in range(bounds.get_num()):
-            if bounds.get_id(i) == object_id:
-                center = np.array(bounds.get_center(i))
-                break
-        assert center is not None, f"Couldn't find center of object {object_id}"
-
-        # Get the nearest mitten.
-        left_mitten_position = np.array(self.frame.get_mitten_center_left_position())
-        right_mitten_position = np.array(self.frame.get_mitten_center_right_position())
-        d_left = np.linalg.norm(left_mitten_position - center)
-        d_right = np.linalg.norm(right_mitten_position - center)
-        if d_left <= d_right:
-            arm = Arm.left
-            mitten = left_mitten_position
+        # Get the mitten's position.
+        if arm == Arm.left:
+            mitten = np.array(self.frame.get_mitten_center_left_position())
         else:
-            arm = Arm.right
-            mitten = right_mitten_position
+            mitten = np.array(self.frame.get_mitten_center_right_position())
 
-        target_orientation = (mitten - center) / np.linalg.norm(mitten - center)
-        angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
+        target_orientation = (mitten - target) / np.linalg.norm(mitten - target)
 
-        target = rotate_point_around(point=center - self.frame.get_position(), angle=-angle)
+        target = self.get_rotated_target(target=target)
 
         commands = self.reach_for_target(arm=arm, target=target, target_orientation=target_orientation)
         self._ik_goals[arm].pick_up_id = object_id
-        return commands, arm, target
+        return commands
 
     def on_frame(self, resp: List[bytes]) -> List[dict]:
         """
@@ -530,6 +514,17 @@ class Avatar(ABC):
                 if avsm.get_avatar_id() == self.id:
                     return avsm
         raise Exception(f"No avatar data found for {self.id}")
+
+    def get_rotated_target(self, target: np.array) -> np.array:
+        """
+        Rotate the target by the avatar's forward directional vector.
+
+        :param target: The target position.
+        :return: The rotated position.
+        """
+        angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
+
+        return rotate_point_around(point=target - self.frame.get_position(), angle=-angle)
 
     def _plot_ik(self, target: np.array, arm: Arm) -> None:
         """

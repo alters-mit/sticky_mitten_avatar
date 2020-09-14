@@ -70,7 +70,7 @@ class BoxRoomContainers(StickyMittenAvatarController):
         commands.extend(self._add_container(model_name="shoebox_fused",
                                             object_id=self.container_0,
                                             contents=["sphere", "sphere"],
-                                            position={"x": 0.721, "y": 0.3711542, "z": -0.3850179},
+                                            position={"x": 0.779, "y": 0.3711542, "z": -0.546},
                                             rotation={"x": 0, "y": 13, "z": 0}))
         commands.extend(self._add_container(model_name="shoebox_fused",
                                             object_id=self.container_1,
