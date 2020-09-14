@@ -80,7 +80,7 @@ class IKUnitTests(StickyMittenAvatarController):
                                           position={"x": 0.9, "y": 0, "z": 1.385},
                                           object_id=o_id,
                                           scale={"x": 0.8, "y": 0.8, "z": 0.8}))
-        self.pick_up(object_id=o_id)
+        self.grasp_object(object_id=o_id)
         assert o_id in self.frames[-1].held_objects[Arm.right]
 
 

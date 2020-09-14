@@ -17,14 +17,14 @@ if __name__ == "__main__":
     # Pick up each container, shake it, and put it down.
     for container in [c.container_0, c.container_1]:
         c.go_to(target=container, move_stopping_threshold=0.7)
-        success, arm = c.pick_up(object_id=container)
+        success, arm = c.grasp_object(object_id=container)
         c.reach_for_target(arm=arm, target={"x": 0.1 * 1 if arm == Arm.right else -1, "y": 0.4, "z": 0.485})
         c.shake(joint_name=f"elbow_{arm.name}")
-        c.put_down(do_motion=False)
+        c.drop(do_motion=False)
     # Pick up the first container again.
     c.go_to(target=c.container_0, move_stopping_threshold=0.7)
     c.turn_to(target=c.container_0)
-    success, arm = c.pick_up(object_id=c.container_0)
+    success, arm = c.grasp_object(object_id=c.container_0)
 
     # Put the container on the sofa.
     # The "target" values are hardcoded for now; in the future, there will be better avatar navigation.
@@ -33,5 +33,5 @@ if __name__ == "__main__":
     c.reach_for_target(arm=arm, target={"x": 0, "y": 0.4, "z": 1}, do_motion=False)
     for i in range(20):
         c.communicate([])
-    c.put_down()
+    c.drop()
     c.end()

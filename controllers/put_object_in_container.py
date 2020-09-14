@@ -77,7 +77,7 @@ class PutObjectInContainer(StickyMittenAvatarController):
         self.init_scene()
 
         # Pick up the object.
-        self.pick_up(object_id=self.o_id)
+        self.grasp_object(object_id=self.o_id)
         # Lift the object up a bit.
         self.reach_for_target(target={"x": -0.1, "y": 0.6, "z": 0.32}, arm=Arm.left)
         # Go to the bowl.
@@ -86,7 +86,7 @@ class PutObjectInContainer(StickyMittenAvatarController):
         # Lift the object up a bit.
         self.reach_for_target(target={"x": -0.1, "y": 0.6, "z": 0.5}, arm=Arm.left)
         # Drop the object in the container.
-        self.put_down()
+        self.drop()
         for i in range(50):
             self.communicate([])
         # Stop the build.

@@ -488,9 +488,11 @@ class StickyMittenAvatarController(Controller):
             self._do_joint_motion()
         return self._get_avatar_status()
 
-    def pick_up(self, object_id: int, do_motion: bool = True, check_if_possible: bool = True) -> Tuple[TaskStatus, Arm]:
+    def grasp_object(self, object_id: int, do_motion: bool = True, check_if_possible: bool = True) -> Tuple[TaskStatus, Arm]:
         """
-        Bend the arm of an avatar towards an object. Per frame, try to pick up the object.
+        The arm nearest to the target object will reach for the object. Per frame, it will try to "grasp" the object.
+        A grasped object is attached to the avatar's mitten and its ID will be in [`FrameData.held_objects`](frame_data.md). There may be some empty space between a mitten and a grasped object.
+        This task ends when the avatar grasps the object (at which point it will stop bending its arm), or if it fails to grasp the object (see below).
 
         Possible [return values](task_status.md):
 
@@ -516,7 +518,7 @@ class StickyMittenAvatarController(Controller):
                                  "ids": [object_id]})
         bounds = get_data(resp=resp, d_type=Bounds)
         # Get commands to pick up the target.
-        commands, arm, target = self._avatar.pick_up(bounds=bounds, object_id=object_id)
+        commands, arm, target = self._avatar.grasp_object(bounds=bounds, object_id=object_id)
         # Check if it's possible to pick up the target.
         if check_if_possible:
             status = self._avatar.can_reach_target(target=target, arm=arm)
@@ -538,7 +540,7 @@ class StickyMittenAvatarController(Controller):
         else:
             return TaskStatus.failed_to_pick_up, arm
 
-    def put_down(self, reset_arms: bool = True, do_motion: bool = True) -> None:
+    def drop(self, reset_arms: bool = True, do_motion: bool = True) -> TaskStatus:
         """
         Drop any held objects and reset the arms to their neutral positions.
 
@@ -548,11 +550,12 @@ class StickyMittenAvatarController(Controller):
 
         self._start_task()
 
-        self._avatar_commands.extend(self._avatar.put_down(reset_arms=reset_arms))
+        self._avatar_commands.extend(self._avatar.drop(reset_arms=reset_arms))
         if do_motion:
             self._do_joint_motion()
+        return TaskStatus.success
 
-    def reset_arms(self, do_motion: bool = True) -> None:
+    def reset_arms(self, do_motion: bool = True) -> TaskStatus:
         """
         Reset the avatar's arms to their neutral positions.
 
@@ -564,6 +567,7 @@ class StickyMittenAvatarController(Controller):
         self._avatar_commands.extend(self._avatar.reset_arms())
         if do_motion:
             self._do_joint_motion()
+        return TaskStatus.success
 
     def _do_joint_motion(self) -> None:
         """

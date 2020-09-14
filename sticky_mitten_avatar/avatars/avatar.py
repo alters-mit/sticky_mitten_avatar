@@ -230,7 +230,7 @@ class Avatar(ABC):
                               "avatar_id": self.id}])
         return commands
 
-    def pick_up(self, object_id: int, bounds: Bounds) -> Tuple[List[dict], Arm, np.array]:
+    def grasp_object(self, object_id: int, bounds: Bounds) -> Tuple[List[dict], Arm, np.array]:
         """
         Begin to try to pick up an object,
         Get an IK solution to a target position.
@@ -406,7 +406,7 @@ class Avatar(ABC):
 
         return self._ik_goals[Arm.left] is None and self._ik_goals[Arm.right] is None
 
-    def put_down(self, reset_arms: bool = True) -> List[dict]:
+    def drop(self, reset_arms: bool = True) -> List[dict]:
         """
         Put down the object.
 

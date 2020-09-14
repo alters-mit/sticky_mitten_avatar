@@ -145,11 +145,13 @@ _Returns:_  A `TaskStatus` indicating whether the avatar can reach the target an
 
 ***
 
-#### pick_up
+#### grasp_object
 
-**`def pick_up(self, object_id: int, do_motion: bool = True, check_if_possible: bool = True) -> Tuple[TaskStatus, Arm]`**
+**`def grasp_object(self, object_id: int, do_motion: bool = True, check_if_possible: bool = True) -> Tuple[TaskStatus, Arm]`**
 
-Bend the arm of an avatar towards an object. Per frame, try to pick up the object.
+The arm nearest to the target object will reach for the object. Per frame, it will try to "grasp" the object.
+A grasped object is attached to the avatar's mitten and its ID will be in [`FrameData.held_objects`](frame_data.md). There may be some empty space between a mitten and a grasped object.
+This task ends when the avatar grasps the object (at which point it will stop bending its arm), or if it fails to grasp the object (see below).
 Possible [return values](task_status.md):
 - `success` (The avatar picked up the object.)
 - `too_close_to_reach`
@@ -168,9 +170,9 @@ _Returns:_  Tuple: A `TaskStatus` indicating whether the avatar picked up the ob
 
 ***
 
-#### put_down
+#### drop
 
-**`def put_down(self, reset_arms: bool = True, do_motion: bool = True) -> None`**
+**`def drop(self, reset_arms: bool = True, do_motion: bool = True) -> TaskStatus`**
 
 Drop any held objects and reset the arms to their neutral positions.
 
@@ -183,7 +185,7 @@ Drop any held objects and reset the arms to their neutral positions.
 
 #### reset_arms
 
-**`def reset_arms(self, do_motion: bool = True) -> None`**
+**`def reset_arms(self, do_motion: bool = True) -> TaskStatus`**
 
 Reset the avatar's arms to their neutral positions.
 
