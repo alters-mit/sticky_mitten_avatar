@@ -10,7 +10,6 @@ from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD
-from sticky_mitten_avatar.dynamic_object_info import DynamicObjectInfo
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -128,8 +127,6 @@ class StickyMittenAvatarController(Controller):
         self._avatar: Optional[Avatar] = None
         # Commands sent by avatars.
         self._avatar_commands: List[dict] = []
-        # Per-frame object physics info.
-        self._dynamic_object_info: Dict[int, DynamicObjectInfo] = dict()
         # Cache static data.
         self.static_object_info: Dict[int, StaticObjectInfo] = dict()
         self.static_avatar_info: Dict[int, BodyPartStatic] = dict()
@@ -351,8 +348,6 @@ class StickyMittenAvatarController(Controller):
         if len(resp) == 1:
             return resp
 
-        # Clear object info.
-        self._dynamic_object_info.clear()
         # Update object info.
         tran = get_data(resp=resp, d_type=Transforms)
         rigi = get_data(resp=resp, d_type=Rigidbodies)
@@ -362,10 +357,6 @@ class StickyMittenAvatarController(Controller):
 
         # Update the frame data.
         self.frames.append(FrameData(resp=resp, objects=self.static_object_info, avatar=self._avatar))
-
-        for i in range(tran.get_num()):
-            o_id = tran.get_id(i)
-            self._dynamic_object_info[o_id] = DynamicObjectInfo(o_id=o_id, rigi=rigi, tran=tran, tr_index=i)
 
         # Update the avatar. Add new avatar commands for the next frame.
         self._avatar_commands.extend(self._avatar.on_frame(resp=resp))
@@ -1112,7 +1103,7 @@ class StickyMittenAvatarController(Controller):
 
         # This is an object ID.
         if isinstance(target, int):
-            if target not in self._dynamic_object_info:
+            if target not in self.frames[-1].positions:
                 raise Exception(f"Object not found: {target}")
             return self._get_raycast_point(object_id=target, origin=np.array(self._avatar.frame.get_position()))[1]
         elif isinstance(target, dict):
