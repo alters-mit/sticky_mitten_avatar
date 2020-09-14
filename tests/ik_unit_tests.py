@@ -30,8 +30,8 @@ class IKUnitTests(StickyMittenAvatarController):
         Test: Both arms raise symmetrically.
         """
 
-        self.reach_for_target(avatar_id=self.id, target={"x": -0.2, "y": 0.4, "z": 0.385}, arm=Arm.left)
-        self.reach_for_target(avatar_id=self.id, target={"x": 0.2, "y": 0.4, "z": 0.385}, arm=Arm.right)
+        self.reach_for_target(target={"x": -0.2, "y": 0.4, "z": 0.385}, arm=Arm.left)
+        self.reach_for_target(target={"x": 0.2, "y": 0.4, "z": 0.385}, arm=Arm.right)
 
     def rotation(self) -> None:
         """
@@ -47,9 +47,9 @@ class IKUnitTests(StickyMittenAvatarController):
                               "is_world": True,
                               "avatar_id": self.id})
 
-            self.reach_for_target(avatar_id=self.id, target={"x": -0.4, "y": 0.3, "z": 0.185}, arm=Arm.left)
-            self.reach_for_target(avatar_id=self.id, target={"x": 0.4, "y": 0.3, "z": 0.185}, arm=Arm.right)
-            self.reset_arms(avatar_id=self.id)
+            self.reach_for_target(target={"x": -0.4, "y": 0.3, "z": 0.185}, arm=Arm.left)
+            self.reach_for_target(target={"x": 0.4, "y": 0.3, "z": 0.185}, arm=Arm.right)
+            self.reset_arms()
             theta += d_theta
 
     def position(self) -> None:
@@ -60,7 +60,7 @@ class IKUnitTests(StickyMittenAvatarController):
         self.communicate({"$type": "teleport_avatar_to",
                           "position": {"x": 1.1, "y": 0.0, "z": 1},
                           "avatar_id": self.id})
-        self.reach_for_target(avatar_id=self.id, target={"x": -0.2, "y": 0.4, "z": 0.385}, arm=Arm.left)
+        self.reach_for_target(target={"x": -0.2, "y": 0.4, "z": 0.385}, arm=Arm.left)
 
     def pick_up_test(self) -> None:
         """
@@ -80,8 +80,8 @@ class IKUnitTests(StickyMittenAvatarController):
                                           position={"x": 0.9, "y": 0, "z": 1.385},
                                           object_id=o_id,
                                           scale={"x": 0.8, "y": 0.8, "z": 0.8}))
-        self.pick_up(avatar_id=self.id, object_id=o_id)
-        assert o_id in self._avatars[self.id].frame.get_held_right()
+        self.pick_up(object_id=o_id)
+        assert o_id in self.frames[-1].held_objects[Arm.right]
 
 
 if __name__ == "__main__":

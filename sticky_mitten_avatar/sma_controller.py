@@ -5,7 +5,7 @@ from typing import Dict, List, Union, Optional, Tuple
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
 from tdw.librarian import ModelLibrarian
-from tdw.output_data import OutputData, Bounds, Transforms, Rigidbodies, SegmentationColors, Volumes, Raycast, Collision
+from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Volumes, Raycast
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
@@ -65,12 +65,13 @@ class StickyMittenAvatarController(Controller):
 
     ## Fields
 
-    - `frame` Dynamic data for the current frame, updated per frame. [Read this](frame_data.md) for a full API.
-      Note: Most of the avatar API advances the simulation multiple frames. `frame` is current to frame at the end of an action.
+    - `frames` Dynamic data for all of the frames from the previous avatar API call (e.g. `reach_for_target()`). [Read this](frame_data.md) for a full API.
+      The next time an API call is made, this list is cleared and filled with new data.
 
     ```python
-    segmentation_colors = c.frame.segmentation_image
-    depth_map = c.frame.depth_map
+    # Get the segmentation colors and depth map from the most recent frame.
+    id_pass = c.frames[-1].id_pass
+    depth_pass = c.frames[-1].depth_pass
     # etc.
     ```
 
@@ -132,7 +133,6 @@ class StickyMittenAvatarController(Controller):
         # Cache static data.
         self.static_object_info: Dict[int, StaticObjectInfo] = dict()
         self.static_avatar_info: Dict[int, BodyPartStatic] = dict()
-        self._surface_material = AudioMaterial.hardwood
         self._audio_playback_mode = audio_playback_mode
         # Load default audio values for objects.
         self._default_audio_values = PyImpact.get_object_info()
@@ -147,7 +147,8 @@ class StickyMittenAvatarController(Controller):
 
         # The command for the third-person camera, if any.
         self._cam_commands: Optional[list] = None
-        self.frame: Optional[FrameData] = None
+
+        self.frames: List[FrameData] = list()
 
         super().__init__(port=port, launch_build=launch_build)
 
@@ -180,6 +181,8 @@ class StickyMittenAvatarController(Controller):
 
         Each subclass of `StickyMittenAvatarController` overrides this function to have a specialized scene setup.
         """
+
+        self._start_task()
 
         # Initialize the scene.
         self.communicate(self._get_scene_init_commands_early())
@@ -269,7 +272,7 @@ class StickyMittenAvatarController(Controller):
                           "angular_drag": self._STOP_DRAG,
                           "avatar_id": avatar_id},
                          {"$type": "set_pass_masks",
-                          "pass_masks": ["_id", "_depth_simple"],
+                          "pass_masks": ["_img", "_id", "_depth_simple"],
                           "avatar_id": avatar_id},
                          {"$type": "send_images",
                           "frequency": "always"},
@@ -358,8 +361,7 @@ class StickyMittenAvatarController(Controller):
             return resp
 
         # Update the frame data.
-        self.frame = FrameData(resp=resp, objects=self.static_object_info, surface_material=self._surface_material,
-                               avatar=self._avatar)
+        self.frames.append(FrameData(resp=resp, objects=self.static_object_info, avatar=self._avatar))
 
         for i in range(tran.get_num()):
             o_id = tran.get_id(i)
@@ -479,6 +481,8 @@ class StickyMittenAvatarController(Controller):
         :return: A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
         """
 
+        self._start_task()
+
         target = TDWUtils.vector3_to_array(target)
 
         # Check if it is possible for the avatar to reach the target.
@@ -512,6 +516,8 @@ class StickyMittenAvatarController(Controller):
 
         :return: Tuple: A `TaskStatus` indicating whether the avatar picked up the object and if not, why; and the arm that picked up the object (if any).
         """
+
+        self._start_task()
 
         # Get the bounds of the object.
         resp = self.communicate({"$type": "send_bounds",
@@ -549,6 +555,8 @@ class StickyMittenAvatarController(Controller):
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         """
 
+        self._start_task()
+
         self._avatar_commands.extend(self._avatar.put_down(reset_arms=reset_arms))
         if do_motion:
             self._do_joint_motion()
@@ -559,6 +567,8 @@ class StickyMittenAvatarController(Controller):
 
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         """
+
+        self._start_task()
 
         self._avatar_commands.extend(self._avatar.reset_arms())
         if do_motion:
@@ -633,6 +643,8 @@ class StickyMittenAvatarController(Controller):
                 return TaskStatus.success
 
             return TaskStatus.ongoing
+
+        self._start_task()
 
         # Set the target if it wasn't already a numpy array (for example, if it's an object ID).
         target = self._get_position(target=target)
@@ -772,6 +784,8 @@ class StickyMittenAvatarController(Controller):
             # Keep truckin' along.
             return TaskStatus.ongoing
 
+        self._start_task()
+
         initial_position = self._avatar.frame.get_position()
 
         # Set the target. If it's an object, the target is the nearest point on the bounds.
@@ -857,6 +871,8 @@ class StickyMittenAvatarController(Controller):
         :param force: The avatar will add strength to the joint by a value within this range.
         """
 
+        self._start_task()
+
         # Check if the joint and axis are valid.
         joint: Optional[Joint] = None
         for j in Avatar.JOINTS:
@@ -923,6 +939,8 @@ class StickyMittenAvatarController(Controller):
         :param roll: Roll (put your ear to your shoulder) the camera by this angle, in degrees.
         """
 
+        self._start_task()
+
         commands = []
         for angle, axis in zip([pitch, yaw, roll], ["pitch", "yaw", "roll"]):
             commands.append({"$type": "rotate_sensor_container_by",
@@ -936,6 +954,8 @@ class StickyMittenAvatarController(Controller):
         Reset the rotation of the avatar's camera.
         Advances the simulation by 1 frame.
         """
+
+        self._start_task()
 
         self.communicate({"$type": "reset_sensor_container_rotation",
                           "avatar_id": self._avatar.id})
@@ -953,6 +973,8 @@ class StickyMittenAvatarController(Controller):
                        2. `"all"` (avatars currently in the scene and this camera capture images)
                        3. `"avatars"` (only the avatars currently in the scene capture images)
         """
+
+        self._start_task()
 
         commands = TDWUtils.create_avatar(avatar_type="A_Img_Caps_Kinematic",
                                           avatar_id=cam_id,
@@ -1025,6 +1047,8 @@ class StickyMittenAvatarController(Controller):
         :return: A `TaskStatus` indicating whether the avatar tapped the object and if not, why.
         """
 
+        self._start_task()
+
         # Get the origin of the raycast.
         if arm == Arm.left:
             origin = np.array(self._avatar.frame.get_mitten_center_left_position())
@@ -1059,7 +1083,7 @@ class StickyMittenAvatarController(Controller):
         count = 0
         while not mitten_collision and count < 200:
             self.communicate([])
-            if object_id in self.frame.avatar_collisions.objects[mitten_id]:
+            if object_id in self.frames[-1].avatar_collisions.objects[mitten_id]:
                 mitten_collision = True
                 break
             count += 1
@@ -1136,10 +1160,10 @@ class StickyMittenAvatarController(Controller):
             cmd = "play_point_source_data"
         else:
             raise Exception(f"Bad audio playback type: {self._audio_playback_mode}")
-        if self.frame is None:
+        if len(self.frames) == 0:
             return commands
 
-        for audio, object_id in self.frame.audio:
+        for audio, object_id in self.frames[-1].audio:
             if audio is None:
                 continue
             commands.append({"$type": cmd,
@@ -1187,3 +1211,9 @@ class StickyMittenAvatarController(Controller):
         self._avatar.status = TaskStatus.idle
         return status
 
+    def _start_task(self) -> None:
+        """
+        Start a new task. Clear frame data and task status.
+        """
+
+        self.frames.clear()

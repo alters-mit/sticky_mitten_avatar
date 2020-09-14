@@ -24,8 +24,8 @@ if __name__ == "__main__":
     c = CollisionTest(launch_build=False)
     c.init_scene()
     # Crash into the object and stop.
-    success = c.go_to(avatar_id="a", target=o_id)
+    success = c.go_to(target=o_id)
     assert not success
     # Crash into a wall and stop.
-    success = c.go_to(avatar_id="a", target={"x": 1.85, "y": 0, "z": -0.36})
+    success = c.go_to(target={"x": 1.85, "y": 0, "z": -0.36})
     assert not success
