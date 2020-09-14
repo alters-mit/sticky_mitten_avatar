@@ -344,29 +344,6 @@ Add an overhead third-person camera to the scene.
 
 ***
 
-#### tap
-
-**`def tap(self, object_id: int, arm: Arm) -> TaskStatus`**
-
-Try to tap an object.
-Possible [return values](task_status.md):
-- `success` (The avatar tapped the object.)
-- `too_close_to_reach`
-- `too_far_to_reach`
-- `behind_avatar`
-- `no_longer_bending`
-- `bad_raycast`
-- `failed_to_tap`
-
-| Parameter | Description |
-| --- | --- |
-| object_id | The ID of the object. |
-| arm | The arm. |
-
-_Returns:_  A `TaskStatus` indicating whether the avatar tapped the object and if not, why.
-
-***
-
 #### end
 
 **`def end(self) -> None`**

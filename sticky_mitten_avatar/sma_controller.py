@@ -1020,7 +1020,7 @@ class StickyMittenAvatarController(Controller):
         self.communicate({"$type": "destroy_avatar",
                           "avatar_id": avatar_id})
 
-    def tap(self, object_id: int, arm: Arm) -> TaskStatus:
+    def _tap(self, object_id: int, arm: Arm) -> TaskStatus:
         """
         Try to tap an object.
 
