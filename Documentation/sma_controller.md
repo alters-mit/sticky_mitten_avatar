@@ -4,16 +4,14 @@
 
 `from tdw.sticky_mitten_avatar.sma_controller import StickyMittenAvatarController`
 
-High-level API controller for sticky mitten avatars. Use this with the `Baby` and `Adult` avatar classes.
-This controller will cache static data for the avatar (such as segmentation colors) and automatically update
-dynamic data (such as position). The controller also has useful wrapper functions to handle the avatar API.
+High-level API controller for sticky mitten avatars.
 
 ```python
 from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 
 c = StickyMittenAvatarController()
 
-# Load a simple scene.
+# Load a simple scene and create the avatar.
 c.init_scene()
 
 # Bend an arm.
