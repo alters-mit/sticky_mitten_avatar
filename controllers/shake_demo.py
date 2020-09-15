@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     # Pick up each container, shake it, and put it down.
     for container, arm in zip([c.container_0, c.container_1], [Arm.left, Arm.right]):
-        c.go_to(target=container, move_stopping_threshold=0.7)
+        c.go_to(target=container, move_stopping_threshold=0.7, turn_force=700)
         c.grasp_object(object_id=container, arm=arm)
         c.shake(joint_name=f"elbow_{arm.name}")
         c.drop(do_motion=False)
