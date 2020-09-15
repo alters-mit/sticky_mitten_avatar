@@ -87,16 +87,14 @@ def get_angle(forward: np.array, origin: np.array, position: np.array) -> float:
     # Get the normalized directional vector to the target position.
     p0 = np.array([origin[0], origin[2]])
     p1 = np.array([position[0], position[2]])
-    d = p0 - p1
+    d = p1 - p0
     d = d / np.linalg.norm(d)
-
     f = np.array([forward[0], forward[2]])
-    angle = np.arctan2(f[1], f[0]) - np.arctan2(d[1], d[0])
-    angle = np.rad2deg(angle)
-    if np.abs(angle) > 180:
-        angle = angle - 360 * np.sign(angle)
-    print(angle)
 
+    dot = f[0] * d[0] + f[1] * d[1]
+    det = f[0] * d[1] - f[1] * d[0]
+    angle = np.arctan2(det, dot)
+    angle = np.rad2deg(angle)
     return angle
 
 

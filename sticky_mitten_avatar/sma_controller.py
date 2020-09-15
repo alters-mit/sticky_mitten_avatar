@@ -633,21 +633,24 @@ class StickyMittenAvatarController(Controller):
                               position=target)
             # Arrived at the right again.
             if np.abs(angle) < stopping_threshold:
-                print("ARRIVAL")
                 return TaskStatus.success, angle
 
             return TaskStatus.ongoing, angle
-
+        # Set the target to the object's position.
+        if isinstance(target, int):
+            target = self.frames[-1].positions[target]
+        # Convert the Vector3 target to a numpy array.
+        else:
+            target = TDWUtils.vector3_to_array(target)
+        target[1] = 0
         self._start_task()
 
-        # Set the target if it wasn't already a numpy array (for example, if it's an object ID).
-        target = self._get_position(target=target)
-        target[1] = 0
         # Get the angle to the target.
         initial_angle = get_angle(origin=np.array(self._avatar.frame.get_position()),
                                   forward=np.array(self._avatar.frame.get_forward()),
                                   position=target)
-        if initial_angle < 0:
+        # Decide the shortest way to turn.
+        if initial_angle > 0:
             direction = -1
         else:
             direction = 1
