@@ -787,7 +787,8 @@ class StickyMittenAvatarController(Controller):
         initial_distance = np.linalg.norm(np.array(initial_position) - target)
 
         # Turn to the target.
-        status = self.turn_to(target=target, force=turn_force, stopping_threshold=turn_stopping_threshold)
+        status = self.turn_to(target=TDWUtils.array_to_vector3(target), force=turn_force,
+                              stopping_threshold=turn_stopping_threshold)
         if status != TaskStatus.success:
             return status
 
