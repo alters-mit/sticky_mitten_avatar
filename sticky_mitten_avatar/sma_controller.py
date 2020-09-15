@@ -631,10 +631,8 @@ class StickyMittenAvatarController(Controller):
             angle = get_angle(origin=np.array(self._avatar.frame.get_position()),
                               forward=np.array(self._avatar.frame.get_forward()),
                               position=target)
-
-            print(angle, previous_angle, direction)
             # Arrived at the right again.
-            if angle < stopping_threshold or np.abs(angle - previous_angle) > 180:
+            if np.abs(angle) < stopping_threshold:
                 print("ARRIVAL")
                 return TaskStatus.success, angle
 
@@ -645,17 +643,11 @@ class StickyMittenAvatarController(Controller):
         # Set the target if it wasn't already a numpy array (for example, if it's an object ID).
         target = self._get_position(target=target)
         target[1] = 0
-
-        # Get the avatar's current angle.
-        initial_angle = get_angle_between(v1=np.array(self._avatar.frame.get_forward()),
-                                          v2=FORWARD)
         # Get the angle to the target.
-        previous_angle = get_angle(origin=np.array(self._avatar.frame.get_position()),
-                                   forward=np.array(self._avatar.frame.get_forward()),
-                                   position=target)
-
-        print(f"initial_angle: {initial_angle}, target_angle: {previous_angle}")
-        if 360 - previous_angle < previous_angle:
+        initial_angle = get_angle(origin=np.array(self._avatar.frame.get_position()),
+                                  forward=np.array(self._avatar.frame.get_forward()),
+                                  position=target)
+        if initial_angle < 0:
             direction = -1
         else:
             direction = 1

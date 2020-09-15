@@ -1,5 +1,6 @@
+import vg
 import numpy as np
-from typing import Dict, List, TypeVar, Type, Optional
+from typing import Dict, List, TypeVar, Type, Optional, Tuple
 from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Images, SegmentationColors, Volumes, Raycast
 
 
@@ -84,13 +85,19 @@ def get_angle(forward: np.array, origin: np.array, position: np.array) -> float:
       """
 
     # Get the normalized directional vector to the target position.
-    d = position - origin
+    p0 = np.array([origin[0], origin[2]])
+    p1 = np.array([position[0], position[2]])
+    d = p0 - p1
     d = d / np.linalg.norm(d)
 
-    ang1 = np.arctan2(forward[2], forward[0])
-    ang2 = np.arctan2(d[2], d[0])
+    f = np.array([forward[0], forward[2]])
+    angle = np.arctan2(f[1], f[0]) - np.arctan2(d[1], d[0])
+    angle = np.rad2deg(angle)
+    if np.abs(angle) > 180:
+        angle = angle - 360 * np.sign(angle)
+    print(angle)
 
-    return np.rad2deg((ang1 - ang2) % (2 * np.pi))
+    return angle
 
 
 def get_angle_between(v1: np.array, v2: np.array) -> float:
