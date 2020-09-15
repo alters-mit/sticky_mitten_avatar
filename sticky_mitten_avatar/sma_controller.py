@@ -631,8 +631,8 @@ class StickyMittenAvatarController(Controller):
             angle = get_angle(origin=np.array(self._avatar.frame.get_position()),
                               forward=np.array(self._avatar.frame.get_forward()),
                               position=target)
-            # Arrived at the right again.
-            if np.abs(angle) < stopping_threshold:
+            # Arrived at the correct alignment.
+            if np.abs(angle) < stopping_threshold or np.abs(angle) > np.abs(initial_angle):
                 return TaskStatus.success, angle
 
             return TaskStatus.ongoing, angle
@@ -777,12 +777,19 @@ class StickyMittenAvatarController(Controller):
             # Keep truckin' along.
             return TaskStatus.ongoing
 
+        # Set the target. If it's an object, the target is the nearest point on the bounds.
+        if isinstance(target, int):
+            if len(self.frames) == 0:
+                self.communicate([])
+            target = self.frames[-1].positions[target]
+        # Convert the Vector3 target to a numpy array.
+        else:
+            target = TDWUtils.vector3_to_array(target)
+
         self._start_task()
 
         initial_position = self._avatar.frame.get_position()
 
-        # Set the target. If it's an object, the target is the nearest point on the bounds.
-        target = self._get_position(target=target)
         # Get the distance to the target.
         initial_distance = np.linalg.norm(np.array(initial_position) - target)
 
@@ -1094,25 +1101,6 @@ class StickyMittenAvatarController(Controller):
         """
 
         self.communicate({"$type": "terminate"})
-
-    def _get_position(self, target: Union[np.array, int]) -> np.array:
-        """
-        Convert the target to a numpy array. If the target is an object ID, get the object's position.
-
-        :param target: The target position or object.
-
-        :return: The position.
-        """
-
-        # This is an object ID.
-        if isinstance(target, int):
-            if target not in self.static_object_info:
-                raise Exception(f"Object not found: {target}")
-            return self._get_raycast_point(object_id=target, origin=np.array(self._avatar.frame.get_position()))[1]
-        elif isinstance(target, dict):
-            return TDWUtils.vector3_to_array(target)
-        else:
-            return target
 
     def _get_raycast_point(self, object_id: int, origin: np.array, forward: float = 0.2) -> (bool, np.array):
         """

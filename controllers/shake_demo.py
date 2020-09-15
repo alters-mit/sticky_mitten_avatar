@@ -10,18 +10,18 @@ on the sofa.
 
 
 if __name__ == "__main__":
-    c = BoxRoomContainers(audio_playback_mode="unity", launch_build=False)
+    c = BoxRoomContainers(audio_playback_mode="unity", launch_build=True)
     # Initialize the scene. Add the objects, avatar, set global values, etc.
     c.init_scene()
 
     # Pick up each container, shake it, and put it down.
     for container, arm in zip([c.container_0, c.container_1], [Arm.left, Arm.right]):
-        c.go_to(target=container, move_stopping_threshold=0.5)
+        c.go_to(target=container, move_stopping_threshold=0.7)
         c.grasp_object(object_id=container, arm=arm)
         c.shake(joint_name=f"elbow_{arm.name}")
         c.drop(do_motion=False)
     # Pick up the first container again.
-    c.go_to(target=c.container_0, move_stopping_threshold=0.5)
+    c.go_to(target=c.container_0, move_stopping_threshold=0.7)
     c.turn_to(target=c.container_0)
     c.grasp_object(object_id=c.container_0, arm=Arm.left)
 
