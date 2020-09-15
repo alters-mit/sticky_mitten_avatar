@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.2
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Added required parameter `arm` to `grasp_object()` (the function no longer chooses the arm closet to the target)
+  - `grasp_object()` chooses a target position with a raycast instead of just choosing the center of the object.
+  - `grasp_object()` returns no longer returns an `Arm` (just a `TaskStatus`).
+  - Fixed: Various errors when trying to collect avatar data if there is no avatar.
+  - Fixed: The angle used to calculate rotation from the avatar's forward directional vector is often incorrect.
+  - Fixed: `turn_to()` and `turn_by()` sometimes don't stop at the correct angle.
+  - Fixed: `turn_to()`, `turn_by()`, `go_to`, and `move_forward_by()` often set an incorrect target position if supplied an object ID.
+- Removed: `TaskStatus.turned_360` (not needed).
+- `shake_demo.py` works more reliably.
+
+### Backend
+
+- Added: `turn_test.py` Test avatar turning.
+
 ## 0.3.1
 
 ### Frontend

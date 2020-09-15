@@ -31,7 +31,6 @@ Otherwise, the avatar may have tried moving, turning, bending an arm, etc. befor
 | `behind_avatar` | The avatar didn't try to reach for the target because it's behind the avatar. |
 | `no_longer_bending` | The avatar tried to reach the target, but failed; the arm is no longer bending. |
 | `failed_to_pick_up` | The avatar bended its arm to reach for the object, but failed to pick it up. |
-| `turned_360` | The avatar stopped turning because it turned 360 degrees without facing the target. |
 | `too_long` | The avatar stopped turning or moving because it tried for too many (>= 200) frames. |
 | `overshot` | The avatar stopped moving because it overshot the target. |
 | `collided_with_something_heavy` | The avatar stopped moving because collided with something heavy (mass > 90). |

@@ -224,7 +224,6 @@ _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and
 Turn the avatar by an angle.
 Possible [return values](task_status.md):
 - `success` (The avatar turned by the angle.)
-- `turned_360`
 - `too_long`
 
 | Parameter | Description |
@@ -244,7 +243,6 @@ _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and
 Move the avatar to a target position or object.
 Possible [return values](task_status.md):
 - `success` (The avatar arrived at the target.)
-- `turned_360`
 - `too_long`
 - `overshot`
 - `collided_with_something_heavy`

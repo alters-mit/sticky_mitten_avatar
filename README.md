@@ -94,6 +94,7 @@ All example controllers can be found in: `controllers/`
 | ------------------- | ----------------------------------------- |
 | `ik_test.py`        | Test the IK chains of the avatar's arms.  |
 | `collision_test.py` | Test the avatar's response to collisions. |
+| `turn_test.py`      | Test avatar turning.                      |
 
 ## Utility Scripts
 

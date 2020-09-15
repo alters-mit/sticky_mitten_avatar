@@ -93,5 +93,4 @@ if __name__ == "__main__":
     c.do_test(c.rotation)
     c.do_test(c.position)
     c.do_test(c.pick_up_test)
-    c.do_test(c.pick_up_test)
     c.end()
