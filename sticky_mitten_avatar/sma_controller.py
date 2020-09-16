@@ -209,17 +209,25 @@ class StickyMittenAvatarController(Controller):
                                   "frequency": "once"}])
 
         # Parse composite object audio data.
+        segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
+        # Get the name of each object.
+        object_names: Dict[int, str] = dict()
+        for i in range(segmentation_colors.get_num()):
+            object_names[segmentation_colors.get_object_id(i)] = segmentation_colors.get_object_name(i)
+
         composite_objects = get_data(resp=resp, d_type=CompositeObjects)
         composite_object_audio: Dict[int, ObjectInfo] = dict()
         # Get the audio values per sub object.
         composite_object_json = loads(Path(resource_filename(__name__, "composite_object_audio.json")).read_text(
             encoding="utf-8"))
         for i in range(composite_objects.get_num()):
-            composite_object_data = composite_object_json[composite_objects.get_name(i)]
+            composite_object_id = composite_objects.get_object_id(i)
+            composite_object_data = composite_object_json[object_names[composite_object_id]]
             for j in range(composite_objects.get_num_sub_objects(i)):
-                sub_object_name = composite_objects.get_sub_object_name(i, j)
+                sub_object_id = composite_objects.get_sub_object_id(i, j)
+                sub_object_name = object_names[sub_object_id]
                 # Add the audio data to the dictionary.
-                composite_object_audio[composite_objects.get_sub_object_id(i, j)] = ObjectInfo(
+                composite_object_audio[sub_object_id] = ObjectInfo(
                     name=sub_object_name,
                     amp=composite_object_data[sub_object_name]["amp"],
                     mass=composite_object_data[sub_object_name]["mass"],
@@ -228,7 +236,6 @@ class StickyMittenAvatarController(Controller):
                     material=AudioMaterial[composite_object_data[sub_object_name]["material"]])
 
         # Cache the static object data.
-        segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
         rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
         for i in range(segmentation_colors.get_num()):
             object_id = segmentation_colors.get_object_id(i)
