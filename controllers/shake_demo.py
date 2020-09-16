@@ -10,7 +10,7 @@ on the sofa.
 
 
 if __name__ == "__main__":
-    c = BoxRoomContainers(audio_playback_mode="unity", launch_build=True)
+    c = BoxRoomContainers(demo=True)
     # Initialize the scene. Add the objects, avatar, set global values, etc.
     c.init_scene()
 

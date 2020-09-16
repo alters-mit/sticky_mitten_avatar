@@ -111,11 +111,11 @@ class StickyMittenAvatarController(Controller):
                          AudioMaterial.glass: 0.65,
                          AudioMaterial.metal: 0.43}
 
-    def __init__(self, port: int = 1071, launch_build: bool = True, audio_playback_mode: str = None):
+    def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
-        :param audio_playback_mode: How the build will play back audio. Options: None (no playback, but audio will be generated in `self.frame_data`), `"unity"` (use the standard Unity audio system), `"resonance_audio"` (use Resonance Audio).
+        :param demo: If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step.
         """
 
         # The containers library.
@@ -130,7 +130,7 @@ class StickyMittenAvatarController(Controller):
         # Cache static data.
         self.static_object_info: Dict[int, StaticObjectInfo] = dict()
         self.static_avatar_info: Dict[int, BodyPartStatic] = dict()
-        self._audio_playback_mode = audio_playback_mode
+        self._demo = demo
         # Load default audio values for objects.
         self._default_audio_values = PyImpact.get_object_info()
         # Load custom audio values.
@@ -165,7 +165,7 @@ class StickyMittenAvatarController(Controller):
                     {"$type": "set_sleep_threshold",
                      "sleep_threshold": 0.1}]
         # Set the frame rate and timestep for audio.
-        if self._audio_playback_mode is not None:
+        if self._demo:
             commands.extend([{"$type": "set_target_framerate",
                              "framerate": 30},
                              {"$type": "set_time_step",
@@ -298,11 +298,8 @@ class StickyMittenAvatarController(Controller):
                               "axis": joint.axis,
                               "avatar_id": avatar_id}])
 
-        if self._audio_playback_mode == "unity":
+        if self._demo == "unity":
             commands.append({"$type": "add_audio_sensor",
-                             "avatar_id": avatar_id})
-        elif self._audio_playback_mode == "resonance_audio":
-            commands.append({"$type": "add_environ_audio_sensor",
                              "avatar_id": avatar_id})
 
         # Send the commands. Get a response.
@@ -1134,21 +1131,15 @@ class StickyMittenAvatarController(Controller):
         """
 
         commands = []
-        if self._audio_playback_mode is None:
+        if not self._demo:
             return commands
-        if self._audio_playback_mode == "unity":
-            cmd = "play_audio_data"
-        elif self._audio_playback_mode == "resonance_audio":
-            cmd = "play_point_source_data"
-        else:
-            raise Exception(f"Bad audio playback type: {self._audio_playback_mode}")
-        if len(self.frames) == 0:
+        elif len(self.frames) == 0:
             return commands
-
+        # Get audio per collision.
         for audio, object_id in self.frames[-1].audio:
             if audio is None:
                 continue
-            commands.append({"$type": cmd,
+            commands.append({"$type": "play_audio_data",
                              "id": object_id,
                              "num_frames": audio.length,
                              "num_channels": 1,

@@ -10,8 +10,8 @@ class BoxRoomContainers(StickyMittenAvatarController):
     This a subclass of the [StickyMittenAvatarController](sma_controller.md).
     """
 
-    def __init__(self, port: int = 1071, launch_build: bool = True, audio_playback_mode: str = None):
-        super().__init__(port=port, launch_build=launch_build, audio_playback_mode=audio_playback_mode)
+    def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False):
+        super().__init__(port=port, launch_build=launch_build, demo=demo)
         self.avatar_id = "a"
         self.container_0 = self.get_unique_id()
         self.container_1 = self.get_unique_id()

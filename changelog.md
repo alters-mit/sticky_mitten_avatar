@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.3
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Replaced `audio_playback_mode` parameter in the constructor with `demo` (a boolean).
+
 ## 0.3.2
 
 ### Frontend

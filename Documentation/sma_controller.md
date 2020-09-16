@@ -84,14 +84,14 @@ for body_part_id in c.static_avatar_data.avatar:
 
 #### \_\_init\_\_
 
-**`def __init__(self, port: int = 1071, launch_build: bool = True, audio_playback_mode: str = None)`**
+**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False)`**
 
 
 | Parameter | Description |
 | --- | --- |
 | port | The port number. |
 | launch_build | If True, automatically launch the build. |
-| audio_playback_mode | How the build will play back audio. Options: None (no playback, but audio will be generated in `self.frame_data`), `"unity"` (use the standard Unity audio system), `"resonance_audio"` (use Resonance Audio). |
+| demo | If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step. |
 
 ***
 
