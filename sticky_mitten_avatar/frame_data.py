@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 from typing import List, Dict, Optional, Tuple, Union
 from tdw.controller import Controller
-from tdw.output_data import OutputData, Rigidbodies, Images, Transforms
+from tdw.output_data import OutputData, Rigidbodies, Images, Transforms, CameraMatrices
 from tdw.py_impact import PyImpact, AudioMaterial, Base64Sound, ObjectInfo
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
@@ -46,6 +46,8 @@ class FrameData:
     - `image_pass` Rendered image of the scene as a numpy array.
     - `id_pass` Image pass of object color segmentation as a numpy array.
     - `depth_pass` Image pass of depth values per pixel as a numpy array.
+    - `projection_matrix` The [camera projection matrix](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md#cameramatrices) as a numpy array.
+    - `camera_matrix` The [camera matrix](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md#cameramatrices) as a numpy array.
     - `avatar_object_collisions` A dictionary of objects the avatar collided with. Key = body part ID. Value = A list of object IDs.
 
     ```python
@@ -113,6 +115,11 @@ class FrameData:
         for i in range(tr.get_num()):
             o_id = tr.get_id(i)
             self.positions[o_id] = np.array(tr.get_position(i))
+
+        # Get camera matrix data.
+        matrices = get_data(resp=resp, d_type=CameraMatrices)
+        self.projection_matrix = matrices.get_projection_matrix()
+        self.camera_matrix = matrices.get_camera_matrix()
 
         # Get the audio of each collision.
         for coll in collisions:

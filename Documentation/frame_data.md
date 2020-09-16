@@ -35,6 +35,8 @@ c.end()
 - `image_pass` Rendered image of the scene as a numpy array.
 - `id_pass` Image pass of object color segmentation as a numpy array.
 - `depth_pass` Image pass of depth values per pixel as a numpy array.
+- `projection_matrix` The [camera projection matrix](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md#cameramatrices) as a numpy array.
+- `camera_matrix` The [camera matrix](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md#cameramatrices) as a numpy array.
 - `avatar_object_collisions` A dictionary of objects the avatar collided with. Key = body part ID. Value = A list of object IDs.
 
 ```python

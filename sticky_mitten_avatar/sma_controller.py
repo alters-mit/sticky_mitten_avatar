@@ -190,7 +190,7 @@ class StickyMittenAvatarController(Controller):
         # Initialize after adding avatars.
         self._do_scene_init_late()
 
-        # Request Collisions, Rigidbodies, and Transforms.
+        # Request Collisions, Rigidbodies, and Transforms and CameraMatrices per-frame.
         # Request SegmentationColors and CompositeObjects for this frame only.
         resp = self.communicate([{"$type": "send_collisions",
                                   "enter": True,
@@ -200,6 +200,8 @@ class StickyMittenAvatarController(Controller):
                                  {"$type": "send_rigidbodies",
                                   "frequency": "always"},
                                  {"$type": "send_transforms",
+                                  "frequency": "always"},
+                                 {"$type": "send_camera_matrices",
                                   "frequency": "always"},
                                  {"$type": "send_segmentation_colors",
                                   "frequency": "once"},

@@ -6,10 +6,11 @@
 
 - `StickyMittenAvatarController`:
   - Replaced `audio_playback_mode` parameter in the constructor with `demo` (a boolean).
+- `FrameData`:
+  - Added fields: `camera_projection_matrix` and `camera_matrix`
 - `StaticObjectInfo`:
-  - Removed: `volume`
-  - Removed: `hollowness`
- 
+  - Removed fields: `volume` and `hollowness`
+
 ### Backend
 
 - `StickyMittenAvatarController`:
