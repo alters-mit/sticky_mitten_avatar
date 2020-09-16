@@ -6,6 +6,9 @@
 
 - `StickyMittenAvatarController`:
   - Replaced `audio_playback_mode` parameter in the constructor with `demo` (a boolean).
+- `StaticObjectInfo`:
+  - Removed: `volume`
+  - Removed: `hollowness`
 
 ## 0.3.2
 

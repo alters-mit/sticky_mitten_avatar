@@ -10,17 +10,15 @@ Fields:
 
 - `object_id`: The unique ID of the object.
 - `mass`: The mass of the object.
-- `segmentation_color`: The RGB segmentation color.
-- `model_name`: The name of the object's [model](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/librarian/model_librarian.md)
-- `volume`: The "naive" volume: length * width * height, assuming the object was brick-shaped.
-- `hollowness`: The percentage (between 0 and 1) of the object's volume that is empty space.
-- `audio`: Audio properties.
+- `segmentation_color`: The RGB segmentation color for the object.
+- `model_name`: [The name of the model.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/librarian/model_librarian.md)
+- `audio`: [Audio properties.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#objectinfo)
 
 ***
 
 #### \_\_init\_\_
 
-**`def __init__(self, index: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors, bounds: Bounds, volumes: Volumes, audio: ObjectInfo)`**
+**`def __init__(self, index: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors, audio: ObjectInfo)`**
 
 
 | Parameter | Description |
@@ -28,8 +26,6 @@ Fields:
 | index | The index of the object in `segmentation_colors` |
 | rigidbodies | Rigidbodies output data. |
 | segmentation_colors | Segmentation colors output data. |
-| bounds | Bounds output data. |
-| volumes | Volumes output data. |
 
 ***
 

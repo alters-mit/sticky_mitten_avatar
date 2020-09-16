@@ -5,7 +5,7 @@ from typing import Dict, List, Union, Optional, Tuple
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
 from tdw.librarian import ModelLibrarian
-from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Volumes, Raycast
+from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Raycast
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
@@ -189,7 +189,7 @@ class StickyMittenAvatarController(Controller):
         self._do_scene_init_late()
 
         # Request Collisions, Rigidbodies, and Transforms.
-        # Request SegmentationColors, Bounds, and Volumes for this frame only.
+        # Request SegmentationColors for this frame only.
         resp = self.communicate([{"$type": "send_collisions",
                                   "enter": True,
                                   "stay": False,
@@ -200,24 +200,16 @@ class StickyMittenAvatarController(Controller):
                                  {"$type": "send_transforms",
                                   "frequency": "always"},
                                  {"$type": "send_segmentation_colors",
-                                  "frequency": "once"},
-                                 {"$type": "send_bounds",
-                                  "frequency": "once"},
-                                 {"$type": "send_volumes",
                                   "frequency": "once"}])
 
         # Cache the static object data.
         segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
-        bounds = get_data(resp=resp, d_type=Bounds)
-        volumes = get_data(resp=resp, d_type=Volumes)
         rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
         for i in range(segmentation_colors.get_num()):
             object_id = segmentation_colors.get_object_id(i)
             static_object = StaticObjectInfo(index=i,
                                              segmentation_colors=segmentation_colors,
                                              rigidbodies=rigidbodies,
-                                             volumes=volumes,
-                                             bounds=bounds,
                                              audio=self._audio_values[object_id])
             self.static_object_info[static_object.object_id] = static_object
 
