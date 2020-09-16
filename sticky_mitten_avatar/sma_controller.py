@@ -658,7 +658,7 @@ class StickyMittenAvatarController(Controller):
             return TaskStatus.ongoing, angle
         # Set the target to the object's position.
         if isinstance(target, int):
-            target = self.frames[-1].positions[target]
+            target = self.frames[-1].object_transforms[target].position
         # Convert the Vector3 target to a numpy array.
         else:
             target = TDWUtils.vector3_to_array(target)
@@ -801,7 +801,7 @@ class StickyMittenAvatarController(Controller):
         if isinstance(target, int):
             if len(self.frames) == 0:
                 self.communicate([])
-            target = self.frames[-1].positions[target]
+            target = self.frames[-1].object_transforms[target].position
         # Convert the Vector3 target to a numpy array.
         else:
             target = TDWUtils.vector3_to_array(target)

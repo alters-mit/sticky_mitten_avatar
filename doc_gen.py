@@ -208,7 +208,8 @@ class PyDocGen:
                  "sticky_mitten_avatar/sma_controller.py",
                  "sticky_mitten_avatar/frame_data.py",
                  "sticky_mitten_avatar/body_part_static.py",
-                 "sticky_mitten_avatar/task_status.py"]
+                 "sticky_mitten_avatar/task_status.py",
+                 "sticky_mitten_avatar/transform.py"]
 
         output_directory = Path("Documentation")
         if not output_directory.exists():

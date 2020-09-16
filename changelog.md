@@ -8,8 +8,12 @@
   - Replaced `audio_playback_mode` parameter in the constructor with `demo` (a boolean).
 - `FrameData`:
   - Added fields: `camera_projection_matrix` and `camera_matrix`
+  - Replaced field `positions` with `object_transforms` which includes rotations and forwards in addition to positions.
+  - Added field: `avatar_transform` Avatar transform data.
+  - Added field: `avatar_body_part_transforms` Transform data for each of the avatar's body parts.
 - `StaticObjectInfo`:
   - Removed fields: `volume` and `hollowness`
+- Added: `Transform` Transform data for an object, avatar, body part, etc.
 
 ### Backend
 
