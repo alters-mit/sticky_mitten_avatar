@@ -1,7 +1,7 @@
-import vg
 import numpy as np
-from typing import Dict, List, TypeVar, Type, Optional, Tuple
-from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Images, SegmentationColors, Volumes, Raycast
+from typing import Dict, List, TypeVar, Type, Optional
+from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Images, SegmentationColors, Volumes, Raycast, \
+    CompositeObjects
 
 
 T = TypeVar("T", bound=OutputData)
@@ -12,7 +12,8 @@ _OUTPUT_IDS: Dict[Type[OutputData], str] = {Transforms: "tran",
                                             Images: "imag",
                                             SegmentationColors: "segm",
                                             Volumes: "volu",
-                                            Raycast: "rayc"}
+                                            Raycast: "rayc",
+                                            CompositeObjects: "comp"}
 # Global forward directional vector.
 FORWARD = np.array([0, 0, 1])
 

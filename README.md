@@ -90,18 +90,20 @@ All example controllers can be found in: `controllers/`
 
 ## Tests
 
-| Controller          | Description                               |
-| ------------------- | ----------------------------------------- |
-| `ik_test.py`        | Test the IK chains of the avatar's arms.  |
-| `collision_test.py` | Test the avatar's response to collisions. |
-| `turn_test.py`      | Test avatar turning.                      |
+| Controller                 | Description                                                  |
+| -------------------------- | ------------------------------------------------------------ |
+| `ik_test.py`               | Test the IK chains of the avatar's arms.                     |
+| `collision_test.py`        | Test the avatar's response to collisions.                    |
+| `turn_test.py`             | Test avatar turning.                                         |
+| `composite_object_test.py` | Test if the avatar can grasp a sub-object of a composite object. |
 
 ## Utility Scripts
 
-| Script             | Description                                                  |
-| ------------------ | ------------------------------------------------------------ |
-| `add_model.py`     | Use this script to add create an asset bundle from a prefab and add it to a library in this repo. See:  [AssetBundleCreator](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/asset_bundle_creator.md). |
-| `init_commands.py` | Convert initialization commands into a Sticky Mitten Avatar API scene recipe. |
+| Script                      | Description                                                  |
+| --------------------------- | ------------------------------------------------------------ |
+| `add_model.py`              | Use this script to add create an asset bundle from a prefab and add it to a library in this repo. See:  [AssetBundleCreator](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/asset_bundle_creator.md). |
+| `init_commands.py`          | Convert initialization commands into a Sticky Mitten Avatar API scene recipe. |
+| `composite_object_audio.py` | Get default audio parameters for sub-objects of composite objects. |
 
 ## Changelog
 

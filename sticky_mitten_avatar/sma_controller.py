@@ -1,3 +1,5 @@
+from json import loads
+from pathlib import Path
 import random
 import numpy as np
 from pkg_resources import resource_filename
@@ -5,7 +7,7 @@ from typing import Dict, List, Union, Optional, Tuple
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
 from tdw.librarian import ModelLibrarian
-from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Raycast
+from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Raycast, CompositeObjects
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
@@ -189,7 +191,7 @@ class StickyMittenAvatarController(Controller):
         self._do_scene_init_late()
 
         # Request Collisions, Rigidbodies, and Transforms.
-        # Request SegmentationColors for this frame only.
+        # Request SegmentationColors and CompositeObjects for this frame only.
         resp = self.communicate([{"$type": "send_collisions",
                                   "enter": True,
                                   "stay": False,
@@ -200,17 +202,44 @@ class StickyMittenAvatarController(Controller):
                                  {"$type": "send_transforms",
                                   "frequency": "always"},
                                  {"$type": "send_segmentation_colors",
+                                  "frequency": "once"},
+                                 {"$type": "send_composite_objects",
                                   "frequency": "once"}])
+
+        # Parse composite object audio data.
+        composite_objects = get_data(resp=resp, d_type=CompositeObjects)
+        composite_object_audio: Dict[int, ObjectInfo] = dict()
+        # Get the audio values per sub object.
+        composite_object_json = loads(Path(resource_filename(__name__, "composite_object_audio.json")).read_text(
+            encoding="utf-8"))
+        for i in range(composite_objects.get_num()):
+            composite_object_data = composite_object_json[composite_objects.get_name(i)]
+            for j in range(composite_objects.get_num_sub_objects(i)):
+                sub_object_name = composite_objects.get_sub_object_name(i, j)
+                # Add the audio data to the dictionary.
+                composite_object_audio[composite_objects.get_sub_object_id(i, j)] = ObjectInfo(
+                    name=sub_object_name,
+                    amp=composite_object_data[sub_object_name]["amp"],
+                    mass=composite_object_data[sub_object_name]["mass"],
+                    bounciness=composite_object_data[sub_object_name]["bounciness"],
+                    library=composite_object_data[sub_object_name]["library"],
+                    material=AudioMaterial[composite_object_data[sub_object_name]["material"]])
 
         # Cache the static object data.
         segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
         rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
         for i in range(segmentation_colors.get_num()):
             object_id = segmentation_colors.get_object_id(i)
+            # Add audio data for either the root object or a sub-object.
+            if object_id in composite_object_audio:
+                object_audio = composite_object_audio[object_id]
+            else:
+                object_audio = self._audio_values[object_id]
+
             static_object = StaticObjectInfo(index=i,
                                              segmentation_colors=segmentation_colors,
                                              rigidbodies=rigidbodies,
-                                             audio=self._audio_values[object_id])
+                                             audio=object_audio)
             self.static_object_info[static_object.object_id] = static_object
 
     def _create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None,

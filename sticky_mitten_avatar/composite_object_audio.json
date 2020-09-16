@@ -1,102 +1,92 @@
 {
   "puzzle_box_composite": {
-    "root": {
-      "amp": 0.03,
+    "b03_circle001": {
+      "amp": 0.01,
       "bounciness": 0.2,
       "library": "",
       "machine": "none",
-      "mass": 0.3,
-      "material": "hardwood"
+      "mass": 0.05,
+      "material": "wood"
     },
-    "sub_objects": {
-      "b03_circle001": {
-        "amp": 0.01,
-        "bounciness": 0.2,
-        "library": "",
-        "machine": "none",
-        "mass": 0.05,
-        "material": "wood"
-      },
-      "b03_diamond002": {
-        "amp": 0.01,
-        "bounciness": 0.2,
-        "library": "",
-        "machine": "none",
-        "mass": 0.05,
-        "material": "wood"
-      },
-      "b03_half_circle001": {
-        "amp": 0.01,
-        "bounciness": 0.2,
-        "library": "",
-        "machine": "none",
-        "mass": 0.05,
-        "material": "wood"
-      },
-      "b03_half_hex001": {
-        "amp": 0.01,
-        "bounciness": 0.2,
-        "library": "",
-        "machine": "none",
-        "mass": 0.05,
-        "material": "wood"
-      },
-      "b03_hexagon001": {
-        "amp": 0.01,
-        "bounciness": 0.2,
-        "library": "",
-        "machine": "none",
-        "mass": 0.05,
-        "material": "wood"
-      },
-      "b03_pentagon001": {
-        "amp": 0.01,
-        "bounciness": 0.2,
-        "library": "",
-        "machine": "none",
-        "mass": 0.05,
-        "material": "wood"
-      },
-      "b03_quarter_circle001": {
-        "amp": 0.01,
-        "bounciness": 0.2,
-        "library": "",
-        "machine": "none",
-        "mass": 0.05,
-        "material": "wood"
-      },
-      "b03_rectangle002": {
-        "amp": 0.01,
-        "bounciness": 0.2,
-        "library": "",
-        "machine": "none",
-        "mass": 0.05,
-        "material": "wood"
-      },
-      "b03_square001": {
-        "amp": 0.01,
-        "bounciness": 0.2,
-        "library": "",
-        "machine": "none",
-        "mass": 0.05,
-        "material": "wood"
-      },
-      "b03_t-shape001": {
-        "amp": 0.01,
-        "bounciness": 0.2,
-        "library": "",
-        "machine": "none",
-        "mass": 0.05,
-        "material": "wood"
-      },
-      "b03_triangle001": {
-        "amp": 0.01,
-        "bounciness": 0.2,
-        "library": "",
-        "machine": "none",
-        "mass": 0.05,
-        "material": "wood"
-      }
+    "b03_diamond002": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_half_circle001": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_half_hex001": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_hexagon001": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_pentagon001": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_quarter_circle001": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_rectangle002": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_square001": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_t-shape001": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_triangle001": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
     }
   }
 }

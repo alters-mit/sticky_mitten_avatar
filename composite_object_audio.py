@@ -36,17 +36,9 @@ if __name__ == "__main__":
                                  "bounciness": 0,
                                  "library": "",
                                  "machine": machine}
-    root = {"amp": 0,
-            "bounciness": 0,
-            "library": "",
-            "machine": "none",
-            "mass": 0,
-            "material": "wood"}
-    composite_object = {"root": root,
-                        "sub_objects": sub_objects}
     # Add the data.
     p = Path("sticky_mitten_avatar/composite_object_audio.json")
     data = json.loads(p.read_text(encoding="utf-8"))
-    data[args.model] = composite_object
+    data[args.model] = sub_objects
     p.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
 

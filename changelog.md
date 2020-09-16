@@ -9,6 +9,14 @@
 - `StaticObjectInfo`:
   - Removed: `volume`
   - Removed: `hollowness`
+ 
+### Backend
+
+- `StickyMittenAvatarController`:
+  - Fixed: Avatar can't pick up sub-objects of composite objects.
+  - Fixed: No audio data for sub-objects of composite objects.
+- Added utility script: `composite_object_audio.py` Get default audio parameters for sub-objects of composite objects.
+- Added test controller: `composite_object_test.py` Test if the avatar can grasp a sub-object of a composite object.
 
 ## 0.3.2
 
