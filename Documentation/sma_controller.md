@@ -303,17 +303,16 @@ The motion ends when all of the avatar's joints have stopped moving.
 
 #### rotate_camera_by
 
-**`def rotate_camera_by(self, pitch: float = 0, yaw: float = 0, roll: float = 0) -> None`**
+**`def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None`**
 
 Rotate an avatar's camera around each axis.
-The head of the avatar won't visually rotate (as this could put the avatar off-balance).
+The head of the avatar won't visually rotate, as this could put the avatar off-balance.
 Advances the simulation by 1 frame.
 
 | Parameter | Description |
 | --- | --- |
 | pitch | Pitch (nod your head "yes") the camera by this angle, in degrees. |
 | yaw | Yaw (shake your head "no") the camera by this angle, in degrees. |
-| roll | Roll (put your ear to your shoulder) the camera by this angle, in degrees. |
 
 ***
 
