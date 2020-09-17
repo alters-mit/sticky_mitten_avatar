@@ -752,7 +752,8 @@ class StickyMittenAvatarController(Controller):
         return self.turn_to(target=TDWUtils.array_to_vector3(p1), force=force, stopping_threshold=stopping_threshold)
 
     def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80,
-              turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35) -> TaskStatus:
+              turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35,
+              stop_on_collision: bool = True) -> TaskStatus:
         """
         Move the avatar to a target position or object.
 
@@ -761,14 +762,15 @@ class StickyMittenAvatarController(Controller):
         - `success` (The avatar arrived at the target.)
         - `too_long`
         - `overshot`
-        - `collided_with_something_heavy`
-        - `collided_with_environment`
+        - `collided_with_something_heavy` (if `stop_on_collision == True`)
+        - `collided_with_environment` (if `stop_on_collision == True`)
 
         :param target: Either the target position or the ID of the target object.
         :param turn_force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param turn_stopping_threshold: Stop when the avatar is within this many degrees of the target.
         :param move_force: The force at which the avatar will move. More force = faster, but might overshoot the target.
         :param move_stopping_threshold: Stop within this distance of the target.
+        :param stop_on_collision: If True, stop moving when the object collides with a large object (mass > 90) or the environment (e.g. a wall).
 
         :return:  A `TaskStatus` indicating whether the avatar arrived at the target and if not, why.
         """
@@ -779,18 +781,19 @@ class StickyMittenAvatarController(Controller):
             """
 
             # Check if the root object of the avatar collided with anything large. If so, stop movement.
-            for body_part_id in self._avatar.collisions:
-                name = self._avatar.body_parts_static[body_part_id].name
-                if name.startswith("A_StickyMitten"):
-                    for o_id in self._avatar.collisions[body_part_id]:
-                        collidee_mass = self.static_object_info[o_id].mass
-                        if collidee_mass >= 90:
-                            return TaskStatus.collided_with_something_heavy
-            # If the avatar's body collided with the environment (e.g. a wall), stop movement.
-            for body_part_id in self._avatar.env_collisions:
-                name = self._avatar.body_parts_static[body_part_id].name
-                if name.startswith("A_StickyMitten"):
-                    return TaskStatus.collided_with_environment
+            if stop_on_collision:
+                for body_part_id in self._avatar.collisions:
+                    name = self._avatar.body_parts_static[body_part_id].name
+                    if name.startswith("A_StickyMitten"):
+                        for o_id in self._avatar.collisions[body_part_id]:
+                            collidee_mass = self.static_object_info[o_id].mass
+                            if collidee_mass >= 90:
+                                return TaskStatus.collided_with_something_heavy
+                # If the avatar's body collided with the environment (e.g. a wall), stop movement.
+                for body_part_id in self._avatar.env_collisions:
+                    name = self._avatar.body_parts_static[body_part_id].name
+                    if name.startswith("A_StickyMitten"):
+                        return TaskStatus.collided_with_environment
 
             p = np.array(self._avatar.frame.get_position())
             d_from_initial = np.linalg.norm(initial_position - p)
@@ -860,8 +863,8 @@ class StickyMittenAvatarController(Controller):
         self._stop_avatar()
         return TaskStatus.too_long
 
-    def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35) -> \
-            TaskStatus:
+    def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35,
+                        stop_on_collision: bool = True) -> TaskStatus:
         """
         Move the avatar forward by a distance along the avatar's current forward directional vector.
 
@@ -871,19 +874,21 @@ class StickyMittenAvatarController(Controller):
         - `turned_360`
         - `too_long`
         - `overshot`
-        - `collided_with_something_heavy`
-        - `collided_with_environment`
+        - `collided_with_something_heavy` (if `stop_on_collision == True`)
+        - `collided_with_environment` (if `stop_on_collision == True`)
 
         :param distance: The distance that the avatar will travel. If < 0, the avatar will move backwards.
         :param move_force: The force at which the avatar will move. More force = faster, but might overshoot the target.
         :param move_stopping_threshold: Stop within this distance of the target.
+        :param stop_on_collision: If True, stop moving when the object collides with a large object (mass > 90) or the environment (e.g. a wall).
 
         :return: A `TaskStatus` indicating whether the avatar moved forward by the distance and if not, why.
         """
 
         # The target is at `distance` away from the avatar's position along the avatar's forward directional vector.
         target = np.array(self._avatar.frame.get_position()) + (np.array(self._avatar.frame.get_forward()) * distance)
-        return self.go_to(target=target, move_force=move_force, move_stopping_threshold=move_stopping_threshold)
+        return self.go_to(target=target, move_force=move_force, move_stopping_threshold=move_stopping_threshold,
+                          stop_on_collision=stop_on_collision)
 
     def shake(self, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30),
               num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> None:

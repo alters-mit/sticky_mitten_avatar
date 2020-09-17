@@ -7,6 +7,7 @@
 - `StickyMittenAvatarController`:
   - Replaced `audio_playback_mode` parameter in the constructor with `demo` (a boolean).
   - Removed `roll` parameter from `rotate_camera_by()`.
+  - Added optional parameter `stop_on_collision` to `go_to()` and `move_forward_by()`.
 - `FrameData`:
   - Added fields: `camera_projection_matrix` and `camera_matrix`
   - Replaced field `positions` with `object_transforms` which includes rotations and forwards in addition to positions.

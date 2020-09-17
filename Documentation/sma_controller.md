@@ -238,15 +238,15 @@ _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and
 
 #### go_to
 
-**`def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80, turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35) -> TaskStatus`**
+**`def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80, turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35, stop_on_collision: bool = True) -> TaskStatus`**
 
 Move the avatar to a target position or object.
 Possible [return values](task_status.md):
 - `success` (The avatar arrived at the target.)
 - `too_long`
 - `overshot`
-- `collided_with_something_heavy`
-- `collided_with_environment`
+- `collided_with_something_heavy` (if `stop_on_collision == True`)
+- `collided_with_environment` (if `stop_on_collision == True`)
 
 | Parameter | Description |
 | --- | --- |
@@ -255,6 +255,7 @@ Possible [return values](task_status.md):
 | turn_stopping_threshold | Stop when the avatar is within this many degrees of the target. |
 | move_force | The force at which the avatar will move. More force = faster, but might overshoot the target. |
 | move_stopping_threshold | Stop within this distance of the target. |
+| stop_on_collision | If True, stop moving when the object collides with a large object (mass > 90) or the environment (e.g. a wall). |
 
 _Returns:_   A `TaskStatus` indicating whether the avatar arrived at the target and if not, why.
 
@@ -262,7 +263,7 @@ _Returns:_   A `TaskStatus` indicating whether the avatar arrived at the target 
 
 #### move_forward_by
 
-**`def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35) -> TaskStatus`**
+**`def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35, stop_on_collision: bool = True) -> TaskStatus`**
 
 Move the avatar forward by a distance along the avatar's current forward directional vector.
 Possible [return values](task_status.md):
@@ -270,14 +271,15 @@ Possible [return values](task_status.md):
 - `turned_360`
 - `too_long`
 - `overshot`
-- `collided_with_something_heavy`
-- `collided_with_environment`
+- `collided_with_something_heavy` (if `stop_on_collision == True`)
+- `collided_with_environment` (if `stop_on_collision == True`)
 
 | Parameter | Description |
 | --- | --- |
 | distance | The distance that the avatar will travel. If < 0, the avatar will move backwards. |
 | move_force | The force at which the avatar will move. More force = faster, but might overshoot the target. |
 | move_stopping_threshold | Stop within this distance of the target. |
+| stop_on_collision | If True, stop moving when the object collides with a large object (mass > 90) or the environment (e.g. a wall). |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar moved forward by the distance and if not, why.
 
