@@ -25,6 +25,38 @@ segmentation_colors = c.frames[-1].id_pass
 c.end()
 ```
 
+***
+
+## How to initialize the environment
+
+The controller by default will load a simple empty room.
+
+```python
+from sticky_mitten_avatar import StickyMittenAvatarController
+
+c = StickyMittenAvatarController()
+c.init_scene()
+```
+
+Set the `scene` and `layout` parameters in the constructor to load an interior environment with furniture and props:
+
+```python
+from sticky_mitten_avatar import StickyMittenAvatarController
+
+c = StickyMittenAvatarController(scene="floorplan_3", layout=0)
+c.init_scene()
+```
+
+Valid scenes and layouts:
+
+| `scene` | `layout` |
+| --- | --- |
+| "box_room_2018" | 0 |
+
+***
+
+## Format for Vector3 parameters
+
 All parameters of type `Dict[str, float]` are Vector3 dictionaries formatted like this:
 
 ```json
@@ -84,7 +116,7 @@ for body_part_id in c.static_avatar_data.avatar:
 
 #### \_\_init\_\_
 
-**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False)`**
+**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, scene: str = None, layout: int = None)`**
 
 
 | Parameter | Description |
@@ -92,6 +124,8 @@ for body_part_id in c.static_avatar_data.avatar:
 | port | The port number. |
 | launch_build | If True, automatically launch the build. |
 | demo | If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step. |
+| scene | The name of the scene to load. If None, the controller will load an empty room. |
+| layout | The furniture and props recipe for the scene. If None, the `scene` parameter is ignored. |
 
 ***
 

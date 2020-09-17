@@ -40,6 +40,38 @@ class StickyMittenAvatarController(Controller):
     c.end()
     ```
 
+    ***
+
+    ## How to initialize the environment
+
+    The controller by default will load a simple empty room.
+
+    ```python
+    from sticky_mitten_avatar import StickyMittenAvatarController
+
+    c = StickyMittenAvatarController()
+    c.init_scene()
+    ```
+
+    Set the `scene` and `layout` parameters in the constructor to load an interior environment with furniture and props:
+
+    ```python
+    from sticky_mitten_avatar import StickyMittenAvatarController
+
+    c = StickyMittenAvatarController(scene="floorplan_3", layout=0)
+    c.init_scene()
+    ```
+
+    Valid scenes and layouts:
+
+    | `scene` | `layout` |
+    | --- | --- |
+    | "box_room_2018" | 0 |
+
+    ***
+
+    ## Format for Vector3 parameters
+
     All parameters of type `Dict[str, float]` are Vector3 dictionaries formatted like this:
 
     ```json
@@ -113,12 +145,18 @@ class StickyMittenAvatarController(Controller):
                          AudioMaterial.glass: 0.65,
                          AudioMaterial.metal: 0.43}
 
-    def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False):
+    def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False,
+                 scene: str = None, layout: int = None):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
         :param demo: If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step.
+        :param scene: The name of the scene to load. If None, the controller will load an empty room.
+        :param layout: The furniture and props recipe for the scene. If None, the `scene` parameter is ignored.
         """
+
+        self._scene = scene
+        self._layout = layout
 
         # The containers library.
         self._lib_containers = ModelLibrarian(library=resource_filename(__name__, "metadata_libraries/containers.json"))
@@ -1186,8 +1224,41 @@ class StickyMittenAvatarController(Controller):
         """
         Get commands to initialize the scene before adding avatars.
 
+        If the `scene` and `layout` values are not None in the constructor, create that scene instead.
+
         :return: A list of commands to initialize the scene. Override this function for a different "scene recipe".
         """
+
+        if self._scene is not None and self._layout is not None:
+            # Load the floorplans data.
+            floorplans = loads(Path(resource_filename(__name__, "floorplans.json")).read_text(encoding="utf-8"))
+            # Load the scene.
+            # Set global values.
+            commands = [self.get_add_scene(scene_name=self._scene),
+                        {"$type": "set_aperture",
+                         "aperture": 8.0},
+                        {"$type": "set_focus_distance",
+                         "focus_distance": 2.25},
+                        {"$type": "set_post_exposure",
+                         "post_exposure": 0.4},
+                        {"$type": "set_ambient_occlusion_intensity",
+                         "intensity": 0.175},
+                        {"$type": "set_ambient_occlusion_thickness_modifier",
+                         "thickness": 3.5}]
+            # Add each object.
+            for obj_name in floorplans[self._scene]["layouts"][str(self._layout)]:
+                obj = floorplans[self._scene]["layouts"][str(self._layout)][obj_name]
+                object_id = self.get_unique_id()
+                commands.extend(
+                    self._add_object(model_name=obj_name, position=obj["position"], rotation=obj["rotation"],
+                                     scale=obj["scale"], object_id=object_id))
+                # Make all cabinets and paintings kinematic to allow them to hanging from the wall.
+                if "cabinet" in obj_name or "painting" in obj_name:
+                    commands.append({"$type": "set_kinematic_state",
+                                     "id": object_id,
+                                     "is_kinematic": True,
+                                     "use_gravity": False})
+            return commands
 
         return [{"$type": "load_scene",
                  "scene_name": "ProcGenScene"},

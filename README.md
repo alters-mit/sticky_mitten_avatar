@@ -39,33 +39,26 @@ c.end()
 - For more information regarding TDW, see the [TDW repo](https://github.com/threedworld-mit/tdw/).
 - For more information regarding TDW's low-level Sticky Mitten Avatar API, [read this](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/sticky_mitten_avatar.md).
 
-## Controllers
+## How to write your controller
 
-Sub-classes of `StickyMittenAvatarController` have built-in scene setup recipes.
-
-| Controller                                                   | Description                                                  |
-| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| [StickyMittenAvatarController](Documentation/sma_controller.md) | High-level API controller for sticky mitten avatars. Creates a simple scene. |
-| BoxRoomContainers                                            | Sub-class of StickyMittenAvatarController. When `init_scene()` is called, it will create a photorealistic room with furniture and two containers with different objects in them. |
-| TestController                                               | Test controller. Shows the IK targets and generates image plots of IK solutions. |
-To use these controllers, do this:
+You can write your controller like this:
 
 ```python
-from sticky_mitten_avatar import TestController, Arm
+from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 
-c = TestController()
+c = StickyMittenAvatarController()
 c.init_scene()
 task_status = c.reach_for_target(arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
 print(task_status) # TaskStatus.success
 c.end()
 ```
 
-...or this:
+...or this, with your own class:
 
 ```python
-from sticky_mitten_avatar import TestController, Arm
+from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 
-class MyController(TestController):
+class MyController(StickyMittenAvatarController):
     def my_function(self):
         return self.reach_for_target(arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
 
