@@ -1,4 +1,4 @@
-from sticky_mitten_avatar import BoxRoomContainers
+from sticky_mitten_avatar.box_room_containers import BoxRoomContainers
 from sticky_mitten_avatar.avatars import Arm
 
 
