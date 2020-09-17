@@ -11,7 +11,7 @@ class StaticObjectInfo:
 
     - `object_id`: The unique ID of the object.
     - `mass`: The mass of the object.
-    - `segmentation_color`: The RGB segmentation color for the object.
+    - `segmentation_color`: The RGB segmentation color for the object as a numpy array.
     - `model_name`: [The name of the model.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/librarian/model_librarian.md)
     - `audio`: [Audio properties.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#objectinfo)
     """
