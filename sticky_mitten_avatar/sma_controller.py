@@ -222,11 +222,9 @@ class StickyMittenAvatarController(Controller):
         self._start_task()
 
         # Initialize the scene.
-        self.communicate(self._get_scene_init_commands_early())
+        self.communicate(self._get_scene_init_commands())
         # Create the avatar.
         self._init_avatar()
-        # Initialize after adding avatars.
-        self._do_scene_init_late()
 
         # Request Collisions, Rigidbodies, and Transforms and CameraMatrices per-frame.
         # Request SegmentationColors and CompositeObjects for this frame only.
@@ -1220,7 +1218,7 @@ class StickyMittenAvatarController(Controller):
                              "y_pos_offset": 0.1})
         return commands
 
-    def _get_scene_init_commands_early(self) -> List[dict]:
+    def _get_scene_init_commands(self) -> List[dict]:
         """
         Get commands to initialize the scene before adding avatars.
 
@@ -1263,13 +1261,6 @@ class StickyMittenAvatarController(Controller):
         return [{"$type": "load_scene",
                  "scene_name": "ProcGenScene"},
                 TDWUtils.create_empty_room(12, 12)]
-
-    def _do_scene_init_late(self) -> None:
-        """
-        Initialize the scene after adding avatars.
-        """
-
-        return
 
     def _init_avatar(self) -> None:
         """

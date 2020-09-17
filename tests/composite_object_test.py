@@ -8,8 +8,8 @@ Test whether the avatar can pick up a sub-object of a composite object.
 
 
 class CompositeObjectTest(StickyMittenAvatarController):
-    def _get_scene_init_commands_early(self) -> List[dict]:
-        commands = super()._get_scene_init_commands_early()
+    def _get_scene_init_commands(self) -> List[dict]:
+        commands = super()._get_scene_init_commands()
         commands.extend(self._add_object("puzzle_box_composite", object_id=0,
                                          position={"x": 0.072, "y": 0, "z": 0.438}))
         return commands

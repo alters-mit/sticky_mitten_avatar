@@ -8,7 +8,7 @@ Test whether the avatar stops when it collides with a large object.
 
 
 class CollisionTest(TestController):
-    def _get_scene_init_commands_early(self) -> List[dict]:
+    def _get_scene_init_commands(self) -> List[dict]:
         commands = [{"$type": "load_scene",
                      "scene_name": "ProcGenScene"},
                     TDWUtils.create_empty_room(4, 4)]

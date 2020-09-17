@@ -49,8 +49,8 @@ class PutObjectInContainer(StickyMittenAvatarController):
             self.frame_count += 1
         return resp
 
-    def _get_scene_init_commands_early(self) -> List[dict]:
-        commands = super()._get_scene_init_commands_early()
+    def _get_scene_init_commands(self) -> List[dict]:
+        commands = super()._get_scene_init_commands()
         # Add a jug.
         commands.extend(self._add_object("jug05",
                                          position={"x": -0.2, "y": 0, "z": 0.285},
