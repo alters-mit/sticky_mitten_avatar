@@ -37,12 +37,13 @@ if __name__ == "__main__":
         object_id = co.get_object_id(i)
         for j in range(co.get_num_sub_objects(i)):
             machine = co.get_sub_object_machine_type(i, j)
-            sub_objects[names[object_id]] = {"amp": 0,
-                                             "mass": 0,
-                                             "material": "wood",
-                                             "bounciness": 0,
-                                             "library": "",
-                                             "machine": machine}
+            sub_object_id = co.get_sub_object_id(i, j)
+            sub_objects[names[sub_object_id]] = {"amp": 0,
+                                                 "mass": 0,
+                                                 "material": "wood",
+                                                 "bounciness": 0,
+                                                 "library": "",
+                                                 "machine": machine}
     # Add the data.
     p = Path("sticky_mitten_avatar/composite_object_audio.json")
     data = json.loads(p.read_text(encoding="utf-8"))

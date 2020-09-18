@@ -4,11 +4,12 @@ import random
 import numpy as np
 from pkg_resources import resource_filename
 from typing import Dict, List, Union, Optional, Tuple
-from tdw.controller import Controller
+from tdw.floorplan_controller import FloorplanController
 from tdw.tdw_utils import TDWUtils
 from tdw.librarian import ModelLibrarian
 from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Raycast, CompositeObjects
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
+from tdw.object_init_data import AudioInitData
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD
@@ -17,7 +18,7 @@ from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
 
 
-class StickyMittenAvatarController(Controller):
+class StickyMittenAvatarController(FloorplanController):
     """
     High-level API controller for sticky mitten avatars.
 
@@ -39,38 +40,6 @@ class StickyMittenAvatarController(Controller):
 
     c.end()
     ```
-
-    ***
-
-    ## How to initialize the environment
-
-    The controller by default will load a simple empty room.
-
-    ```python
-    from sticky_mitten_avatar import StickyMittenAvatarController
-
-    c = StickyMittenAvatarController()
-    c.init_scene()
-    ```
-
-    Set the `scene` and `layout` parameters in the constructor to load an interior environment with furniture and props:
-
-    ```python
-    from sticky_mitten_avatar import StickyMittenAvatarController
-
-    c = StickyMittenAvatarController(scene="floorplan_3", layout=0)
-    c.init_scene()
-    ```
-
-    Valid scenes and layouts:
-
-    | `scene` | `layout` |
-    | --- | --- |
-    | "box_room_2018" | 0 |
-
-    ***
-
-    ## Format for Vector3 parameters
 
     All parameters of type `Dict[str, float]` are Vector3 dictionaries formatted like this:
 
@@ -132,31 +101,12 @@ class StickyMittenAvatarController(Controller):
     # A high drag value to stop movement.
     _STOP_DRAG = 1000
 
-    _STATIC_FRICTION = {AudioMaterial.ceramic: 0.47,
-                        AudioMaterial.hardwood: 0.4,
-                        AudioMaterial.wood: 0.4,
-                        AudioMaterial.cardboard: 0.47,
-                        AudioMaterial.glass: 0.65,
-                        AudioMaterial.metal: 0.52}
-    _DYNAMIC_FRICTION = {AudioMaterial.ceramic: 0.47,
-                         AudioMaterial.hardwood: 0.35,
-                         AudioMaterial.wood: 0.35,
-                         AudioMaterial.cardboard: 0.47,
-                         AudioMaterial.glass: 0.65,
-                         AudioMaterial.metal: 0.43}
-
-    def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False,
-                 scene: str = None, layout: int = None):
+    def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
         :param demo: If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step.
-        :param scene: The name of the scene to load. If None, the controller will load an empty room.
-        :param layout: The furniture and props recipe for the scene. If None, the `scene` parameter is ignored.
         """
-
-        self._scene = scene
-        self._layout = layout
 
         # The containers library.
         self._lib_containers = ModelLibrarian(library=resource_filename(__name__, "metadata_libraries/containers.json"))
@@ -211,18 +161,37 @@ class StickyMittenAvatarController(Controller):
                              {"$type": "set_time_step",
                               "time_step": 0.02}])
 
-    def init_scene(self) -> None:
+    def init_scene(self, scene: str = None, layout: int = None) -> None:
         """
         Initialize a scene, populate it with objects, add the avatar, and set rendering options.
-        Then, request data per frame (collisions, transforms, etc.), initialize image capture, and cache static data.
+        The controller by default will load a simple empty room:
 
-        Each subclass of `StickyMittenAvatarController` overrides this function to have a specialized scene setup.
+        ```python
+        from sticky_mitten_avatar import StickyMittenAvatarController
+
+        c = StickyMittenAvatarController()
+        c.init_scene()
+        ```
+
+        Set the `scene` and `layout` parameters in `init_scene()` to load an interior scene with furniture and props:
+
+        ```python
+        from sticky_mitten_avatar import StickyMittenAvatarController
+
+        c = StickyMittenAvatarController()
+        c.init_scene(scene="floorplan_3", layout=0)
+        ```
+
+        For valid scenes and layouts, [read this](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/floorplan_controller.md).
+
+        :param scene: The name of an interior floorplan scene. If None, the controller will load a simple empty room.
+        :param layout: The furniture layout of the floorplan. If None, the controller will load a simple empty room.
         """
 
         self._start_task()
 
         # Initialize the scene.
-        self.communicate(self._get_scene_init_commands())
+        self.communicate(self._get_scene_init_commands(scene=scene, layout=layout))
         # Create the avatar.
         self._init_avatar()
 
@@ -277,6 +246,7 @@ class StickyMittenAvatarController(Controller):
             object_id = segmentation_colors.get_object_id(i)
             # Add audio data for either the root object or a sub-object.
             if object_id in composite_object_audio:
+                print(object_id)
                 object_audio = composite_object_audio[object_id]
             else:
                 object_audio = self._audio_values[object_id]
@@ -442,35 +412,16 @@ class StickyMittenAvatarController(Controller):
         :param scale: The scale factor of the object. If None, the scale factor is (1, 1, 1)
         :param audio: Audio values for the object. If None, use default values.
 
-        :return: A list of commands: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode, set_physic_material]`
+        :return: A list of commands to create the object.
         """
 
-        if position is None:
-            position = {"x": 0, "y": 0, "z": 0}
-        if rotation is None:
-            rotation = {"x": 0, "y": 0, "z": 0}
-        if scale is None:
-            scale = {"x": 1, "y": 1, "z": 1}
         if audio is None:
             audio = self._default_audio_values[model_name]
         self._audio_values[object_id] = audio
 
-        return [super().get_add_object(model_name=model_name, object_id=object_id, position=position,
-                                       rotation=rotation, library=library),
-                {"$type": "set_mass",
-                 "mass": audio.mass,
-                 "id": object_id},
-                {"$type": "scale_object",
-                 "id": object_id,
-                 "scale_factor": scale},
-                {"$type": "set_object_collision_detection_mode",
-                 "id": object_id,
-                 "mode": "continuous_dynamic"},
-                {"$type": "set_physic_material",
-                 "dynamic_friction": StickyMittenAvatarController._DYNAMIC_FRICTION[audio.material],
-                 "static_friction": StickyMittenAvatarController._STATIC_FRICTION[audio.material],
-                 "bounciness": audio.bounciness,
-                 "id": object_id}]
+        init_data = AudioInitData(name=model_name, position=position, rotation=rotation, scale_factor=scale,
+                                  audio=audio, library=library)
+        return init_data.get_commands()[1]
 
     def _add_container(self, model_name: str, object_id: int, contents: List[str], position: Dict[str, float] = None,
                        rotation: Dict[str, float] = None, audio: ObjectInfo = None,
@@ -1218,45 +1169,18 @@ class StickyMittenAvatarController(Controller):
                              "y_pos_offset": 0.1})
         return commands
 
-    def _get_scene_init_commands(self) -> List[dict]:
+    def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
         """
         Get commands to initialize the scene before adding avatars.
 
-        If the `scene` and `layout` values are not None in the constructor, create that scene instead.
+        :param scene: The name of the scene. Can be None.
+        :param layout: The layout index. Can be None.
 
         :return: A list of commands to initialize the scene. Override this function for a different "scene recipe".
         """
 
-        if self._scene is not None and self._layout is not None:
-            # Load the floorplans data.
-            floorplans = loads(Path(resource_filename(__name__, "floorplans.json")).read_text(encoding="utf-8"))
-            # Load the scene.
-            # Set global values.
-            commands = [self.get_add_scene(scene_name=self._scene),
-                        {"$type": "set_aperture",
-                         "aperture": 8.0},
-                        {"$type": "set_focus_distance",
-                         "focus_distance": 2.25},
-                        {"$type": "set_post_exposure",
-                         "post_exposure": 0.4},
-                        {"$type": "set_ambient_occlusion_intensity",
-                         "intensity": 0.175},
-                        {"$type": "set_ambient_occlusion_thickness_modifier",
-                         "thickness": 3.5}]
-            # Add each object.
-            for obj_name in floorplans[self._scene]["layouts"][str(self._layout)]:
-                obj = floorplans[self._scene]["layouts"][str(self._layout)][obj_name]
-                object_id = self.get_unique_id()
-                commands.extend(
-                    self._add_object(model_name=obj_name, position=obj["position"], rotation=obj["rotation"],
-                                     scale=obj["scale"], object_id=object_id))
-                # Make all cabinets and paintings kinematic to allow them to hanging from the wall.
-                if "cabinet" in obj_name or "painting" in obj_name:
-                    commands.append({"$type": "set_kinematic_state",
-                                     "id": object_id,
-                                     "is_kinematic": True,
-                                     "use_gravity": False})
-            return commands
+        if scene is not None and layout is not None:
+            return self.get_scene_init_commands(scene=scene, layout=layout, audio=True)
 
         return [{"$type": "load_scene",
                  "scene_name": "ProcGenScene"},

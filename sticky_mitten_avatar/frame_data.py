@@ -241,6 +241,8 @@ class FrameData:
         # Get the audio of each environment collision.
         for coll in env_collisions:
             collider_id = coll.get_object_id()
+            if collider_id not in objects:
+                continue
             v = FrameData._get_velocity(rigidbodies, collider_id)
             if (v is not None) and (v > 0):
                 collider_info = objects[collider_id].audio

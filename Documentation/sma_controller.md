@@ -1,6 +1,6 @@
 # `sma_controller.py`
 
-## `StickyMittenAvatarController(Controller)`
+## `StickyMittenAvatarController(FloorplanController)`
 
 `from tdw.sticky_mitten_avatar.sma_controller import StickyMittenAvatarController`
 
@@ -24,38 +24,6 @@ segmentation_colors = c.frames[-1].id_pass
 
 c.end()
 ```
-
-***
-
-## How to initialize the environment
-
-The controller by default will load a simple empty room.
-
-```python
-from sticky_mitten_avatar import StickyMittenAvatarController
-
-c = StickyMittenAvatarController()
-c.init_scene()
-```
-
-Set the `scene` and `layout` parameters in the constructor to load an interior environment with furniture and props:
-
-```python
-from sticky_mitten_avatar import StickyMittenAvatarController
-
-c = StickyMittenAvatarController(scene="floorplan_3", layout=0)
-c.init_scene()
-```
-
-Valid scenes and layouts:
-
-| `scene` | `layout` |
-| --- | --- |
-| "box_room_2018" | 0 |
-
-***
-
-## Format for Vector3 parameters
 
 All parameters of type `Dict[str, float]` are Vector3 dictionaries formatted like this:
 
@@ -116,7 +84,7 @@ for body_part_id in c.static_avatar_data:
 
 #### \_\_init\_\_
 
-**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, scene: str = None, layout: int = None)`**
+**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False)`**
 
 
 | Parameter | Description |
@@ -124,18 +92,32 @@ for body_part_id in c.static_avatar_data:
 | port | The port number. |
 | launch_build | If True, automatically launch the build. |
 | demo | If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step. |
-| scene | The name of the scene to load. If None, the controller will load an empty room. |
-| layout | The furniture and props recipe for the scene. If None, the `scene` parameter is ignored. |
 
 ***
 
 #### init_scene
 
-**`def init_scene(self) -> None`**
+**`def init_scene(self, scene: str = None, layout: int = None) -> None`**
 
 Initialize a scene, populate it with objects, add the avatar, and set rendering options.
-Then, request data per frame (collisions, transforms, etc.), initialize image capture, and cache static data.
-Each subclass of `StickyMittenAvatarController` overrides this function to have a specialized scene setup.
+The controller by default will load a simple empty room:
+```python
+from sticky_mitten_avatar import StickyMittenAvatarController
+c = StickyMittenAvatarController()
+c.init_scene()
+```
+Set the `scene` and `layout` parameters in `init_scene()` to load an interior scene with furniture and props:
+```python
+from sticky_mitten_avatar import StickyMittenAvatarController
+c = StickyMittenAvatarController()
+c.init_scene(scene="floorplan_3", layout=0)
+```
+For valid scenes and layouts, [read this](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/floorplan_controller.md).
+
+| Parameter | Description |
+| --- | --- |
+| scene | The name of an interior floorplan scene. If None, the controller will load a simple empty room. |
+| layout | The furniture layout of the floorplan. If None, the controller will load a simple empty room. |
 
 ***
 

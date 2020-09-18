@@ -1,4 +1,150 @@
 {
+  "jigsaw_puzzle_composite": {
+    "b03_circle_halfl": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_circle_halfr": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_circle_jaggedl": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_circle_jaggedr": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_circle_splil": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_circle_splitr": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_ngon_halfl": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_ngon_halfr": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_ngon_jaggedl": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_ngon_jaggedr": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_ngon_splitl": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_ngon_splitr": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_rectangle_halfl": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_rectangle_halfr": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_rectangle_jaggedl": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_rectangle_jaggedr": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_rectangle_splitl": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    },
+    "b03_rectangle_splitr": {
+      "amp": 0.01,
+      "bounciness": 0.2,
+      "library": "",
+      "machine": "none",
+      "mass": 0.05,
+      "material": "wood"
+    }
+  },
   "puzzle_box_composite": {
     "b03_circle001": {
       "amp": 0.01,
@@ -86,6 +232,16 @@
       "library": "",
       "machine": "none",
       "mass": 0.05,
+      "material": "wood"
+    }
+  },
+  "rope_table_lamp": {
+    "Cylinder002": {
+      "amp": 0.014,
+      "bounciness": 0.35,
+      "library": "",
+      "machine": "none",
+      "mass": 1,
       "material": "wood"
     }
   }

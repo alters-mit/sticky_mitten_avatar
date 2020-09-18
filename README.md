@@ -95,7 +95,6 @@ All example controllers can be found in: `controllers/`
 | Script                      | Description                                                  |
 | --------------------------- | ------------------------------------------------------------ |
 | `add_model.py`              | Use this script to add create an asset bundle from a prefab and add it to a library in this repo. See:  [AssetBundleCreator](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/asset_bundle_creator.md). |
-| `init_commands.py`          | Convert initialization commands into a Sticky Mitten Avatar API scene recipe. |
 | `composite_object_audio.py` | Get default audio parameters for sub-objects of composite objects. |
 
 ## Changelog
