@@ -19,7 +19,8 @@
   - Removed: `_do_scene_init_late()`.
 - `FrameData`:
   - Fixed: Unhandled exception if there is a collision between objects not yet in the static object info dictionary (this is sometimes possible with composite objects).
-- Revised `__init__.py` to make it harder to accidentally use `TestController` and `BoxRoomContainers`.
+- Revised `__init__.py` to make it harder to accidentally use `TestController`.
+- Removed: `box_room_containers.py` (merged into `shake_demo.py`)
 - Removed a lot of audio values (they are now in the `tdw` repo).
 - Added composite object audio data for `jigsaw_puzzle_composite` and `rope_table_lamp`.
 - Fixed: `composite_object_audio.py` doesn't use the correct sub-object ID.

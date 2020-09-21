@@ -34,8 +34,8 @@ class PutObjectInContainer(StickyMittenAvatarController):
 
         # Save images every frame, if possible.
         self.frame_count = 0
-        self.o_id = self.get_unique_id()
-        self.bowl_id = self.get_unique_id()
+        self.o_id = 0
+        self.bowl_id = 1
 
     def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
         resp = super().communicate(commands)
@@ -49,20 +49,20 @@ class PutObjectInContainer(StickyMittenAvatarController):
             self.frame_count += 1
         return resp
 
-    def _get_scene_init_commands(self) -> List[dict]:
+    def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
         commands = super()._get_scene_init_commands()
         # Add a jug.
-        commands.extend(self._add_object("jug05",
-                                         position={"x": -0.2, "y": 0, "z": 0.285},
-                                         object_id=self.o_id,
-                                         scale={"x": 0.8, "y": 0.8, "z": 0.8}))
+        self.o_id, jug_commands = self._add_object("jug05",
+                                                   position={"x": -0.2, "y": 0, "z": 0.285},
+                                                   scale={"x": 0.8, "y": 0.8, "z": 0.8})
+        commands.extend(jug_commands)
         # Add a container.
         bowl_position = {"x": 1.2, "y": 0, "z": 0.25}
-        commands.extend(self._add_object("serving_bowl",
-                                         position=bowl_position,
-                                         rotation={"x": 0, "y": 30, "z": 0},
-                                         object_id=self.bowl_id,
-                                         scale={"x": 1.3, "y": 1, "z": 1.3}))
+        self.bowl_id, bowl_commands = self._add_object("serving_bowl",
+                                                       position=bowl_position,
+                                                       rotation={"x": 0, "y": 30, "z": 0},
+                                                       scale={"x": 1.3, "y": 1, "z": 1.3})
+        commands.extend(bowl_commands)
         return commands
 
     def run(self) -> None:

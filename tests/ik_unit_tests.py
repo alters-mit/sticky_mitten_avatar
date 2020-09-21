@@ -68,7 +68,6 @@ class IKUnitTests(StickyMittenAvatarController):
         Test: The avatar picks up the object. The avatar is at a non-origin position and rotation.
         """
 
-        o_id = self.get_unique_id()
         self.communicate([{"$type": "teleport_avatar_to",
                            "position": {"x": 1.1, "y": 0.0, "z": 1},
                            "avatar_id": self.id},
@@ -77,10 +76,10 @@ class IKUnitTests(StickyMittenAvatarController):
                            "axis": "yaw",
                            "is_world": True,
                            "avatar_id": self.id}])
-        self.communicate(self._add_object("jug05",
-                                          position={"x": 1.05, "y": 0, "z": 1.245},
-                                          object_id=o_id,
-                                          scale={"x": 0.8, "y": 0.8, "z": 0.8}))
+        o_id, jug_commands = self._add_object("jug05",
+                                              position={"x": 1.05, "y": 0, "z": 1.245},
+                                              scale={"x": 0.8, "y": 0.8, "z": 0.8})
+        self.communicate(jug_commands)
         result = self.grasp_object(object_id=o_id, arm=Arm.right)
         assert result == TaskStatus.success, result
 

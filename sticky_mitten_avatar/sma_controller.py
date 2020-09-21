@@ -9,7 +9,7 @@ from tdw.tdw_utils import TDWUtils
 from tdw.librarian import ModelLibrarian
 from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Raycast, CompositeObjects
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
-from tdw.object_init_data import AudioInitData
+from tdw.object_init_data import AudioInitData, TransformInitData
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD
@@ -112,6 +112,10 @@ class StickyMittenAvatarController(FloorplanController):
         self._lib_containers = ModelLibrarian(library=resource_filename(__name__, "metadata_libraries/containers.json"))
         # Cached core model library.
         self._lib_core = ModelLibrarian()
+        TransformInitData.LIBRARIES[self._lib_containers.library] = self._lib_containers
+        lib_container_contents = ModelLibrarian(library=resource_filename(__name__,
+                                                                          "metadata_libraries/container_contents.json"))
+        TransformInitData.LIBRARIES[lib_container_contents.library] = lib_container_contents
 
         # Cache the entities.
         self._avatar: Optional[Avatar] = None
@@ -188,7 +192,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         | `scene` | `layout` |
         | --- | --- |
-        | `"2a"`, `"2b"`, or `"2b"` | 0 |
+        | `"2a"`, `"2b"`, or `"2c"` | 0 |
 
         :param scene: The name of an interior floorplan scene. If None, the controller will load a simple empty room.
         :param layout: The furniture layout of the floorplan. If None, the controller will load a simple empty room.
@@ -252,7 +256,6 @@ class StickyMittenAvatarController(FloorplanController):
             object_id = segmentation_colors.get_object_id(i)
             # Add audio data for either the root object or a sub-object.
             if object_id in composite_object_audio:
-                print(object_id)
                 object_audio = composite_object_audio[object_id]
             else:
                 object_audio = self._audio_values[object_id]
@@ -340,7 +343,7 @@ class StickyMittenAvatarController(FloorplanController):
                               "axis": joint.axis,
                               "avatar_id": avatar_id}])
 
-        if self._demo == "unity":
+        if self._demo:
             commands.append({"$type": "add_audio_sensor",
                              "avatar_id": avatar_id})
 
@@ -403,48 +406,47 @@ class StickyMittenAvatarController(FloorplanController):
 
         return resp
 
-    def _add_object(self, model_name: str, object_id: int, position: Dict[str, float] = None,
-                    rotation: Dict[str, float] = None, library: str = "",
-                    scale: Dict[str, float] = None, audio: ObjectInfo = None) -> List[dict]:
+    def _add_object(self, model_name: str, position: Dict[str, float] = None,
+                    rotation: Dict[str, float] = None, library: str = "models_core.json",
+                    scale: Dict[str, float] = None, audio: ObjectInfo = None) -> Tuple[int, List[dict]]:
         """
         Add an object to the scene.
 
         :param model_name: The name of the model.
         :param position: The position of the model.
-        :param rotation: The starting rotation of the model, in Euler angles.
+        :param rotation: The starting rotation of the model. Can be Euler angles or a quaternion.
         :param library: The path to the records file. If left empty, the default library will be selected.
                         See `ModelLibrarian.get_library_filenames()` and `ModelLibrarian.get_default_library()`.
-        :param object_id: The ID of the new object.
         :param scale: The scale factor of the object. If None, the scale factor is (1, 1, 1)
         :param audio: Audio values for the object. If None, use default values.
 
-        :return: A list of commands to create the object.
+        :return: Tuple: The object ID; A list of commands to create the object.
         """
 
+        init_data = AudioInitData(name=model_name, position=position, rotation=rotation, scale_factor=scale,
+                                  audio=audio, library=library)
+        object_id, commands = init_data.get_commands()
         if audio is None:
             audio = self._default_audio_values[model_name]
         self._audio_values[object_id] = audio
 
-        init_data = AudioInitData(name=model_name, position=position, rotation=rotation, scale_factor=scale,
-                                  audio=audio, library=library)
-        return init_data.get_commands()[1]
+        return object_id, commands
 
-    def _add_container(self, model_name: str, object_id: int, contents: List[str], position: Dict[str, float] = None,
+    def _add_container(self, model_name: str, contents: List[str], position: Dict[str, float] = None,
                        rotation: Dict[str, float] = None, audio: ObjectInfo = None,
-                       scale: Dict[str, float] = None) -> List[dict]:
+                       scale: Dict[str, float] = None) -> Tuple[int, List[dict]]:
         """
         Add a container to the scene. A container is an object that can hold other objects in it.
         Containers must be from the "containers" library. See `get_container_records()`.
 
         :param model_name: The name of the container.
-        :param object_id: The ID of the container.
         :param contents: The model names of objects that will be put in the container. They will be assigned random positions and object IDs and default audio and physics values.
         :param position: The position of the container.
         :param rotation: The rotation of the container.
         :param audio: Audio values for the container. If None, use default values.
         :param scale: The scale of the container.
 
-        :return: A list of commands per object added: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode, set_physic_material]`
+        :return: Tuple: The object ID; A list of commands per object added: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode, set_physic_material]`
         """
 
         record = self._lib_containers.get_record(model_name)
@@ -454,8 +456,8 @@ class StickyMittenAvatarController(FloorplanController):
             position = {"x": 0, "y": 0, "z": 0}
 
         # Get commands to add the container.
-        commands = self._add_object(model_name=model_name, object_id=object_id, position=position, rotation=rotation,
-                                    library=self._lib_containers.library, audio=audio, scale=scale)
+        object_id, commands = self._add_object(model_name=model_name, position=position, rotation=rotation,
+                                               library=self._lib_containers.library, audio=audio, scale=scale)
         bounds = record.bounds
         # Get the radius in which objects can reasonably be placed.
         radius = (min(bounds['front']['z'] - bounds['back']['z'],
@@ -467,10 +469,9 @@ class StickyMittenAvatarController(FloorplanController):
                 center=TDWUtils.vector3_to_array(position),
                 radius=radius))
             o_pos["y"] = position["y"] + 0.01
-            commands.extend(self._add_object(model_name=obj.name, position=o_pos, audio=obj,
-                                             object_id=self.get_unique_id(), library=obj.library))
+            commands.extend(self._add_object(model_name=obj.name, position=o_pos, audio=obj, library=obj.library)[1])
         self.model_librarian = self._lib_core
-        return commands
+        return object_id, commands
 
     def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True,
                          check_if_possible: bool = True) -> TaskStatus:

@@ -11,9 +11,9 @@ class TurnTest(StickyMittenAvatarController):
         super().__init__(port=port, launch_build=launch_build)
         self.object_id = self.get_unique_id()
 
-    def _get_scene_init_commands(self) -> List[dict]:
+    def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
         commands = super()._get_scene_init_commands()
-        commands.extend(self._add_object("jug05", position={"x": 0.2, "y": 0, "z": -1.5}, object_id=self.object_id))
+        commands.extend(self._add_object("jug05", position={"x": 0.2, "y": 0, "z": -1.5})[1])
         return commands
 
 
