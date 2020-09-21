@@ -129,6 +129,8 @@ class StickyMittenAvatarController(FloorplanController):
             av = custom_audio_info[a]
             av.library = resource_filename(__name__, av.library)
             self._default_audio_values[a] = av
+            # Update the object init data audio dictionary.
+            AudioInitData.AUDIO[a] = av
 
         self._audio_values: Dict[int, ObjectInfo] = dict()
 
