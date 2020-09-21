@@ -65,16 +65,15 @@ class PutObjectInContainer(StickyMittenAvatarController):
                                          scale={"x": 1.3, "y": 1, "z": 1.3}))
         return commands
 
-    def _do_scene_init_late(self) -> None:
-        # Add a third-person camera.
-        self.add_overhead_camera({"x": -0.08, "y": 1.25, "z": 1.41}, target_object="a", images="cam")
-
     def run(self) -> None:
         """
         Run a single trial. Save images per frame.
         """
 
         self.init_scene()
+
+        # Add a third-person camera.
+        self.add_overhead_camera({"x": -0.08, "y": 1.25, "z": 1.41}, target_object="a", images="cam")
 
         # Pick up the object.
         self.grasp_object(object_id=self.o_id, arm=Arm.left)

@@ -16,7 +16,7 @@ class BoxRoomContainers(StickyMittenAvatarController):
         self.container_0 = self.get_unique_id()
         self.container_1 = self.get_unique_id()
 
-    def _get_scene_init_commands(self) -> List[dict]:
+    def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
         # Load the scene.
         commands = [self.get_add_scene(scene_name="box_room_2018")]
         # Add objects.
@@ -92,7 +92,12 @@ class BoxRoomContainers(StickyMittenAvatarController):
                           "frames": 300}])
         return commands
 
-    def _do_scene_init_late(self) -> None:
+    def _init_avatar(self) -> None:
+        self._create_avatar(avatar_id=self.avatar_id,
+                            rotation=-15,
+                            position={"x": 1.385, "y": 0, "z": -0.95})
+
+        # Add a 3rd-person camera.
         cam_id = "c"
         self.add_overhead_camera(position={"x": 2.315, "y": 1.6, "z": -0.474},
                                  target_object=self.avatar_id,
@@ -101,8 +106,3 @@ class BoxRoomContainers(StickyMittenAvatarController):
         self.communicate({"$type": "set_field_of_view",
                           "field_of_view": 60.0,
                           "avatar_id": cam_id})
-
-    def _init_avatar(self) -> None:
-        self._create_avatar(avatar_id=self.avatar_id,
-                            rotation=-15,
-                            position={"x": 1.385, "y": 0, "z": -0.95})
