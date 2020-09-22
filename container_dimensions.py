@@ -57,6 +57,7 @@ if __name__ == "__main__":
     container_dimensions["shoebox_fused"] = {"y": 0.01, "r": 0.07225619999999999}
 
     # Write to disk.
-    Path("sticky_mitten_avatar/container_dimensions.json").write_text(dumps(container_dimensions, indent=2,
-                                                                            sort_keys=True))
+    Path("sticky_mitten_avatar/metadata_libraries/container_dimensions.json").write_text(dumps(container_dimensions,
+                                                                                               indent=2,
+                                                                                               sort_keys=True))
     print("Done!")

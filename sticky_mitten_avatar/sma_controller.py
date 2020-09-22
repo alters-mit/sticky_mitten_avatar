@@ -110,6 +110,9 @@ class StickyMittenAvatarController(FloorplanController):
 
         # The containers library.
         self._lib_containers = ModelLibrarian(library=resource_filename(__name__, "metadata_libraries/containers.json"))
+        # Get the container dimensions.
+        self._container_dimensions = loads(Path(resource_filename(__name__, "metadata_libraries/container_dimensions.json")).
+                                           read_text(encoding="utf-8"))
         # Cached core model library.
         self._lib_core = ModelLibrarian()
         TransformInitData.LIBRARIES[self._lib_containers.library] = self._lib_containers
@@ -185,7 +188,7 @@ class StickyMittenAvatarController(FloorplanController):
         from sticky_mitten_avatar import StickyMittenAvatarController
 
         c = StickyMittenAvatarController()
-        c.init_scene(scene="floorplan_2b", layout=0)
+        c.init_scene(scene="2b", layout=0)
         ```
 
         Valid scenes and layouts:
@@ -458,17 +461,17 @@ class StickyMittenAvatarController(FloorplanController):
         # Get commands to add the container.
         object_id, commands = self._add_object(model_name=model_name, position=position, rotation=rotation,
                                                library=self._lib_containers.library, audio=audio, scale=scale)
-        bounds = record.bounds
-        # Get the radius in which objects can reasonably be placed.
-        radius = (min(bounds['front']['z'] - bounds['back']['z'],
-                      bounds['right']['x'] - bounds['left']['x']) / 2 * record.scale_factor) - 0.03
+
+        # Get the radius and y value of the base of the container.
+        radius = self._container_dimensions[model_name]["r"]
+        y = self._container_dimensions[model_name]["y"]
         # Add small objects.
         for obj_name in contents:
             obj = self._default_audio_values[obj_name]
             o_pos = TDWUtils.array_to_vector3(TDWUtils.get_random_point_in_circle(
                 center=TDWUtils.vector3_to_array(position),
                 radius=radius))
-            o_pos["y"] = position["y"] + 0.01
+            o_pos["y"] = position["y"] + y
             commands.extend(self._add_object(model_name=obj.name, position=o_pos, audio=obj, library=obj.library)[1])
         self.model_librarian = self._lib_core
         return object_id, commands
