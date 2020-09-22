@@ -53,7 +53,7 @@ if __name__ == "__main__":
                                    "destination": {"x": x, "y": 0, "z": 0}}])
             raycast = Raycast(resp[0])
             # If the raycast didn't hit, we got the approximate radius.
-            if raycast.get_point()[1] < y:
+            if not raycast.get_hit_object():
                 done_raycasting = True
                 container_dimensions[model_name] = {"y": y, "r": x * 0.9}
             # Move the raycast.

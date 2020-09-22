@@ -260,8 +260,10 @@ class StickyMittenAvatarController(FloorplanController):
             # Add audio data for either the root object or a sub-object.
             if object_id in composite_object_audio:
                 object_audio = composite_object_audio[object_id]
-            else:
+            elif object_id in self._audio_values:
                 object_audio = self._audio_values[object_id]
+            else:
+                object_audio = self._default_audio_values[segmentation_colors.get_object_name(i).lower()]
 
             static_object = StaticObjectInfo(index=i,
                                              segmentation_colors=segmentation_colors,
