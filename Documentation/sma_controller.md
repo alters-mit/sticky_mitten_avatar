@@ -110,12 +110,12 @@ Set the `scene` and `layout` parameters in `init_scene()` to load an interior sc
 ```python
 from sticky_mitten_avatar import StickyMittenAvatarController
 c = StickyMittenAvatarController()
-c.init_scene(scene="floorplan_2b", layout=0)
+c.init_scene(scene="2b", layout=0)
 ```
 Valid scenes and layouts:
 | `scene` | `layout` |
 | --- | --- |
-| `"2a"`, `"2b"`, or `"2b"` | 0 |
+| `"2a"`, `"2b"`, or `"2c"` | 0 |
 
 | Parameter | Description |
 | --- | --- |

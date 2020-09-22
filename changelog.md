@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.4.1
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Fixed: Floorplan objects don't gather audio correctly.
+  - Fixed: Missing audio values for some objects.
+
+### Backend
+
+- `StickyMittenAvatarController`:
+  - Place objects in containers using cached dimensions data.
+- Added: `container_dimensions.py` Calculate container dimensions.
+- Added: `container_dimensions.json` Cached container dimensions.
+- Added more containers to `containers.json` library.
+
 ## 0.4.0
 
 ### Frontend
