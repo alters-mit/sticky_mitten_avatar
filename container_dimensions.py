@@ -10,7 +10,6 @@ Get the dimensions of a container without a lid (e.g. a basket) by adding the ob
 Record these values in a json file.
 """
 
-
 if __name__ == "__main__":
     model_names = ['basket_18inx18inx12iin', 'basket_18inx18inx12iin_bamboo', 'basket_18inx18inx12iin_plastic_lattice',
                    'basket_18inx18inx12iin_wicker', 'basket_18inx18inx12iin_wood_mesh', 'box_18inx18inx12in_cardboard',
