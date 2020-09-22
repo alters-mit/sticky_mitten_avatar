@@ -55,7 +55,7 @@
             "flex": true,
             "name": "basket_18inx18inx12iin",
             "physics_quality": 0.9971961265355677,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -126,7 +126,7 @@
             "flex": true,
             "name": "basket_18inx18inx12iin_bamboo",
             "physics_quality": 0.9971961265355677,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -197,7 +197,7 @@
             "flex": true,
             "name": "basket_18inx18inx12iin_plastic_lattice",
             "physics_quality": 0.9971961265355677,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -268,7 +268,7 @@
             "flex": true,
             "name": "basket_18inx18inx12iin_wicker",
             "physics_quality": 0.9971961265355677,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -339,7 +339,7 @@
             "flex": true,
             "name": "basket_18inx18inx12iin_wood_mesh",
             "physics_quality": 0.9971961265355677,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -410,7 +410,7 @@
             "flex": true,
             "name": "box_18inx18inx12in_cardboard",
             "physics_quality": 0.9999440528009113,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -481,7 +481,7 @@
             "flex": true,
             "name": "box_24inx18inx12in_cherry",
             "physics_quality": 0.9935789364076434,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -552,7 +552,7 @@
             "flex": true,
             "name": "box_tapered_beech",
             "physics_quality": 0.9847817393120987,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -623,7 +623,7 @@
             "flex": true,
             "name": "box_tapered_white_mesh",
             "physics_quality": 0.9847817393120987,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -694,7 +694,7 @@
             "flex": true,
             "name": "round_bowl_large_metal_perf",
             "physics_quality": 0.9475819909865923,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -765,7 +765,7 @@
             "flex": true,
             "name": "round_bowl_large_padauk",
             "physics_quality": 0.9475819909865923,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -836,7 +836,7 @@
             "flex": true,
             "name": "round_bowl_large_thin",
             "physics_quality": 0.9381184350855983,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -907,7 +907,7 @@
             "flex": true,
             "name": "round_bowl_small_beech",
             "physics_quality": 0.968201836217811,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -978,7 +978,7 @@
             "flex": true,
             "name": "round_bowl_small_walnut",
             "physics_quality": 0.968201836217811,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -1049,7 +1049,7 @@
             "flex": true,
             "name": "round_bowl_talll_wenge",
             "physics_quality": 0.9607712383774648,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -1120,7 +1120,7 @@
             "flex": true,
             "name": "shallow_basket_white_mesh",
             "physics_quality": 0.9969252961227338,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [
@@ -1191,7 +1191,7 @@
             "flex": true,
             "name": "shallow_basket_wicker",
             "physics_quality": 0.9969252961227338,
-            "scale_factor": 1,
+            "scale_factor": 0.5,
             "substructure": [
                 {
                     "materials": [

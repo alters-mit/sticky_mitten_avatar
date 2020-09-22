@@ -3,6 +3,7 @@ from pathlib import Path
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
 from tdw.output_data import Raycast
+from tdw.librarian import ModelLibrarian
 
 
 """
@@ -21,12 +22,20 @@ if __name__ == "__main__":
     c = Controller()
     c.start()
     c.communicate(TDWUtils.create_empty_room(12, 12))
+    c.model_librarian = ModelLibrarian()
 
     container_dimensions = dict()
 
     for model_name in model_names:
+        record = c.model_librarian.get_record(model_name)
         # Add the object and raycast down to it.
-        resp = c.communicate([c.get_add_object(model_name=model_name, object_id=0),
+        # Set the scale to half.
+        resp = c.communicate([{"$type": "add_object",
+                               "name": model_name,
+                               "url": record.get_url(),
+                               "scale_factor": 0.5,
+                               "category": record.wcategory,
+                               "id": 0},
                               {"$type": "send_raycast",
                                "origin": {"x": 0, "y": 100, "z": 0},
                                "destination": {"x": 0, "y": 0, "z": 0}}])
