@@ -195,7 +195,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         | `scene` | `layout` |
         | --- | --- |
-        | `"2a"`, `"2b"`, or `"2c"` | 0 |
+        | 2a, 2b, or 2c | 0, 1, or 2 |
 
         :param scene: The name of an interior floorplan scene. If None, the controller will load a simple empty room.
         :param layout: The furniture layout of the floorplan. If None, the controller will load a simple empty room.

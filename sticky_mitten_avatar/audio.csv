@@ -2,7 +2,3 @@ name,amp,mass,material,library,bounciness
 shoebox_fused,0.03,0.1,hardwood,metadata_libraries/containers.json,0.2
 sphere,0.2,0.08,cardboard,metadata_libraries/container_contents.json,0.4
 cone,0.01,0.08,metal,metadata_libraries/container_contents.json,0.4
-ligne_roset_armchair,0.1,20,wood,models_core.json,0.6
-white_shopping_bag,0.01,1,cardboard,models_core.json,0.2
-sink_base_white_wood,0.01,70,wood,models_core.json,0.58
-spatula2,1,0.13,cardboard,models_full.json,0.7

@@ -115,7 +115,7 @@ c.init_scene(scene="2b", layout=0)
 Valid scenes and layouts:
 | `scene` | `layout` |
 | --- | --- |
-| `"2a"`, `"2b"`, or `"2c"` | 0 |
+| 2a, 2b, or 2c | 0, 1, or 2 |
 
 | Parameter | Description |
 | --- | --- |

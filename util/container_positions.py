@@ -13,7 +13,7 @@ if __name__ == "__main__":
     scenes = dict()
     for scene in ["2"]:
         scenes[scene] = dict()
-        for layout in [0]:
+        for layout in [0, 1, 2]:
             print(scene, layout)
             # Load the scene and layout.
             commands = c.get_scene_init_commands(scene=scene + "a", layout=layout, audio=False)
