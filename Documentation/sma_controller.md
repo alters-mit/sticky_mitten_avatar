@@ -84,7 +84,7 @@ for body_part_id in c.static_avatar_data:
 
 #### \_\_init\_\_
 
-**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False)`**
+**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True)`**
 
 
 | Parameter | Description |
@@ -92,6 +92,7 @@ for body_part_id in c.static_avatar_data:
 | port | The port number. |
 | launch_build | If True, automatically launch the build. |
 | demo | If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step. |
+| id_pass | If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run approximately 30% slower. |
 
 ***
 

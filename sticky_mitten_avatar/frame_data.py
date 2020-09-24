@@ -228,6 +228,7 @@ class FrameData:
                 other_id = collidee_id
                 other_amp = collidee_info.amp
                 other_mat = collider_info.material.name
+                resonance = collider_info.resonance
             else:
                 target_id = collidee_id
                 target_amp = collidee_info.amp
@@ -235,8 +236,10 @@ class FrameData:
                 other_id = collider_id
                 other_amp = collider_info.amp
                 other_mat = collider_info.material.name
+                resonance = collidee_info.resonance
             rel_amp = other_amp / target_amp
-            audio = FrameData._P.get_sound(coll, rigidbodies, other_id, other_mat, target_id, target_mat, rel_amp)
+            audio = FrameData._P.get_sound(coll, rigidbodies, other_id, other_mat, target_id, target_mat, rel_amp,
+                                           resonance=resonance)
             self.audio.append((audio, target_id))
         # Get the audio of each environment collision.
         for coll in env_collisions:
@@ -247,7 +250,7 @@ class FrameData:
             if (v is not None) and (v > 0):
                 collider_info = objects[collider_id].audio
                 audio = FrameData._P.get_sound(coll, rigidbodies, 1, FrameData._SURFACE_MATERIAL.name, collider_id,
-                                               collider_info.material.name, 0.01)
+                                               collider_info.material.name, 0.01, collider_info.resonance)
                 self.audio.append((audio, collider_id))
         # Get the image data.
         self.id_pass: Optional[np.array] = None

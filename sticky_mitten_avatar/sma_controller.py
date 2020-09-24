@@ -101,12 +101,15 @@ class StickyMittenAvatarController(FloorplanController):
     # A high drag value to stop movement.
     _STOP_DRAG = 1000
 
-    def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False):
+    def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
         :param demo: If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step.
+        :param id_pass: If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run approximately 30% slower.
         """
+
+        self._id_pass = id_pass
 
         # The containers library.
         self._lib_containers = ModelLibrarian(library=resource_filename(__name__, "metadata_libraries/containers.json"))
@@ -296,6 +299,11 @@ class StickyMittenAvatarController(FloorplanController):
         commands = TDWUtils.create_avatar(avatar_type=avatar_type,
                                           avatar_id=avatar_id,
                                           position=position)[:]
+
+        if self._id_pass:
+            pass_masks = ["_img", "_id", "_depth_simple"]
+        else:
+            pass_masks = ["_img", "_depth_simple"]
         # Rotate the avatar.
         # Request segmentation colors, body part names, and dynamic avatar data.
         # Turn off the follow camera.
@@ -319,7 +327,7 @@ class StickyMittenAvatarController(FloorplanController):
                           "angular_drag": self._STOP_DRAG,
                           "avatar_id": avatar_id},
                          {"$type": "set_pass_masks",
-                          "pass_masks": ["_img", "_id", "_depth_simple"],
+                          "pass_masks": pass_masks,
                           "avatar_id": avatar_id},
                          {"$type": "send_images",
                           "frequency": "always"},

@@ -6,6 +6,7 @@
 
 - `StickyMittenAvatarController`:
   - For scenes `2a`, `2b`, and `2c`, added layouts `1` and `2`
+  - Added optional parameter `id_pass` to the constructor.
 - `StaticObjectInfo`:
   - Added: `container` True if this object is a container.
 
