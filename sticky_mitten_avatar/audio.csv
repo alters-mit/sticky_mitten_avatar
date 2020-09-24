@@ -1,4 +1,4 @@
-name,amp,mass,material,library,bounciness
-shoebox_fused,0.03,0.1,hardwood,metadata_libraries/containers.json,0.2
-sphere,0.2,0.08,cardboard,metadata_libraries/container_contents.json,0.4
-cone,0.01,0.08,metal,metadata_libraries/container_contents.json,0.4
+name,amp,mass,material,library,bounciness,resonance
+shoebox_fused,0.03,0.1,hardwood,metadata_libraries/containers.json,0.2,0.5
+sphere,0.2,0.08,cardboard,metadata_libraries/container_contents.json,0.4,0.5
+cone,0.01,0.08,metal,metadata_libraries/container_contents.json,0.4,0.5

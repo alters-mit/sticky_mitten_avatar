@@ -26,4 +26,4 @@ class BodyPartStatic:
         self.color = color
         self.name = name
         self.audio = ObjectInfo(name=self.name, amp=0.01, mass=mass, material=AudioMaterial.ceramic, library="",
-                                bounciness=0.1)
+                                bounciness=0.1, resonance=0.5)
