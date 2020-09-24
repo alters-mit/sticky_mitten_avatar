@@ -254,7 +254,8 @@ class StickyMittenAvatarController(FloorplanController):
                     mass=composite_object_data[sub_object_name]["mass"],
                     bounciness=composite_object_data[sub_object_name]["bounciness"],
                     library=composite_object_data[sub_object_name]["library"],
-                    material=AudioMaterial[composite_object_data[sub_object_name]["material"]])
+                    material=AudioMaterial[composite_object_data[sub_object_name]["material"]],
+                    resonance=composite_object_data[sub_object_name]["resonance"])
 
         # Cache the static object data.
         rigidbodies = get_data(resp=resp, d_type=Rigidbodies)

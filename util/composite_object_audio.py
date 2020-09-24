@@ -43,7 +43,8 @@ if __name__ == "__main__":
                                                  "material": "wood",
                                                  "bounciness": 0,
                                                  "library": "",
-                                                 "machine": machine}
+                                                 "machine": machine,
+                                                 "resonance": 0}
     # Add the data.
     p = Path("../sticky_mitten_avatar/composite_object_audio.json")
     data = json.loads(p.read_text(encoding="utf-8"))
