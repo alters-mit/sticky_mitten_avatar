@@ -13,6 +13,9 @@
 
 ### Backend
 
+- `Avatar`:
+  - `can_bend_to()` tests whether each link in the joint chain will be too close to the avatar.
+  - Added: `base_id` The ID of the avatar's root object.
 - Moved utility scripts to `util/`
 - Added: `container_positions.py` Log valid positions for containers.
 

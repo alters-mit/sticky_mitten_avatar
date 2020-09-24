@@ -798,10 +798,8 @@ class StickyMittenAvatarController(FloorplanController):
                             if collidee_mass >= 90:
                                 return TaskStatus.collided_with_something_heavy
                 # If the avatar's body collided with the environment (e.g. a wall), stop movement.
-                for body_part_id in self._avatar.env_collisions:
-                    name = self._avatar.body_parts_static[body_part_id].name
-                    if name.startswith("A_StickyMitten"):
-                        return TaskStatus.collided_with_environment
+                for self._avatar.base_id in self._avatar.env_collisions:
+                    return TaskStatus.collided_with_environment
 
             p = np.array(self._avatar.frame.get_position())
             d_from_initial = np.linalg.norm(initial_position - p)

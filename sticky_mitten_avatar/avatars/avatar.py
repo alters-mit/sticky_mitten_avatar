@@ -124,15 +124,20 @@ class Avatar(ABC):
 
         # Cache static data of body parts.
         self.body_parts_static: Dict[int, BodyPartStatic] = dict()
+        self.base_id = 0
         for i in range(smsc.get_num_body_parts()):
             body_part_id = smsc.get_body_part_id(i)
             if body_part_id in body_part_masses:
                 mass = body_part_masses[body_part_id]
             else:
                 mass = 0.1
+            name = smsc.get_body_part_name(i)
+            # Cache the base ID.
+            if name.startswith("A_StickyMitten"):
+                self.base_id = body_part_id
             bps = BodyPartStatic(object_id=body_part_id,
                                  color=smsc.get_body_part_segmentation_color(i),
-                                 name=smsc.get_body_part_name(i),
+                                 name=name,
                                  mass=mass)
             self.body_parts_static[body_part_id] = bps
 
@@ -170,6 +175,15 @@ class Avatar(ABC):
             (node, orientation) = geometry.from_transformation_matrix(transformation_matrixes[index])
             nodes.append(node)
         destination = np.array(nodes[-1][:-1])
+
+        # Check if any node is likely to enter the body.
+        for node, link in zip(nodes[4:], chain.links[4:]):
+            d = np.linalg.norm(np.array([node[0], node[2]]))
+            # If this is a short distance and the node is below head-level, then this is likely to intersect.
+            if d < 0.1 and node[1] < 1:
+                if self._debug:
+                    print(f"Target {target} is too close to the avatar: {d}, {node}, {link.name}")
+                return TaskStatus.too_close_to_reach
 
         d = np.linalg.norm(destination - target)
         if d > 0.125:
