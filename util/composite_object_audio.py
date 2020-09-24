@@ -45,7 +45,7 @@ if __name__ == "__main__":
                                                  "library": "",
                                                  "machine": machine}
     # Add the data.
-    p = Path("sticky_mitten_avatar/composite_object_audio.json")
+    p = Path("../sticky_mitten_avatar/composite_object_audio.json")
     data = json.loads(p.read_text(encoding="utf-8"))
     data[args.model] = sub_objects
     p.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")

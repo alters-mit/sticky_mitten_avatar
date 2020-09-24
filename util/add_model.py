@@ -21,7 +21,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Load the local library.
-    root_dest = Path.home().joinpath("sticky_mitten_avatar/sticky_mitten_avatar")
+    root_dest = Path.home().joinpath("../sticky_mitten_avatar/sticky_mitten_avatar")
     lib_path = str(root_dest.joinpath(f"metadata_libraries/{args.lib}.json").resolve())
     lib = ModelLibrarian(library=lib_path)
 

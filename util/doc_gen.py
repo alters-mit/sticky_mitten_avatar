@@ -1,6 +1,7 @@
 from pathlib import Path
 import re
 from typing import List, Dict
+from os import chdir
 
 
 class PyDocGen:
@@ -223,5 +224,6 @@ class PyDocGen:
 
 
 if __name__ == "__main__":
+    chdir(str(Path("..").resolve()))
     # Test documentation URLs.
     PyDocGen.generate()

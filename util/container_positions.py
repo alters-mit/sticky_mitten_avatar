@@ -10,6 +10,8 @@ Get all flat surfaces in a floorplan+layout that a container can be based on and
 
 if __name__ == "__main__":
     c = FloorplanController(launch_build=False)
+    # This is the minimum size of a surface.
+    r = 0.2
     scenes = dict()
     for scene in ["2"]:
         scenes[scene] = dict()
@@ -21,8 +23,6 @@ if __name__ == "__main__":
             commands.append({"$type": "send_environments"})
             resp = c.communicate(commands)
             env = Environments(resp[0])
-            # This is the minimum size of a surface.
-            r = 0.1
             positions = []
             # Iterate through each room.
             for i in range(env.get_num()):
@@ -48,10 +48,11 @@ if __name__ == "__main__":
                         # 1. The spherecast hit something.
                         # 2. There is a low variance between y values (implying a flat surface).
                         # 3. The surface isn't too high up.
-                        if len(ys) > 0 and np.var(np.array(ys)) < 0.1 and y <= 0.6:
+                        if len(ys) > 0 and np.var(np.array(ys)) < 0.1 and y <= 0.3:
                             positions.append({"x": x, "y": y, "z": z})
                         z += r * 2
                     x += r * 2
             scenes[scene][str(layout)] = positions
+            print(scenes)
     c.communicate({"$type": "terminate"})
-    Path("../sticky_mitten_avatar/metadata_libraries/container_positions.json").write_text(dumps(scenes))
+    Path("container_positions.json").write_text(dumps(scenes))
