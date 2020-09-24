@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.2
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - For scenes `2a`, `2b`, and `2c`, added layouts `1` and `2`
+
+### Backend
+
+- Moved utility scripts to `util/`
+- Added: `container_positions.py` Log valid positions for containers.
+
 ## 0.4.1
 
 ### Frontend
