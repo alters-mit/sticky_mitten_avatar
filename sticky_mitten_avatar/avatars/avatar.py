@@ -125,6 +125,7 @@ class Avatar(ABC):
         # Cache static data of body parts.
         self.body_parts_static: Dict[int, BodyPartStatic] = dict()
         self.base_id = 0
+        self.mitten_ids: Dict[Arm, int] = dict()
         for i in range(smsc.get_num_body_parts()):
             body_part_id = smsc.get_body_part_id(i)
             if body_part_id in body_part_masses:
@@ -132,9 +133,13 @@ class Avatar(ABC):
             else:
                 mass = 0.1
             name = smsc.get_body_part_name(i)
-            # Cache the base ID.
+            # Cache the base ID and the mitten IDs.
             if name.startswith("A_StickyMitten"):
                 self.base_id = body_part_id
+            elif name == "mitten_left":
+                self.mitten_ids[Arm.left] = body_part_id
+            elif name == "mitten_right":
+                self.mitten_ids[Arm.right] = body_part_id
             bps = BodyPartStatic(object_id=body_part_id,
                                  color=smsc.get_body_part_segmentation_color(i),
                                  name=name,

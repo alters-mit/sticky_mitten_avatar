@@ -1111,11 +1111,7 @@ class StickyMittenAvatarController(FloorplanController):
         p = target + np.array(self._avatar.frame.get_forward()) * 1.1
         self.reach_for_target(target=TDWUtils.array_to_vector3(p), arm=arm, check_if_possible=False, do_motion=False)
         # Get the mitten ID.
-        mitten_id = 0
-        for o_id in self._avatar.body_parts_static:
-            if self._avatar.body_parts_static[o_id].name == f"mitten_{arm.name}":
-                mitten_id = o_id
-                break
+        mitten_id = self._avatar.mitten_ids[arm]
         # Let the arm bend until the mitten collides with the object.
         mitten_collision = False
         count = 0
