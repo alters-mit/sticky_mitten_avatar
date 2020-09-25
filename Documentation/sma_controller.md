@@ -144,7 +144,7 @@ _Returns:_  The response from the build.
 
 #### reach_for_target
 
-**`def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, check_if_possible: bool = True) -> TaskStatus`**
+**`def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, check_if_possible: bool = True, stop_on_mitten_collision: bool = True) -> TaskStatus`**
 
 Bend an arm joints of an avatar to reach for a target position.
 Possible [return values](task_status.md):
@@ -153,12 +153,14 @@ Possible [return values](task_status.md):
 - `too_far_to_reach`
 - `behind_avatar`
 - `no_longer_bending`
+- `mitten_collision` (If `stop_if_mitten_collision == True`)
 
 | Parameter | Description |
 | --- | --- |
 | arm | The arm (left or right). |
 | target | The target position for the mitten relative to the avatar. |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
+| stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object other than the target object. |
 | check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
@@ -167,7 +169,7 @@ _Returns:_  A `TaskStatus` indicating whether the avatar can reach the target an
 
 #### grasp_object
 
-**`def grasp_object(self, object_id: int, arm: Arm, do_motion: bool = True, check_if_possible: bool = True) -> TaskStatus`**
+**`def grasp_object(self, object_id: int, arm: Arm, do_motion: bool = True, check_if_possible: bool = True, stop_on_mitten_collision: bool = True) -> TaskStatus`**
 
 The avatar's arm will reach for the object. Per frame, the arm's mitten will try to "grasp" the object.
 A grasped object is attached to the avatar's mitten and its ID will be in [`FrameData.held_objects`](frame_data.md). There may be some empty space between a mitten and a grasped object.
@@ -180,12 +182,14 @@ Possible [return values](task_status.md):
 - `no_longer_bending`
 - `failed_to_pick_up`
 - `bad_raycast`
+- `mitten_collision` (If `stop_if_mitten_collision == True`)
 
 | Parameter | Description |
 | --- | --- |
 | object_id | The ID of the target object. |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
 | arm | The arm of the mitten that will try to grasp the object. |
+| stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object. |
 | check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar picked up the object and if not, why.

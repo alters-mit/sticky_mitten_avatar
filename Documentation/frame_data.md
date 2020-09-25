@@ -35,7 +35,7 @@ c.end()
 
  ![](images/pass_masks/img_0.jpg)
 
-- `id_pass` Image pass of object color segmentation as a numpy array.
+- `id_pass` Image pass of object color segmentation as a numpy array. If `id_pass == False` in the `StickyMittenAvatarController` constructor, this will be None.
 
  ![](images/pass_masks/id_0.png)
 

@@ -30,13 +30,14 @@ Otherwise, the avatar may have tried moving, turning, bending an arm, etc. befor
 | `too_far_to_reach` | The avatar didn't try to reach for the target because it's too far away. |
 | `behind_avatar` | The avatar didn't try to reach for the target because it's behind the avatar. |
 | `no_longer_bending` | The avatar tried to reach the target, but failed; the arm is no longer bending. |
-| `failed_to_pick_up` | The avatar bended its arm to reach for the object, but failed to pick it up. |
+| `failed_to_pick_up` | The avatar bent its arm to reach for the object, but failed to pick it up. |
 | `too_long` | The avatar stopped turning or moving because it tried for too many (>= 200) frames. |
 | `overshot` | The avatar stopped moving because it overshot the target. |
 | `collided_with_something_heavy` | The avatar stopped moving because collided with something heavy (mass > 90). |
 | `collided_with_environment` | The avatar stopped moving because it collided with the environment, e.g. a wall. |
 | `bad_raycast` | The avatar tried to cast array to the object but the ray was obstructed. |
 | `failed_to_tap` | The avatar tried to tap the object but the mitten never collided with it. |
+| `mitten_collision` | The avatar bent its arm but stopped part-way because the mitten collided with an object. |
 
 ***
 

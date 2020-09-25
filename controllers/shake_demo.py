@@ -111,7 +111,7 @@ if __name__ == "__main__":
     c.go_to(target=c.container_0, move_stopping_threshold=0.7)
     c.turn_to(target=c.container_0)
     c.grasp_object(object_id=c.container_0, arm=Arm.left, stop_on_mitten_collision=False)
-    
+
     # Put the container on the sofa.
     c.go_to(target={"x": 1.721, "y": 0, "z": -1.847}, turn_stopping_threshold=2, move_stopping_threshold=0.2)
     c.turn_to(target={"x": 2.024, "y": 0.46, "z": -2.399})
