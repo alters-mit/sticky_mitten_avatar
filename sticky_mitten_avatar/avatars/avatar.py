@@ -47,11 +47,15 @@ class _IKGoal:
     The goal of an IK action.
     """
 
-    def __init__(self, target: Union[np.array, list, None], pick_up_id: int = None):
+    def __init__(self, target: Union[np.array, list, None], pick_up_id: int = None,
+                 stop_on_mitten_collision: bool = False):
         """
         :param pick_up_id: If not None, the ID of the object to pick up.
         :param target: The target position of the mitten.
+        :param stop_on_mitten_collision: If True, stop moving if the mitten collides with anything.
         """
+
+        self.stop_on_mitten_collision = stop_on_mitten_collision
 
         self.pick_up_id = pick_up_id
         if target is not None and isinstance(target, list):
@@ -197,13 +201,15 @@ class Avatar(ABC):
             return TaskStatus.too_far_to_reach
         return TaskStatus.success
 
-    def reach_for_target(self, arm: Arm, target: np.array, target_orientation: np.array = None) -> List[dict]:
+    def reach_for_target(self, arm: Arm, target: np.array, stop_on_mitten_collision: bool,
+                         target_orientation: np.array = None) -> List[dict]:
         """
         Get an IK solution to move a mitten to a target position.
 
         :param arm: The arm (left or right).
         :param target: The target position for the mitten.
         :param target_orientation: Target IK orientation. Usually you should leave this as None (the default).
+        :param stop_on_mitten_collision: If true, stop moving when the mitten collides with something.
 
         :return: A list of commands to begin bending the arm.
         """
@@ -214,7 +220,7 @@ class Avatar(ABC):
         angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
         target = rotate_point_around(point=ik_target, angle=angle) + self.frame.get_position()
 
-        self._ik_goals[arm] = _IKGoal(target=target)
+        self._ik_goals[arm] = _IKGoal(target=target, stop_on_mitten_collision=stop_on_mitten_collision)
 
         commands = []
         if self._debug:
@@ -249,13 +255,14 @@ class Avatar(ABC):
                               "avatar_id": self.id}])
         return commands
 
-    def grasp_object(self, object_id: int, target: np.array, arm: Arm) -> List[dict]:
+    def grasp_object(self, object_id: int, target: np.array, arm: Arm, stop_on_mitten_collision: bool) -> List[dict]:
         """
         Begin to try to grasp an object with a mitten. Get an IK solution to a target position.
 
         :param object_id: The ID of the target object.
         :param target: Target position to for the IK solution.
         :param arm: The arm that will try to grasp the object.
+        :param stop_on_mitten_collision: If true, stop moving when the mitten collides with something.
 
         :return: A list of commands.
         """
@@ -270,7 +277,8 @@ class Avatar(ABC):
 
         target = self.get_rotated_target(target=target)
 
-        commands = self.reach_for_target(arm=arm, target=target, target_orientation=target_orientation)
+        commands = self.reach_for_target(arm=arm, target=target, target_orientation=target_orientation,
+                                         stop_on_mitten_collision=stop_on_mitten_collision)
         self._ik_goals[arm].pick_up_id = object_id
         return commands
 
@@ -297,6 +305,20 @@ class Avatar(ABC):
                 coll = Collision(resp[i])
                 collider_id = coll.get_collider_id()
                 collidee_id = coll.get_collidee_id()
+                # Check if this was a mitten, if we're supposed to stop if there's a collision,
+                # and if the collision was not with the target.
+                for arm in self._ik_goals:
+                    if self._ik_goals[arm] is not None:
+                        if (collider_id == self.mitten_ids[arm] or collidee_id == self.mitten_ids[arm]) and \
+                                self._ik_goals[arm].stop_on_mitten_collision and \
+                                (self._ik_goals[arm].target is None or
+                                 (self._ik_goals[arm].pick_up_id != collidee_id and
+                                  self._ik_goals[arm].pick_up_id != collider_id)):
+                            self.status = TaskStatus.mitten_collision
+                            self._ik_goals[arm] = None
+                            if self._debug:
+                                print("Stopping because the mitten collided with something.")
+                            return []
                 # Check if the collision includes a body part.
                 if collider_id in self.body_parts_static and collidee_id not in self.body_parts_static:
                     if collider_id not in self.collisions:

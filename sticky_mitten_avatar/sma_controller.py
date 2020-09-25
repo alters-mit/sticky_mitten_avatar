@@ -488,7 +488,7 @@ class StickyMittenAvatarController(FloorplanController):
         return object_id, commands
 
     def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True,
-                         check_if_possible: bool = True) -> TaskStatus:
+                         check_if_possible: bool = True, stop_on_mitten_collision: bool = True) -> TaskStatus:
         """
         Bend an arm joints of an avatar to reach for a target position.
 
@@ -499,10 +499,12 @@ class StickyMittenAvatarController(FloorplanController):
         - `too_far_to_reach`
         - `behind_avatar`
         - `no_longer_bending`
+        - `mitten_collision` (If `stop_if_mitten_collision == True`)
 
         :param arm: The arm (left or right).
         :param target: The target position for the mitten relative to the avatar.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
+        :param stop_on_mitten_collision: If true, the arm will stop bending if the mitten collides with an object.
         :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
 
         :return: A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
@@ -518,13 +520,15 @@ class StickyMittenAvatarController(FloorplanController):
             if status != TaskStatus.success:
                 return status
 
-        self._avatar_commands.extend(self._avatar.reach_for_target(arm=arm, target=target))
+        self._avatar_commands.extend(self._avatar.reach_for_target(arm=arm, target=target,
+                                                                   stop_on_mitten_collision=stop_on_mitten_collision))
         self._avatar.status = TaskStatus.ongoing
         if do_motion:
             self._do_joint_motion()
         return self._get_avatar_status()
 
-    def grasp_object(self, object_id: int, arm: Arm, do_motion: bool = True, check_if_possible: bool = True) -> TaskStatus:
+    def grasp_object(self, object_id: int, arm: Arm, do_motion: bool = True, check_if_possible: bool = True,
+                     stop_on_mitten_collision: bool = True) -> TaskStatus:
         """
         The avatar's arm will reach for the object. Per frame, the arm's mitten will try to "grasp" the object.
         A grasped object is attached to the avatar's mitten and its ID will be in [`FrameData.held_objects`](frame_data.md). There may be some empty space between a mitten and a grasped object.
@@ -539,10 +543,12 @@ class StickyMittenAvatarController(FloorplanController):
         - `no_longer_bending`
         - `failed_to_pick_up`
         - `bad_raycast`
+        - `mitten_collision` (If `stop_if_mitten_collision == True`)
 
         :param object_id: The ID of the target object.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         :param arm: The arm of the mitten that will try to grasp the object.
+        :param stop_on_mitten_collision: If true, the arm will stop bending if the mitten collides with an object.
         :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
 
         :return: A `TaskStatus` indicating whether the avatar picked up the object and if not, why.
@@ -567,7 +573,8 @@ class StickyMittenAvatarController(FloorplanController):
                 return status
 
         # Get commands to pick up the target.
-        commands = self._avatar.grasp_object(object_id=object_id, target=target, arm=arm)
+        commands = self._avatar.grasp_object(object_id=object_id, target=target, arm=arm,
+                                             stop_on_mitten_collision=stop_on_mitten_collision)
 
         self._avatar_commands.extend(commands)
         self._avatar.status = TaskStatus.ongoing
