@@ -504,7 +504,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param arm: The arm (left or right).
         :param target: The target position for the mitten relative to the avatar.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
-        :param stop_on_mitten_collision: If true, the arm will stop bending if the mitten collides with an object.
+        :param stop_on_mitten_collision: If true, the arm will stop bending if the mitten collides with an object other than the target object.
         :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
 
         :return: A `TaskStatus` indicating whether the avatar can reach the target and if not, why.

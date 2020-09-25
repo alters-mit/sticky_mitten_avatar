@@ -313,7 +313,9 @@ class Avatar(ABC):
                                 self._ik_goals[arm].stop_on_mitten_collision and \
                                 (self._ik_goals[arm].target is None or
                                  (self._ik_goals[arm].pick_up_id != collidee_id and
-                                  self._ik_goals[arm].pick_up_id != collider_id)):
+                                  self._ik_goals[arm].pick_up_id != collider_id)) and \
+                                (collidee_id not in self.body_parts_static or
+                                 collider_id not in self.body_parts_static):
                             self.status = TaskStatus.mitten_collision
                             self._ik_goals[arm] = None
                             if self._debug:

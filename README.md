@@ -88,6 +88,7 @@ All example controllers can be found in: `controllers/`
 | `collision_test.py`        | Test the avatar's response to collisions.                    |
 | `turn_test.py`             | Test avatar turning.                                         |
 | `composite_object_test.py` | Test if the avatar can grasp a sub-object of a composite object. |
+| `mitten_collision_test.py` | Test mitten collision detection.                             |
 
 ## Utility Scripts
 
