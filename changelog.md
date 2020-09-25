@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.4.3
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Added optional parameter `stop_on_mitten_collision` to `reach_for_target()`. If True, the avatar will stop bending the arm if the mitten collides with an object.
+  - Added optional parameter `stop_on_mitten_collision` to `grasp_object()`. If True, the avatar will stop bending the arm if the mitten collides with an object other than the target.
+  - Greatly reduced the distance at which a mitten can "grasp" an object.
+- Removed: `controllers/put_object_on_table.py` (obsolete)
+
+### Backend
+
+- Added: `TaskStatus.mitten_collision`
+- Removed: `container_dimensions.py` (not used)
+- Added: `tests/mitten_collision_test.py`
+
 ## 0.4.2
 
 ### Frontend
