@@ -19,7 +19,7 @@ A high-level API for [TDW's](https://github.com/threedworld-mit/tdw/) [Sticky Mi
 from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 
 c = StickyMittenAvatarController()
-c.init_scene()
+c.init_scene() # Creates an empty room. See API documentation for how to load a furnished scene.
 task_status = c.reach_for_target(arm=Arm.left, target={"x": 0.1, "y": 0.6, "z": 0.4})
 print(task_status) # TaskStatus.success
 c.end()
