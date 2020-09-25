@@ -355,7 +355,7 @@ class Avatar(ABC):
                     mitten_position = np.array(frame.get_mitten_center_right_position())
                 # If we're at the position, stop.
                 d = np.linalg.norm(mitten_position - self._ik_goals[arm].target)
-                if d < 0.1:
+                if d < 0.05:
                     if self._debug:
                         print(f"{arm.name} mitten is at target position {self._ik_goals[arm].target}. Stopping.")
                     commands.extend(self._stop_arms(arm=arm))
@@ -375,7 +375,7 @@ class Avatar(ABC):
                         # Keep bending the arm and trying to pick up the object.
                         else:
                             commands.extend([{"$type": "pick_up_proximity",
-                                              "distance": 0.15,
+                                              "distance": 0.05,
                                               "radius": 0.1,
                                               "grip": 1000,
                                               "is_left": arm == Arm.left,

@@ -797,13 +797,11 @@ class StickyMittenAvatarController(FloorplanController):
 
             # Check if the root object of the avatar collided with anything large. If so, stop movement.
             if stop_on_collision:
-                for body_part_id in self._avatar.collisions:
-                    name = self._avatar.body_parts_static[body_part_id].name
-                    if name.startswith("A_StickyMitten"):
-                        for o_id in self._avatar.collisions[body_part_id]:
-                            collidee_mass = self.static_object_info[o_id].mass
-                            if collidee_mass >= 90:
-                                return TaskStatus.collided_with_something_heavy
+                if self._avatar.base_id in self._avatar.collisions:
+                    for o_id in self._avatar.collisions[self._avatar.base_id]:
+                        collidee_mass = self.static_object_info[o_id].mass
+                        if collidee_mass >= 90:
+                            return TaskStatus.collided_with_something_heavy
                 # If the avatar's body collided with the environment (e.g. a wall), stop movement.
                 for self._avatar.base_id in self._avatar.env_collisions:
                     return TaskStatus.collided_with_environment
