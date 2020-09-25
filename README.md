@@ -79,7 +79,6 @@ All example controllers can be found in: `controllers/`
 | ---------------------------- | ------------------------------------------------------------ |
 | `put_object_in_container.py` | Put an object in a container.                                |
 | `shake_demo.py`              | An avatar shakes two different containers with different audio properties. |
-| `put_object_on_table.py`     | _Obsolete._ Put an object on a table using a simple "aiming" algorithm to bend the arm. |
 
 ## Tests
 
