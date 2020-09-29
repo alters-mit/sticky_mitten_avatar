@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.4
+
+- `FrameData`:
+  - Fixed: Crash when trying to save null image data.
+
 ## 0.4.3
 
 ### Frontend

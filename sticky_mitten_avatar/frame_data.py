@@ -294,7 +294,9 @@ class FrameData:
         prefix = TDWUtils.zero_padding(self._frame_count, 8)
         # Save each image.
         for image, pass_name, ext in zip([self.image_pass, self.id_pass, self.depth_pass], ["img", "id", "depth"],
-                                       ["jpg", "png", "png"]):
+                                         ["jpg", "png", "png"]):
+            if image is None:
+                continue
             p = output_directory.joinpath(f"{prefix}_{pass_name}.{ext}")
             with p.open("wb") as f:
                 f.write(image)
