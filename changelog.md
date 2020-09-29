@@ -1,7 +1,8 @@
 # Changelog
 
 ## 0.4.4
-
+- `StickyMittenAvatarController`:
+  - Fixed: `move_forward_by()` sometimes throws an error if the target was already a numpy array.
 - `FrameData`:
   - Fixed: Crash when trying to save null image data.
 

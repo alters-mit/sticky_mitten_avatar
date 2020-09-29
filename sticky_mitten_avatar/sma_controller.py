@@ -825,7 +825,7 @@ class StickyMittenAvatarController(FloorplanController):
                 self.communicate([])
             target = self.frames[-1].object_transforms[target].position
         # Convert the Vector3 target to a numpy array.
-        else:
+        elif isinstance(target, dict):
             target = TDWUtils.vector3_to_array(target)
 
         self._start_task()
