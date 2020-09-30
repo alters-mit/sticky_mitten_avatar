@@ -1,10 +1,7 @@
 from pathlib import Path
-from typing import List, Union
-from tdw.tdw_utils import TDWUtils
-from tdw.output_data import Images
+from typing import List
 from sticky_mitten_avatar.avatars import Arm
 from sticky_mitten_avatar import StickyMittenAvatarController
-from sticky_mitten_avatar.util import get_data
 
 
 class PutObjectInContainer(StickyMittenAvatarController):
@@ -33,21 +30,8 @@ class PutObjectInContainer(StickyMittenAvatarController):
         super().__init__(port=port, launch_build=launch_build)
 
         # Save images every frame, if possible.
-        self.frame_count = 0
         self.o_id = 0
         self.bowl_id = 1
-
-    def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
-        resp = super().communicate(commands)
-
-        # Save images per frame.
-        images = get_data(resp=resp, d_type=Images)
-        if images is not None:
-            TDWUtils.save_images(images=images,
-                                 filename=TDWUtils.zero_padding(self.frame_count, width=4),
-                                 output_directory=self.output_dir)
-            self.frame_count += 1
-        return resp
 
     def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
         commands = super()._get_scene_init_commands()
@@ -65,6 +49,14 @@ class PutObjectInContainer(StickyMittenAvatarController):
         commands.extend(bowl_commands)
         return commands
 
+    def _save_images(self) -> None:
+        """
+        Save each image from the frame data.
+        """
+
+        for frame in self.frames:
+            frame.save_images(output_directory=self.output_dir)
+
     def run(self) -> None:
         """
         Run a single trial. Save images per frame.
@@ -77,17 +69,24 @@ class PutObjectInContainer(StickyMittenAvatarController):
 
         # Pick up the object.
         self.grasp_object(object_id=self.o_id, arm=Arm.left)
+        self._save_images()
+
         # Lift the object up a bit.
         self.reach_for_target(target={"x": -0.1, "y": 0.6, "z": 0.32}, arm=Arm.left)
+        self._save_images()
+
         # Go to the bowl.
         self.go_to(target=self.bowl_id, move_stopping_threshold=0.3)
+        self._save_images()
         self.turn_to(target=self.bowl_id)
+        self._save_images()
+
         # Lift the object up a bit.
         self.reach_for_target(target={"x": -0.1, "y": 0.6, "z": 0.5}, arm=Arm.left)
+        self._save_images()
         # Drop the object in the container.
         self.drop()
-        for i in range(50):
-            self.communicate([])
+        self._save_images()
         # Stop the build.
         self.end()
 

@@ -10,6 +10,7 @@
   - Fixed: Crash when trying to save null image data.
 - `StaticObjectData`:
   - Added: `category` The semantic category of the object.
+- Refactored `put_object_in_container.py` to be more like an actual use-case.
 
 ### Backend
 
