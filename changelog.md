@@ -11,6 +11,10 @@
 - `StaticObjectData`:
   - Added: `category` The semantic category of the object.
 
+### Backend
+
+- Replaced parameter `index` in `StaticObjectInfo` constructor with `object_id`.
+
 ## 0.4.3
 
 ### Frontend
