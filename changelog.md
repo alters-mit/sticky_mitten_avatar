@@ -8,6 +8,7 @@
   - Fixed: `move_forward_by()` sometimes throws an error if the target was already a numpy array.
   - Added scenes `1a`, `1b`, and `1c`, which have layouts `1`, `2`, and `3`.
   - Added scenes `5a`, `5b`, and `5c`, which have layouts `1`, `2`, and `3`.
+  - Added: `occupancy_map` A numpy array of positions in the scene and whether they are occupied.
 - `FrameData`:
   - Fixed: Crash when trying to save null image data.
 - `StaticObjectData`:
@@ -17,6 +18,9 @@
 ### Backend
 
 - Replaced parameter `index` in `StaticObjectInfo` constructor with `object_id`.
+- Added occupancy map data: `sticky_mitten_avatar/occupancy_maps`
+- Added to `util.py`: `OCCUPANCY_MAP_DIRECTORY`
+- Replaced `container_positions.py` with `occupancy_mapper.py` which uses a lot of the same code to generate occupancy maps.
 
 ## 0.4.3
 
