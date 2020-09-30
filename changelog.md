@@ -1,10 +1,15 @@
 # Changelog
 
 ## 0.4.4
+
+### Frontend
+
 - `StickyMittenAvatarController`:
   - Fixed: `move_forward_by()` sometimes throws an error if the target was already a numpy array.
 - `FrameData`:
   - Fixed: Crash when trying to save null image data.
+- `StaticObjectData`:
+  - Added: `category` The semantic category of the object.
 
 ## 0.4.3
 
