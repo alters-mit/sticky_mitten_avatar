@@ -100,6 +100,7 @@ class StickyMittenAvatarController(FloorplanController):
        Data type = (float, float, bool) where the first two elements are (x, z) coordinates and the third element is True if the position is occupied.
        A position is occupied if there is an object within 0.5 meters of the position.
        For example: `(1.02, 0.3, True)` means that the position at (1.02, 0, 0.3) is occupied by at least 1 object.
+       NOTE: This is static data for the _initial_ scene occupancy. It won't update if an object's position changes.
 
     ## Functions
 

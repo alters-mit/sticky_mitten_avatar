@@ -12,7 +12,7 @@ Create an occupancy map of each floorpland and layout.
 if __name__ == "__main__":
     c = FloorplanController()
     # This is the minimum size of a surface.
-    r = 0.5
+    r = 0.25
     for scene in ["1", "2", "4", "5"]:
         for layout in [0, 1, 2]:
             positions: List[Tuple[float, float, bool]] = []
@@ -21,6 +21,7 @@ if __name__ == "__main__":
             # Get the locations and sizes of each room.
             commands.extend([{"$type": "set_floorplan_roof",
                               "show": False},
+                             {"$type": "remove_position_markers"},
                              {"$type": "send_environments"}])
             resp = c.communicate(commands)
             env = Environments(resp[0])
@@ -47,9 +48,9 @@ if __name__ == "__main__":
                     z_max = z_1
             # Spherecast to each point.
             x = x_min
-            while x <= x_max:
+            while x < x_max:
                 z = z_min
-                while z <= z_max:
+                while z < z_max:
                     # Spherecast at the "cell".
                     resp = c.communicate({"$type": "send_spherecast",
                                           "origin": {"x": x, "y": 10, "z": z},
@@ -71,7 +72,7 @@ if __name__ == "__main__":
                         occupied = np.var(np.array(ys)) > 0.1 or y > 0.01
                         positions.append((x, z, occupied))
 
-                        if occupied:
+                        if not occupied:
                             c.communicate({"$type": "add_position_marker",
                                            "position": {"x": x, "y": 0, "z": z}})
                     z += r
