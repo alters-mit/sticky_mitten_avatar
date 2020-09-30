@@ -1,5 +1,8 @@
 from typing import Optional
 import numpy as np
+from json import loads
+from pathlib import Path
+from pkg_resources import resource_filename
 from tdw.output_data import SegmentationColors, Rigidbodies
 from tdw.py_impact import ObjectInfo
 from tdw.object_init_data import TransformInitData
@@ -27,6 +30,8 @@ class StaticObjectInfo:
                    "round_bowl_large_metal_perf", "round_bowl_large_padauk", "round_bowl_large_thin",
                    "round_bowl_small_beech", "round_bowl_small_walnut", "round_bowl_talll_wenge",
                    "shallow_basket_white_mesh", "shallow_basket_wicker"]
+    _COMPOSITE_OBJECTS = loads(Path(resource_filename(__name__, "composite_object_audio.json")).read_text(
+        encoding="utf-8"))
 
     def __init__(self, object_id: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors,
                  audio: ObjectInfo):
@@ -41,10 +46,22 @@ class StaticObjectInfo:
         self.model_name = self.audio.name
         self.container = self.model_name in StaticObjectInfo._CONTAINERS
 
-        # Get the model record from the audio data.
-        record = TransformInitData.LIBRARIES[self.audio.library].get_record(self.audio.name)
-        # Get the semantic category.
-        self.category = record.wcategory
+        self.category = ""
+        # This is a sub-object of a composite object.
+        if self.audio.library == "":
+            # Get the record of the composite object.
+            for k in StaticObjectInfo._COMPOSITE_OBJECTS:
+                for v in StaticObjectInfo._COMPOSITE_OBJECTS[k]:
+                    if v == self.audio.name:
+                        record = TransformInitData.LIBRARIES["models_core.json"].get_record(k)
+                        # Get the semantic category.
+                        self.category = record.wcategory
+                        break
+        else:
+            # Get the model record from the audio data.
+            record = TransformInitData.LIBRARIES[self.audio.library].get_record(self.audio.name)
+            # Get the semantic category.
+            self.category = record.wcategory
 
         # Get the segmentation color.
         self.segmentation_color: Optional[np.array] = None

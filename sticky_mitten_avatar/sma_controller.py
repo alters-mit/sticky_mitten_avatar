@@ -12,7 +12,8 @@ from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from tdw.object_init_data import AudioInitData, TransformInitData
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
-from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD
+from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD, \
+    OCCUPANCY_MAP_DIRECTORY
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -94,6 +95,12 @@ class StickyMittenAvatarController(FloorplanController):
         print(body_part.name) # The name of the body part.
     ```
 
+    - `occupancy_map` A numpy array of positions in the scene and whether they are occupied.
+       This is populated by supplying `scene` and `layout` parameters in `init_scene()`. Otherwise, this is None.
+       Data type = (float, float, bool) where the first two elements are (x, z) coordinates and the third element is True if the position is occupied.
+       A position is occupied if there is an object within 0.5 meters of the position.
+       For example: `(1.02, 0.3, True)` means that the position at (1.02, 0, 0.3) is occupied by at least 1 object.
+
     ## Functions
 
     """
@@ -125,6 +132,8 @@ class StickyMittenAvatarController(FloorplanController):
 
         # Cache the entities.
         self._avatar: Optional[Avatar] = None
+        # Create an empty occupancy map.
+        self.occupancy_map: Optional[np.array] = None
         # Commands sent by avatars.
         self._avatar_commands: List[dict] = []
         # Cache static data.
@@ -211,6 +220,10 @@ class StickyMittenAvatarController(FloorplanController):
 
         # Initialize the scene.
         self.communicate(self._get_scene_init_commands(scene=scene, layout=layout))
+        # Load the occupancy map.
+        if scene is not None and layout is not None:
+            self.occupancy_map = np.load(str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
+
         # Create the avatar.
         self._init_avatar()
 
