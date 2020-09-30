@@ -6,6 +6,8 @@
 
 - `StickyMittenAvatarController`:
   - Fixed: `move_forward_by()` sometimes throws an error if the target was already a numpy array.
+  - Added scenes `1a`, `1b`, and `1c`, which have layouts `1`, `2`, and `3`.
+  - Added scenes `5a`, `5b`, and `5c`, which have layouts `1`, `2`, and `3`.
 - `FrameData`:
   - Fixed: Crash when trying to save null image data.
 - `StaticObjectData`:
