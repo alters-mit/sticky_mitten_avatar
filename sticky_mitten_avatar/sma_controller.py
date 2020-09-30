@@ -270,7 +270,7 @@ class StickyMittenAvatarController(FloorplanController):
             else:
                 object_audio = self._default_audio_values[segmentation_colors.get_object_name(i).lower()]
 
-            static_object = StaticObjectInfo(index=i,
+            static_object = StaticObjectInfo(object_id=object_id,
                                              segmentation_colors=segmentation_colors,
                                              rigidbodies=rigidbodies,
                                              audio=object_audio)
