@@ -1,6 +1,8 @@
+from typing import Optional
 import numpy as np
-from tdw.output_data import SegmentationColors,Rigidbodies
+from tdw.output_data import SegmentationColors, Rigidbodies
 from tdw.py_impact import ObjectInfo
+from tdw.object_init_data import TransformInitData
 
 
 class StaticObjectInfo:
@@ -13,6 +15,7 @@ class StaticObjectInfo:
     - `mass`: The mass of the object.
     - `segmentation_color`: The RGB segmentation color for the object as a numpy array.
     - `model_name`: [The name of the model.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/librarian/model_librarian.md)
+    - `category`: The semantic category of the object.
     - `audio`: [Audio properties.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#objectinfo)
     - `container`': If True, this object is container-shaped (a bowl or open basket that smaller objects can be placed in).
     """
@@ -25,19 +28,31 @@ class StaticObjectInfo:
                    "round_bowl_small_beech", "round_bowl_small_walnut", "round_bowl_talll_wenge",
                    "shallow_basket_white_mesh", "shallow_basket_wicker"]
 
-    def __init__(self, index: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors,
+    def __init__(self, object_id: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors,
                  audio: ObjectInfo):
         """
-        :param index: The index of the object in `segmentation_colors`
+        :param object_id: The unique ID of the object.
         :param rigidbodies: Rigidbodies output data.
         :param segmentation_colors: Segmentation colors output data.
         """
 
-        self.object_id = segmentation_colors.get_object_id(index)
-        self.model_name = segmentation_colors.get_object_name(index)
-        self.segmentation_color = np.array(segmentation_colors.get_object_color(index))
+        self.object_id = object_id
         self.audio = audio
+        self.model_name = self.audio.name
         self.container = self.model_name in StaticObjectInfo._CONTAINERS
+
+        # Get the model record from the audio data.
+        record = TransformInitData.LIBRARIES[self.audio.library].get_record(self.audio.name)
+        # Get the semantic category.
+        self.category = record.wcategory
+
+        # Get the segmentation color.
+        self.segmentation_color: Optional[np.array] = None
+        for i in range(segmentation_colors.get_num()):
+            if segmentation_colors.get_object_id(i) == self.object_id:
+                self.segmentation_color = np.array(segmentation_colors.get_object_color(i))
+                break
+        assert self.segmentation_color is not None, f"Segmentation color not found: {self.object_id}"
 
         # Get the mass.
         self.mass: float = -1
