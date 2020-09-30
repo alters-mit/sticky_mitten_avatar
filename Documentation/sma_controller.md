@@ -81,9 +81,9 @@ for body_part_id in c.static_avatar_data:
 - `occupancy_map` A numpy array of positions in the scene and whether they are occupied.
    This is populated by supplying `scene` and `layout` parameters in `init_scene()`. Otherwise, this is None.
    Data type = (float, float, bool) where the first two elements are (x, z) coordinates and the third element is True if the position is occupied.
-   A position is occupied if there is an object within 0.5 meters of the position.
+   A position is occupied if there is an object (such as a table) or environment obstacle (such as a wall) within 0.5 meters of the position.
    For example: `(1.02, 0.3, True)` means that the position at (1.02, 0, 0.3) is occupied by at least 1 object.
-   NOTE: This is static data for the _initial_ scene occupancy. It won't update if an object's position changes.
+   NOTE: This is static data for the _initial_ scene occupancy_maps. It won't update if an object's position changes.
 
 ## Functions
 

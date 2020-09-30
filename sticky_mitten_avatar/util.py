@@ -5,8 +5,8 @@ from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Images,
 from pathlib import Path
 from pkg_resources import resource_filename
 
-# The directory of the occupancy map files.
-OCCUPANCY_MAP_DIRECTORY = Path(resource_filename(__name__, "occupancy"))
+# The directory of the occupancy_maps map files.
+OCCUPANCY_MAP_DIRECTORY = Path(resource_filename(__name__, "occupancy_maps"))
 
 T = TypeVar("T", bound=OutputData)
 # Output data types mapped to their IDs.

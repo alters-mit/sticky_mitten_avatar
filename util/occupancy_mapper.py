@@ -6,13 +6,16 @@ from sticky_mitten_avatar.util import OCCUPANCY_MAP_DIRECTORY
 
 
 """
-Create an occupancy map of each floorpland and layout.
+Create an occupancy_maps map of each floorplan and layout by loading in the layout and spherecasting down in a grid.
+Save the results to a file.
 """
 
 if __name__ == "__main__":
     c = FloorplanController()
     # This is the minimum size of a surface.
     r = 0.25
+
+    # Iterate through each scene and layout.
     for scene in ["1", "2", "4", "5"]:
         for layout in [0, 1, 2]:
             positions: List[Tuple[float, float, bool]] = []
