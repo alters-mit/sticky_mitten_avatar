@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='sticky_mitten_avatar',
-    version="0.4.4",
+    version="0.5.0",
     description='High-level API for the Sticky Mitten Avatar in TDW.',
     long_description='High-level API for the Sticky Mitten Avatar in TDW.',
     url='https://github.com/alters-mit/sticky_mitten_avatar',

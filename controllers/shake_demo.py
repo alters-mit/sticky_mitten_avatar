@@ -10,8 +10,8 @@ class BoxRoomContainers(StickyMittenAvatarController):
     put on the sofa.
     """
 
-    def __init__(self, port: int = 1071, launch_build: bool = False, demo: bool = False):
-        super().__init__(port=port, launch_build=launch_build, demo=demo)
+    def __init__(self, port: int = 1071, launch_build: bool = False):
+        super().__init__(port=port, launch_build=launch_build, demo=True, audio=True)
         self.avatar_id = "a"
         self.container_0 = 0
         self.container_1 = 1
@@ -97,7 +97,7 @@ class BoxRoomContainers(StickyMittenAvatarController):
 
 
 if __name__ == "__main__":
-    c = BoxRoomContainers(demo=True)
+    c = BoxRoomContainers()
     # Initialize the scene. Add the objects, avatar, set global values, etc.
     c.init_scene()
 
