@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.0
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Replace `frames` with `frame` (the most recent frame after doing an action). As a result, the simulation is much faster.
+  - Added optional `audio` parameter to the constructor. If True, record audio data.
+- `FrameData`:
+  - Added more documentation to `depth_pass`.
+  - Removed: `avatar_object_collisions`
+  - Removed: `avatar_env_collisions`
+
+### Backend
+
+- Unless `demo == True`, the `StickyMittenAvatarController` will capture image and object data only after each action.
+
+### Known Issues
+
+- `put_object_in_container.py` and `shake_demo.py` are unrealistically fast.
+- Audio doesn't work as expected because the audio data is from only the most recent frame.
+
 ## 0.4.4
 
 ### Frontend
