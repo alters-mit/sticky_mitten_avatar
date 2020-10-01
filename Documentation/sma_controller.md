@@ -80,10 +80,19 @@ for body_part_id in c.static_avatar_data:
 
 - `occupancy_map` A numpy array of positions in the scene and whether they are occupied.
    This is populated by supplying `scene` and `layout` parameters in `init_scene()`. Otherwise, this is None.
-   Data type = (float, float, bool) where the first two elements are (x, z) coordinates and the third element is True if the position is occupied.
+   Shape is `(width, length)` Data type = `int`. 0 = occupied. 1 = free. 2 = outside of the scene.
    A position is occupied if there is an object (such as a table) or environment obstacle (such as a wall) within 0.5 meters of the position.
-   For example: `(1.02, 0.3, True)` means that the position at (1.02, 0, 0.3) is occupied by at least 1 object.
-   NOTE: This is static data for the _initial_ scene occupancy_maps. It won't update if an object's position changes.
+
+   This is static data for the _initial_ scene occupancy_maps. It won't update if an object's position changes.
+
+   Convert from the coordinates in the array to an actual position using `get_occupancy_position()`.
+
+```python
+c.init_scene(scene="2a", layout=1)
+
+print(c.occupancy_map[37][16]) # 0 (occupied)
+print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.42542076110839844)
+```
 
 ## Functions
 
@@ -384,6 +393,21 @@ Add an overhead third-person camera to the scene.
 **`def end(self) -> None`**
 
 End the simulation. Terminate the build process.
+
+***
+
+#### get_occupancy_position
+
+**`def get_occupancy_position(self, i: int, j: int) -> Tuple[bool, float, float]`**
+
+Converts the position (i, j) in the occupancy map to (x, z) coordinates.
+
+| Parameter | Description |
+| --- | --- |
+| i | The i coordinate in the occupancy map. |
+| j | The j coordinate in the occupancy map. |
+
+_Returns:_  Tuple: True if the position is in the occupancy map; x coordinate; z coordinate.
 
 ***
 

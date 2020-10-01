@@ -107,8 +107,8 @@ class StickyMittenAvatarController(FloorplanController):
     ```python
     c.init_scene(scene="2a", layout=1)
 
-    print(c.occupancy_map[37][16])
-    print(c.get_occupancy_positions(37, 16))
+    print(c.occupancy_map[37][16]) # 0 (occupied)
+    print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.42542076110839844)
     ```
 
     ## Functions
