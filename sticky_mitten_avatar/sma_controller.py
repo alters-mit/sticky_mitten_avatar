@@ -124,7 +124,8 @@ class StickyMittenAvatarController(FloorplanController):
         # The containers library.
         self._lib_containers = ModelLibrarian(library=resource_filename(__name__, "metadata_libraries/containers.json"))
         # Get the container dimensions.
-        self._container_dimensions = loads(Path(resource_filename(__name__, "metadata_libraries/container_dimensions.json")).
+        self._container_dimensions = loads(Path(resource_filename(__name__,
+                                                                  "metadata_libraries/container_dimensions.json")).
                                            read_text(encoding="utf-8"))
         # Cached core model library.
         self._lib_core = ModelLibrarian()
@@ -1163,7 +1164,7 @@ class StickyMittenAvatarController(FloorplanController):
         count = 0
         while not mitten_collision and count < 200:
             self.communicate([])
-            if object_id in self.frame.avatar_object_collisions[mitten_id]:
+            if object_id in self._avatar.collisions[mitten_id]:
                 mitten_collision = True
                 break
             count += 1

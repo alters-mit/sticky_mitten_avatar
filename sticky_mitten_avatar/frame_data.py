@@ -50,7 +50,7 @@ class FrameData:
 
      ![](images/pass_masks/id_0.png)
 
-    - `depth_pass` Image pass of depth values per pixel as a numpy array.
+    - `depth_pass` Image pass of depth values per pixel as a numpy array. Use the camera matrices to interpret this data. The shader used to calculate the depth pass is the [same as the one used in AI2-Thor](https://github.com/allenai/ai2thor/blob/master/unity/Assets/ImageSynthesis/Shaders/DepthBW.shader).
 
      ![](images/pass_masks/depth_simple_0.png)
 
@@ -69,7 +69,7 @@ class FrameData:
         wav_data = audio[0].bytes
         # Get the position of the object that generated the audio data.
         object_id = audio[1]
-        position = frame.object_transforms[object_id].position
+        position = c.frame.object_transforms[object_id].position
     ```
 
     ### Objects
@@ -78,7 +78,7 @@ class FrameData:
 
     ```python
     for object_id in c.frame.object_transforms:
-        print(frame.object_transforms[object_id].position)
+        print(c.frame.object_transforms[object_id].position)
     ```
 
     ### Avatar
@@ -96,25 +96,6 @@ class FrameData:
     for body_part_id in c.frame.avatar_body_part_transforms:
         position = c.frame.avatar_body_part_transforms[body_part_id]
         segmentation_color = c.static_avatar_data[body_part_id]
-    ```
-
-
-    - `avatar_object_collisions` A dictionary of objects the avatar collided with. Key = body part ID. Value = A list of object IDs.
-
-    ```python
-    for body_part_id in c.frame.avatar_object_collisions:
-        body_part = c.static_avatar_info[body_part_id]
-        object_ids = c.frame.avatar_object_collisions[body_part_id]
-        for object_id in object_ids:
-            print(body_part.name + " collided with object " + str(object_id))
-    ```
-
-    - `avatar_env_collisions`  A list of body part IDs that collided with the environment (such as a wall).
-
-    ```python
-    for body_part_id in c.frame.avatar_env_collisions:
-        body_part = c.static_avatar_info[body_part_id]
-        print(body_part.name + " collided with the environment.")
     ```
 
     - `held_objects` A dictionary of IDs of objects held in each mitten. Key = arm:
@@ -153,13 +134,9 @@ class FrameData:
 
         # Record avatar collisions.
         if avatar is not None:
-            self.avatar_object_collisions = avatar.collisions
-            self.avatar_env_collisions = avatar.env_collisions
             self.held_objects = {Arm.left: avatar.frame.get_held_left(),
                                  Arm.right: avatar.frame.get_held_right()}
         else:
-            self.avatar_object_collisions = None
-            self.avatar_env_collisions = None
             self.held_objects = None
 
         # Get the object transform data.

@@ -51,13 +51,12 @@ A parameter of type `Union[Dict[str, float], int]]` can be either a Vector3 or a
 
 ## Fields
 
-- `frames` Dynamic data for all of the frames from the previous avatar API call (e.g. `reach_for_target()`). [Read this](frame_data.md) for a full API.
-  The next time an API call is made, this list is cleared and filled with new data.
+- `frame` Dynamic data for all of the most recent frame (i.e. the frame after doing an action such as `reach_for_target()`). [Read this](frame_data.md) for a full API.
 
 ```python
 # Get the segmentation colors and depth map from the most recent frame.
-id_pass = c.frames[-1].id_pass
-depth_pass = c.frames[-1].depth_pass
+id_pass = c.frame.id_pass
+depth_pass = c.frame.depth_pass
 # etc.
 ```
 
@@ -91,7 +90,7 @@ for body_part_id in c.static_avatar_data:
 
 #### \_\_init\_\_
 
-**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True)`**
+**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True, audio: bool = False)`**
 
 
 | Parameter | Description |
@@ -100,6 +99,7 @@ for body_part_id in c.static_avatar_data:
 | launch_build | If True, automatically launch the build. |
 | demo | If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step. |
 | id_pass | If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run approximately 30% slower. |
+| audio | If True, include audio data in the FrameData. |
 
 ***
 
