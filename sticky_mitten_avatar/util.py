@@ -1,12 +1,14 @@
 import numpy as np
 from typing import Dict, List, TypeVar, Type, Optional
 from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Images, SegmentationColors, Volumes, Raycast, \
-    CompositeObjects, CameraMatrices
+    CompositeObjects, CameraMatrices, Environments
 from pathlib import Path
 from pkg_resources import resource_filename
 
 # The directory of the occupancy_maps map files.
 OCCUPANCY_MAP_DIRECTORY = Path(resource_filename(__name__, "occupancy_maps"))
+# The path to the scene bounds data.
+SCENE_BOUNDS_PATH = OCCUPANCY_MAP_DIRECTORY.joinpath("scene_bounds.json")
 
 T = TypeVar("T", bound=OutputData)
 # Output data types mapped to their IDs.
@@ -18,7 +20,8 @@ _OUTPUT_IDS: Dict[Type[OutputData], str] = {Transforms: "tran",
                                             Volumes: "volu",
                                             Raycast: "rayc",
                                             CompositeObjects: "comp",
-                                            CameraMatrices: "cama"}
+                                            CameraMatrices: "cama",
+                                            Environments: "envi"}
 # Global forward directional vector.
 FORWARD = np.array([0, 0, 1])
 
