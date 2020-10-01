@@ -12,7 +12,8 @@ from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from tdw.object_init_data import AudioInitData, TransformInitData
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
-from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD
+from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD, \
+    OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -94,6 +95,22 @@ class StickyMittenAvatarController(FloorplanController):
         print(body_part.name) # The name of the body part.
     ```
 
+    - `occupancy_map` A numpy array of positions in the scene and whether they are occupied.
+       This is populated by supplying `scene` and `layout` parameters in `init_scene()`. Otherwise, this is None.
+       Shape is `(width, length)` Data type = `int`. 0 = occupied. 1 = free. 2 = outside of the scene.
+       A position is occupied if there is an object (such as a table) or environment obstacle (such as a wall) within 0.5 meters of the position.
+
+       This is static data for the _initial_ scene occupancy_maps. It won't update if an object's position changes.
+
+       Convert from the coordinates in the array to an actual position using `get_occupancy_position()`.
+
+    ```python
+    c.init_scene(scene="2a", layout=1)
+
+    print(c.occupancy_map[37][16]) # 0 (occupied)
+    print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.42542076110839844)
+    ```
+
     ## Functions
 
     """
@@ -125,6 +142,11 @@ class StickyMittenAvatarController(FloorplanController):
 
         # Cache the entities.
         self._avatar: Optional[Avatar] = None
+
+        # Create an empty occupancy_maps map.
+        self.occupancy_map: Optional[np.array] = None
+        self._scene_bounds: Optional[dict] = None
+
         # Commands sent by avatars.
         self._avatar_commands: List[dict] = []
         # Cache static data.
@@ -211,6 +233,11 @@ class StickyMittenAvatarController(FloorplanController):
 
         # Initialize the scene.
         self.communicate(self._get_scene_init_commands(scene=scene, layout=layout))
+        # Load the occupancy_maps map.
+        if scene is not None and layout is not None:
+            self.occupancy_map = np.load(str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
+            self._scene_bounds = loads(SCENE_BOUNDS_PATH.read_text())[scene[0]]
+
         # Create the avatar.
         self._init_avatar()
 
@@ -1142,6 +1169,21 @@ class StickyMittenAvatarController(FloorplanController):
         """
 
         self.communicate({"$type": "terminate"})
+
+    def get_occupancy_position(self, i: int, j: int) -> Tuple[bool, float, float]:
+        """
+        Converts the position (i, j) in the occupancy map to (x, z) coordinates.
+
+        :param i: The i coordinate in the occupancy map.
+        :param j: The j coordinate in the occupancy map.
+        :return: Tuple: True if the position is in the occupancy map; x coordinate; z coordinate.
+        """
+
+        if self.occupancy_map is None or self._scene_bounds is None:
+            return False, 0, 0,
+        x = self._scene_bounds["x_min"] + (i * 0.25)
+        z = self._scene_bounds["z_min"] + (j * 0.25)
+        return True, x, z
 
     def _get_raycast_point(self, object_id: int, origin: np.array, forward: float = 0.2) -> (bool, np.array):
         """
