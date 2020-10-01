@@ -1,8 +1,9 @@
 from typing import List, Tuple
 import numpy as np
 from tdw.floorplan_controller import FloorplanController
-from tdw.output_data import Environments, Raycast
+from tdw.output_data import Raycast
 from sticky_mitten_avatar.util import OCCUPANCY_MAP_DIRECTORY
+from sticky_mitten_avatar.environments import Environments
 
 
 """
@@ -27,33 +28,12 @@ if __name__ == "__main__":
                              {"$type": "remove_position_markers"},
                              {"$type": "send_environments"}])
             resp = c.communicate(commands)
-            env = Environments(resp[0])
-
-            # Get the overall size of the scene.
-            x_min = 1000
-            x_max = 0
-            z_min = 1000
-            z_max = 0
-            for i in range(env.get_num()):
-                center = env.get_center(i)
-                bounds = env.get_bounds(i)
-                x_0 = center[0] - (bounds[0] / 2)
-                if x_0 < x_min:
-                    x_min = x_0
-                z_0 = center[2] - (bounds[2] / 2)
-                if z_0 < z_min:
-                    z_min = z_0
-                x_1 = center[0] + (bounds[0] / 2)
-                if x_1 > x_max:
-                    x_max = x_1
-                z_1 = center[2] + (bounds[2] / 2)
-                if z_1 > z_max:
-                    z_max = z_1
+            env = Environments(resp=resp)
             # Spherecast to each point.
-            x = x_min
-            while x < x_max:
-                z = z_min
-                while z < z_max:
+            x = env.x_min
+            while x < env.x_max:
+                z = env.z_min
+                while z < env.z_max:
                     # Spherecast at the "cell".
                     resp = c.communicate({"$type": "send_spherecast",
                                           "origin": {"x": x, "y": 10, "z": z},

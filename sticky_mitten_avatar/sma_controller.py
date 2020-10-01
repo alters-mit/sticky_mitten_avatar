@@ -186,7 +186,7 @@ class StickyMittenAvatarController(FloorplanController):
                              {"$type": "set_time_step",
                               "time_step": 0.02}])
 
-    def init_scene(self, scene: str = None, layout: int = None) -> None:
+    def init_scene(self, scene: str = None, layout: int = None, room: int = None) -> None:
         """
         Initialize a scene, populate it with objects, add the avatar, and set rendering options.
         The controller by default will load a simple empty room:
@@ -198,7 +198,9 @@ class StickyMittenAvatarController(FloorplanController):
         c.init_scene()
         ```
 
-        Set the `scene` and `layout` parameters in `init_scene()` to load an interior scene with furniture and props:
+        Set the `scene` and `layout` parameters in `init_scene()` to load an interior scene with furniture and props.
+        Set the `room` to spawn the avatar in the center of a room or a section of a room (this is an index of all room/room sections in the scene).
+
 
         ```python
         from sticky_mitten_avatar import StickyMittenAvatarController
@@ -207,17 +209,18 @@ class StickyMittenAvatarController(FloorplanController):
         c.init_scene(scene="2b", layout=0)
         ```
 
-        Valid scenes and layouts:
+        Valid scenes, layouts, and rooms:
 
-        | `scene` | `layout` |
-        | --- | --- |
-        | 1a, 1b, or 1c | 0, 1, or 2 |
-        | 2a, 2b, or 2c | 0, 1, or 2 |
-        | 4a, 4b, or 4c | 0, 1, or 2 |
-        | 5a, 5b, or 5c | 0, 1, or 2 |
+        | `scene` | `layout` | `room` |
+        | --- | --- | --- |
+        | 1a, 1b, or 1c | 0, 1, or 2 | 0, 1, ..., 6 |
+        | 2a, 2b, or 2c | 0, 1, or 2 | 0, 1, ..., 8 |
+        | 4a, 4b, or 4c | 0, 1, or 2 | 0, 1, ..., 7 |
+        | 5a, 5b, or 5c | 0, 1, or 2 | 0, 1, ..., 3 |
 
         :param scene: The name of an interior floorplan scene. If None, the controller will load a simple empty room.
         :param layout: The furniture layout of the floorplan. If None, the controller will load a simple empty room.
+        :param room: The index of the room or section of a room that the avatar will spawn in. If None, the avatar will spawn in the center of the scene. Ignored it `scene` or `layout` is None.
         """
 
         # Initialize the scene.
