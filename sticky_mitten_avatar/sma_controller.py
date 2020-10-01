@@ -323,9 +323,7 @@ class StickyMittenAvatarController(FloorplanController):
                          {"$type": "send_transforms",
                           "frequency": "once"},
                          {"$type": "send_camera_matrices",
-                          "frequency": "once"},
-                         {"$type": "send_avatars",
-                          "frequency": "once"}])
+                          "frequency": "once"}}])
 
         resp = self.communicate(commands)
         # Update the frame data.
