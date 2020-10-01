@@ -248,6 +248,8 @@ class StickyMittenAvatarController(FloorplanController):
                                   "stay": False,
                                   "exit": False,
                                   "collision_types": ["obj", "env"]},
+                                 {"$type": "send_avatars",
+                                  "frequency": "always"},
                                  {"$type": "send_segmentation_colors",
                                   "frequency": "once"},
                                  {"$type": "send_composite_objects",
@@ -255,8 +257,6 @@ class StickyMittenAvatarController(FloorplanController):
                                  {"$type": "send_rigidbodies",
                                   "frequency": "once"},
                                  {"$type": "send_transforms",
-                                  "frequency": "once"},
-                                 {"$type": "send_avatars",
                                   "frequency": "once"}])
         # Parse composite object audio data.
         segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
