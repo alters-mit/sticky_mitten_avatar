@@ -13,8 +13,7 @@ c = StickyMittenAvatarController()
 c.init_scene()
 
 # Print the position of the avatar per frame.
-for frame in c.frames:
-    print(c.frame.avatar_transform.position)
+print(c.frame.avatar_transform.position)
 c.end()
 ```
 

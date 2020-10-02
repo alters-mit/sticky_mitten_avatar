@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import List
 from sticky_mitten_avatar.avatars import Arm
 from sticky_mitten_avatar import StickyMittenAvatarController
@@ -14,20 +13,13 @@ class PutObjectInContainer(StickyMittenAvatarController):
     Save an image per frame.
     """
 
-    def __init__(self, output_dir: str, port: int = 1071, launch_build: bool = True):
+    def __init__(self, port: int = 1071, launch_build: bool = True):
         """
-        :param output_dir: The output directory for images.
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
         """
 
-        self.output_dir = Path(output_dir)
-        if not self.output_dir.exists():
-            self.output_dir.mkdir(parents=True)
-        self.output_dir = str(self.output_dir.resolve())
-        print(f"Images will be saved to: {self.output_dir}")
-
-        super().__init__(port=port, launch_build=launch_build)
+        super().__init__(port=port, launch_build=launch_build, audio=False, id_pass=False, demo=True)
 
         # Save images every frame, if possible.
         self.o_id = 0
@@ -49,14 +41,6 @@ class PutObjectInContainer(StickyMittenAvatarController):
         commands.extend(bowl_commands)
         return commands
 
-    def _save_images(self) -> None:
-        """
-        Save each image from the frame data.
-        """
-
-        for frame in self.frames:
-            frame.save_images(output_directory=self.output_dir)
-
     def run(self) -> None:
         """
         Run a single trial. Save images per frame.
@@ -69,32 +53,22 @@ class PutObjectInContainer(StickyMittenAvatarController):
 
         # Pick up the object.
         self.grasp_object(object_id=self.o_id, arm=Arm.left)
-        self._save_images()
 
         # Lift the object up a bit.
         self.reach_for_target(target={"x": -0.1, "y": 0.6, "z": 0.32}, arm=Arm.left)
-        self._save_images()
 
         # Go to the bowl.
         self.go_to(target=self.bowl_id, move_stopping_threshold=0.3)
-        self._save_images()
+
         self.turn_to(target=self.bowl_id)
-        self._save_images()
 
         # Lift the object up a bit.
         self.reach_for_target(target={"x": -0.1, "y": 0.6, "z": 0.5}, arm=Arm.left)
-        self._save_images()
         # Drop the object in the container.
         self.drop()
-        self._save_images()
         # Stop the build.
         self.end()
 
 
 if __name__ == "__main__":
-    from argparse import ArgumentParser
-    parser = ArgumentParser()
-    parser.add_argument("--dir", default="images", type=str, help="Output directory for images.")
-    args = parser.parse_args()
-
-    PutObjectInContainer(output_dir=args.dir).run()
+    PutObjectInContainer().run()

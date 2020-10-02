@@ -7,7 +7,7 @@ from typing import Dict, List, Union, Optional, Tuple
 from tdw.floorplan_controller import FloorplanController
 from tdw.tdw_utils import TDWUtils
 from tdw.librarian import ModelLibrarian
-from tdw.output_data import Bounds, Transforms, Rigidbodies, SegmentationColors, Raycast, CompositeObjects
+from tdw.output_data import Bounds, Rigidbodies, SegmentationColors, Raycast, CompositeObjects
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from tdw.object_init_data import AudioInitData, TransformInitData
 from sticky_mitten_avatar.avatars import Arm, Baby
@@ -37,7 +37,7 @@ class StickyMittenAvatarController(FloorplanController):
 
     # Get the segmentation color pass for the avatar after bending the arm.
     # See FrameData.save_images and FrameData.get_pil_images
-    segmentation_colors = c.frames[-1].id_pass
+    segmentation_colors = c.frame.id_pass
 
     c.end()
     ```
@@ -68,13 +68,12 @@ class StickyMittenAvatarController(FloorplanController):
 
     ## Fields
 
-    - `frames` Dynamic data for all of the frames from the previous avatar API call (e.g. `reach_for_target()`). [Read this](frame_data.md) for a full API.
-      The next time an API call is made, this list is cleared and filled with new data.
+    - `frame` Dynamic data for all of the most recent frame (i.e. the frame after doing an action such as `reach_for_target()`). [Read this](frame_data.md) for a full API.
 
     ```python
     # Get the segmentation colors and depth map from the most recent frame.
-    id_pass = c.frames[-1].id_pass
-    depth_pass = c.frames[-1].depth_pass
+    id_pass = c.frame.id_pass
+    depth_pass = c.frame.depth_pass
     # etc.
     ```
 
@@ -118,20 +117,24 @@ class StickyMittenAvatarController(FloorplanController):
     # A high drag value to stop movement.
     _STOP_DRAG = 1000
 
-    def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True):
+    def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True,
+                 audio: bool = False):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
         :param demo: If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step.
         :param id_pass: If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run approximately 30% slower.
+        :param audio: If True, include audio data in the FrameData.
         """
 
         self._id_pass = id_pass
+        self._audio = audio
 
         # The containers library.
         self._lib_containers = ModelLibrarian(library=resource_filename(__name__, "metadata_libraries/containers.json"))
         # Get the container dimensions.
-        self._container_dimensions = loads(Path(resource_filename(__name__, "metadata_libraries/container_dimensions.json")).
+        self._container_dimensions = loads(Path(resource_filename(__name__,
+                                                                  "metadata_libraries/container_dimensions.json")).
                                            read_text(encoding="utf-8"))
         # Cached core model library.
         self._lib_core = ModelLibrarian()
@@ -169,7 +172,7 @@ class StickyMittenAvatarController(FloorplanController):
         # The command for the third-person camera, if any.
         self._cam_commands: Optional[list] = None
 
-        self.frames: List[FrameData] = list()
+        self.frame: Optional[FrameData] = None
 
         super().__init__(port=port, launch_build=launch_build)
 
@@ -229,8 +232,6 @@ class StickyMittenAvatarController(FloorplanController):
         :param layout: The furniture layout of the floorplan. If None, the controller will load a simple empty room.
         """
 
-        self._start_task()
-
         # Initialize the scene.
         self.communicate(self._get_scene_init_commands(scene=scene, layout=layout))
         # Load the occupancy_maps map.
@@ -241,24 +242,20 @@ class StickyMittenAvatarController(FloorplanController):
         # Create the avatar.
         self._init_avatar()
 
-        # Request Collisions, Rigidbodies, and Transforms and CameraMatrices per-frame.
         # Request SegmentationColors and CompositeObjects for this frame only.
         resp = self.communicate([{"$type": "send_collisions",
                                   "enter": True,
                                   "stay": False,
                                   "exit": False,
                                   "collision_types": ["obj", "env"]},
-                                 {"$type": "send_rigidbodies",
-                                  "frequency": "always"},
-                                 {"$type": "send_transforms",
-                                  "frequency": "always"},
-                                 {"$type": "send_camera_matrices",
-                                  "frequency": "always"},
                                  {"$type": "send_segmentation_colors",
                                   "frequency": "once"},
                                  {"$type": "send_composite_objects",
+                                  "frequency": "once"},
+                                 {"$type": "send_rigidbodies",
+                                  "frequency": "once"},
+                                 {"$type": "send_transforms",
                                   "frequency": "once"}])
-
         # Parse composite object audio data.
         segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
         # Get the name of each object.
@@ -304,6 +301,31 @@ class StickyMittenAvatarController(FloorplanController):
                                              rigidbodies=rigidbodies,
                                              audio=object_audio)
             self.static_object_info[static_object.object_id] = static_object
+        self._end_task()
+
+    def _end_task(self) -> None:
+        """
+        End the task and update the frame data.
+        """
+
+        commands = []
+        if not self._demo:
+            commands.append({"$type": "toggle_image_sensor",
+                             "sensor_name": "SensorContainer",
+                             "avatar_id": self._avatar.id})
+        # Request output data to update the frame data.
+        commands.extend([{"$type": "send_images",
+                          "frequency": "once"},
+                         {"$type": "send_rigidbodies",
+                          "frequency": "once"},
+                         {"$type": "send_transforms",
+                          "frequency": "once"},
+                         {"$type": "send_camera_matrices",
+                          "frequency": "once"}])
+
+        resp = self.communicate(commands)
+        # Update the frame data.
+        self.frame = FrameData(resp=resp, objects=self.static_object_info, avatar=self._avatar, audio=self._audio)
 
     def _create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None,
                        rotation: float = 0, debug: bool = False) -> None:
@@ -360,8 +382,6 @@ class StickyMittenAvatarController(FloorplanController):
                          {"$type": "set_pass_masks",
                           "pass_masks": pass_masks,
                           "avatar_id": avatar_id},
-                         {"$type": "send_images",
-                          "frequency": "always"},
                          {"$type": "toggle_image_sensor",
                           "sensor_name": "FollowCamera",
                           "avatar_id": avatar_id}])
@@ -433,16 +453,6 @@ class StickyMittenAvatarController(FloorplanController):
 
         if len(resp) == 1:
             return resp
-
-        # Update object info.
-        tran = get_data(resp=resp, d_type=Transforms)
-        rigi = get_data(resp=resp, d_type=Rigidbodies)
-
-        if tran is None or rigi is None:
-            return resp
-
-        # Update the frame data.
-        self.frames.append(FrameData(resp=resp, objects=self.static_object_info, avatar=self._avatar))
 
         # Update the avatar. Add new avatar commands for the next frame.
         if self._avatar is not None:
@@ -548,6 +558,7 @@ class StickyMittenAvatarController(FloorplanController):
         if check_if_possible:
             status = self._avatar.can_reach_target(target=target, arm=arm)
             if status != TaskStatus.success:
+                self._end_task()
                 return status
 
         self._avatar_commands.extend(self._avatar.reach_for_target(arm=arm, target=target,
@@ -555,6 +566,7 @@ class StickyMittenAvatarController(FloorplanController):
         self._avatar.status = TaskStatus.ongoing
         if do_motion:
             self._do_joint_motion()
+        self._end_task()
         return self._get_avatar_status()
 
     def grasp_object(self, object_id: int, arm: Arm, do_motion: bool = True, check_if_possible: bool = True,
@@ -596,10 +608,12 @@ class StickyMittenAvatarController(FloorplanController):
 
         if check_if_possible:
             if not raycast_ok:
+                self._end_task()
                 return TaskStatus.bad_raycast
             reachable_target = self._avatar.get_rotated_target(target=target)
             status = self._avatar.can_reach_target(target=reachable_target, arm=arm)
             if status != TaskStatus.success:
+                self._end_task()
                 return status
 
         # Get commands to pick up the target.
@@ -612,13 +626,16 @@ class StickyMittenAvatarController(FloorplanController):
             self._do_joint_motion()
         # The avatar failed to reach the target.
         if self._avatar.status != TaskStatus.success:
+            self._end_task()
             return self._get_avatar_status()
 
         # Return whether the avatar picked up the object.
         self._avatar.status = TaskStatus.idle
         if self._avatar.is_holding(object_id=object_id):
+            self._end_task()
             return TaskStatus.success
         else:
+            self._end_task()
             return TaskStatus.failed_to_pick_up
 
     def drop(self, reset_arms: bool = True, do_motion: bool = True) -> TaskStatus:
@@ -634,6 +651,7 @@ class StickyMittenAvatarController(FloorplanController):
         self._avatar_commands.extend(self._avatar.drop(reset_arms=reset_arms))
         if do_motion:
             self._do_joint_motion()
+        self._end_task()
         return TaskStatus.success
 
     def reset_arms(self, do_motion: bool = True) -> TaskStatus:
@@ -648,6 +666,7 @@ class StickyMittenAvatarController(FloorplanController):
         self._avatar_commands.extend(self._avatar.reset_arms())
         if do_motion:
             self._do_joint_motion()
+        self._end_task()
         return TaskStatus.success
 
     def _do_joint_motion(self) -> None:
@@ -675,6 +694,7 @@ class StickyMittenAvatarController(FloorplanController):
                           "drag": self._STOP_DRAG,
                           "angular_drag": self._STOP_DRAG,
                           "avatar_id": self._avatar.id})
+        self._end_task()
         self._avatar.status = TaskStatus.idle
 
     def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000,
@@ -710,7 +730,7 @@ class StickyMittenAvatarController(FloorplanController):
             return TaskStatus.ongoing, angle
         # Set the target to the object's position.
         if isinstance(target, int):
-            target = self.frames[-1].object_transforms[target].position
+            target = self.frame.object_transforms[target].position
         # Convert the Vector3 target to a numpy array.
         else:
             target = TDWUtils.vector3_to_array(target)
@@ -850,9 +870,9 @@ class StickyMittenAvatarController(FloorplanController):
 
         # Set the target. If it's an object, the target is the nearest point on the bounds.
         if isinstance(target, int):
-            if len(self.frames) == 0:
+            if self.frame is None:
                 self.communicate([])
-            target = self.frames[-1].object_transforms[target].position
+            target = self.frame.object_transforms[target].position
         # Convert the Vector3 target to a numpy array.
         elif isinstance(target, dict):
             target = TDWUtils.vector3_to_array(target)
@@ -1001,6 +1021,7 @@ class StickyMittenAvatarController(FloorplanController):
                            "joint": joint.joint,
                            "axis": joint.axis,
                            "avatar_id": self._avatar.id}])
+        self._end_task()
 
     def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None:
         """
@@ -1021,6 +1042,7 @@ class StickyMittenAvatarController(FloorplanController):
                              "angle": angle,
                              "avatar_id": self._avatar.id})
         self.communicate(commands)
+        self._end_task()
 
     def reset_camera_rotation(self) -> None:
         """
@@ -1032,6 +1054,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         self.communicate({"$type": "reset_sensor_container_rotation",
                           "avatar_id": self._avatar.id})
+        self._end_task()
 
     def add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c",
                             images: str = "all") -> None:
@@ -1152,7 +1175,7 @@ class StickyMittenAvatarController(FloorplanController):
         count = 0
         while not mitten_collision and count < 200:
             self.communicate([])
-            if object_id in self.frames[-1].avatar_object_collisions[mitten_id]:
+            if object_id in self._avatar.collisions[mitten_id]:
                 mitten_collision = True
                 break
             count += 1
@@ -1219,10 +1242,10 @@ class StickyMittenAvatarController(FloorplanController):
         commands = []
         if not self._demo:
             return commands
-        elif len(self.frames) == 0:
+        elif self.frame is None:
             return commands
         # Get audio per collision.
-        for audio, object_id in self.frames[-1].audio:
+        for audio, object_id in self.frame.audio:
             if audio is None:
                 continue
             commands.append({"$type": "play_audio_data",
@@ -1274,4 +1297,9 @@ class StickyMittenAvatarController(FloorplanController):
         Start a new task. Clear frame data and task status.
         """
 
-        self.frames.clear()
+        if self._demo or self._avatar is None:
+            return
+
+        self.communicate({"$type": "toggle_image_sensor",
+                          "sensor_name": "SensorContainer",
+                          "avatar_id": self._avatar.id})
