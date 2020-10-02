@@ -7,6 +7,7 @@
 - `StickyMittenAvatarController`:
   - Replace `frames` with `frame` (the most recent frame after doing an action). As a result, the simulation is much faster.
   - Added optional `audio` parameter to the constructor. If True, record audio data.
+  - Added optional parameters `screen_width` and `screen_height` to the constructor.
   - Added optional parameter `room` to `init_scene()` to spawn the avatar in a room.
 - `FrameData`:
   - Added more documentation to `depth_pass`.

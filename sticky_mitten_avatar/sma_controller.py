@@ -118,13 +118,15 @@ class StickyMittenAvatarController(FloorplanController):
     _STOP_DRAG = 1000
 
     def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True,
-                 audio: bool = False):
+                 audio: bool = False, screen_width: int = 256, screen_height: int = 256):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
         :param demo: If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step.
         :param id_pass: If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run somewhat slower.
         :param audio: If True, include audio data in the FrameData.
+        :param screen_width: The width of the screen in pixels.
+        :param screen_height: The height of the screen in pixels.
         """
 
         self._id_pass = id_pass
@@ -190,7 +192,10 @@ class StickyMittenAvatarController(FloorplanController):
                     {"$type": "set_shadow_strength",
                      "strength": 1.0},
                     {"$type": "set_sleep_threshold",
-                     "sleep_threshold": 0.1}]
+                     "sleep_threshold": 0.1},
+                    {"$type": "set_screen_size",
+                     "width": screen_width,
+                     "height": screen_height}]
         # Set the frame rate and timestep for audio.
         if self._demo:
             commands.extend([{"$type": "set_target_framerate",
