@@ -21,6 +21,7 @@ class StaticObjectInfo:
     - `category`: The semantic category of the object.
     - `audio`: [Audio properties.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#objectinfo)
     - `container`': If True, this object is container-shaped (a bowl or open basket that smaller objects can be placed in).
+    - `kinematic`: If True, this object is kinematic, and won't respond to physics. Example: a painting hung on a wall.
     """
 
     # The names of every container model.
@@ -30,6 +31,15 @@ class StaticObjectInfo:
                    "round_bowl_large_metal_perf", "round_bowl_large_padauk", "round_bowl_large_thin",
                    "round_bowl_small_beech", "round_bowl_small_walnut", "round_bowl_talll_wenge",
                    "shallow_basket_white_mesh", "shallow_basket_wicker"]
+    # Objects that we can assume are kinematic.
+    _KINEMATIC = ['24_in_wall_cabinet_white_wood', '24_in_wall_cabinet_wood_beach_honey',
+                  '36_in_wall_cabinet_white_wood', '36_in_wall_cabinet_wood_beach_honey', 'blue_rug',
+                  'cabinet_24_door_drawer_wood_beach_honey', 'cabinet_24_singledoor_wood_beach_honey',
+                  'cabinet_24_two_drawer_white_wood', 'cabinet_24_two_drawer_wood_beach_honey', 'cabinet_24_white_wood',
+                  'cabinet_24_wood_beach_honey', 'cabinet_36_white_wood', 'cabinet_36_wood_beach_honey',
+                  'cabinet_full_height_white_wood', 'cabinet_full_height_wood_beach_honey', 'carpet_rug',
+                  'elf_painting', 'flat_woven_rug', 'framed_painting', 'fruit_basket', 'its_about_time_painting',
+                  'purple_woven_rug', 'silver_frame_painting']
     _COMPOSITE_OBJECTS = loads(Path(resource_filename(__name__, "composite_object_audio.json")).read_text(
         encoding="utf-8"))
 
@@ -45,6 +55,7 @@ class StaticObjectInfo:
         self.audio = audio
         self.model_name = self.audio.name
         self.container = self.model_name in StaticObjectInfo._CONTAINERS
+        self.kinematic = self.model_name in StaticObjectInfo._KINEMATIC
 
         self.category = ""
         # This is a sub-object of a composite object.
