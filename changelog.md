@@ -7,6 +7,7 @@
 - `StickyMittenAvatarController`:
   - Replace `frames` with `frame` (the most recent frame after doing an action). As a result, the simulation is much faster.
   - Added optional `audio` parameter to the constructor. If True, record audio data.
+  - Added optional parameter `room` to `init_scene()` to spawn the avatar in a room.
 - `FrameData`:
   - Added more documentation to `depth_pass`.
   - Removed: `avatar_object_collisions`
@@ -15,6 +16,8 @@
 ### Backend
 
 - Unless `demo == True`, the `StickyMittenAvatarController` will capture image and object data only after each action.
+- Added `occupancy_maps/spawn_positions.json` Spawn positions per room per layout per scene.
+- Added: `util/spawn_mapper.py` Calculate avatar spawn positions per scene per layout.
 
 ### Known Issues
 
