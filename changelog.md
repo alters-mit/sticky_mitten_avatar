@@ -12,6 +12,8 @@
   - Added more documentation to `depth_pass`.
   - Removed: `avatar_object_collisions`
   - Removed: `avatar_env_collisions`
+- `StaticObjectInfo`
+  - Added: `kinematic`. If True, this object is kinematic and won't respond to physics.
 
 ### Backend
 
