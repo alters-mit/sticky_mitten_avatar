@@ -20,7 +20,7 @@ print(task_status) # TaskStatus.success
 
 # Get the segmentation color pass for the avatar after bending the arm.
 # See FrameData.save_images and FrameData.get_pil_images
-segmentation_colors = c.frames[-1].id_pass
+segmentation_colors = c.frame.id_pass
 
 c.end()
 ```
