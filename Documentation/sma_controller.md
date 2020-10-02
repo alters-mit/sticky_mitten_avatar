@@ -99,7 +99,7 @@ print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.4254207
 
 #### \_\_init\_\_
 
-**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True, audio: bool = False)`**
+**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True, audio: bool = False, screen_width: int = 256, screen_height: int = 256)`**
 
 
 | Parameter | Description |
@@ -109,6 +109,8 @@ print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.4254207
 | demo | If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step. |
 | id_pass | If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run approximately 30% slower. |
 | audio | If True, include audio data in the FrameData. |
+| screen_width | The width of the screen in pixels. |
+| screen_height | The height of the screen in pixels. |
 
 ***
 

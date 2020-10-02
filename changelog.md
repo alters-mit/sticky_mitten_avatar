@@ -7,6 +7,7 @@
 - `StickyMittenAvatarController`:
   - Replace `frames` with `frame` (the most recent frame after doing an action). As a result, the simulation is much faster.
   - Added optional `audio` parameter to the constructor. If True, record audio data.
+  - Added optional parameters `screen_width` and `screen_height` to the constructor.
 - `FrameData`:
   - Added more documentation to `depth_pass`.
   - Removed: `avatar_object_collisions`
