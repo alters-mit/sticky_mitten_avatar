@@ -385,8 +385,6 @@ class StickyMittenAvatarController(FloorplanController):
                          {"$type": "set_pass_masks",
                           "pass_masks": pass_masks,
                           "avatar_id": avatar_id},
-                         {"$type": "send_avatars",
-                          "frequency": "always"},
                          {"$type": "toggle_image_sensor",
                           "sensor_name": "FollowCamera",
                           "avatar_id": avatar_id}])
