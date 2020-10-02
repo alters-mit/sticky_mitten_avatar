@@ -13,7 +13,7 @@ from tdw.object_init_data import AudioInitData, TransformInitData
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD, \
-    OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH
+    OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -211,33 +211,33 @@ class StickyMittenAvatarController(FloorplanController):
         ```
 
         Set the `scene` and `layout` parameters in `init_scene()` to load an interior scene with furniture and props.
-        Set the `room` to spawn the avatar in the center of a room or a section of a room (this is an index of all room/room sections in the scene).
+        Set the `room` to spawn the avatar in the center of a room.
 
 
         ```python
         from sticky_mitten_avatar import StickyMittenAvatarController
 
         c = StickyMittenAvatarController()
-        c.init_scene(scene="2b", layout=0)
+        c.init_scene(scene="2b", layout=0, room=1)
         ```
 
         Valid scenes, layouts, and rooms:
 
         | `scene` | `layout` | `room` |
         | --- | --- | --- |
-        | 1a, 1b, or 1c | 0, 1, or 2 | 0, 1, ..., 6 |
-        | 2a, 2b, or 2c | 0, 1, or 2 | 0, 1, ..., 8 |
-        | 4a, 4b, or 4c | 0, 1, or 2 | 0, 1, ..., 7 |
-        | 5a, 5b, or 5c | 0, 1, or 2 | 0, 1, ..., 3 |
+        | 1a, 1b, or 1c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6 |
+        | 2a, 2b, or 2c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7, 8 |
+        | 4a, 4b, or 4c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7 |
+        | 5a, 5b, or 5c | 0, 1, or 2 | 0, 1, 2, 3 |
 
         :param scene: The name of an interior floorplan scene. If None, the controller will load a simple empty room.
         :param layout: The furniture layout of the floorplan. If None, the controller will load a simple empty room.
-        :param room: The index of the room or section of a room that the avatar will spawn in. If None, the avatar will spawn in the center of the scene. Ignored it `scene` or `layout` is None.
+        :param room: The index of the room that the avatar will spawn in the center of. If `room`, `scene`, or `layout` is None, the avatar will spawn in at (0, 0, 0).
         """
 
         # Initialize the scene.
         self.communicate(self._get_scene_init_commands(scene=scene, layout=layout))
-        # Load the occupancy_maps map.
+        # Load the occupancy map.
         if scene is not None and layout is not None:
             self.occupancy_map = np.load(str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
             self._scene_bounds = loads(SCENE_BOUNDS_PATH.read_text())[scene[0]]
@@ -245,20 +245,30 @@ class StickyMittenAvatarController(FloorplanController):
         # Create the avatar.
         self._init_avatar()
 
+        commands = [{"$type": "send_collisions",
+                     "enter": True,
+                     "stay": False,
+                     "exit": False,
+                     "collision_types": ["obj", "env"]},
+                    {"$type": "send_segmentation_colors",
+                     "frequency": "once"},
+                    {"$type": "send_composite_objects",
+                     "frequency": "once"},
+                    {"$type": "send_rigidbodies",
+                     "frequency": "once"},
+                    {"$type": "send_transforms",
+                     "frequency": "once"}]
+
+        # Teleport the avatar to a room.
+        if room is not None:
+            rooms = loads(SPAWN_POSITIONS_PATH.read_text())[scene[0]][str(layout)]
+            assert room < len(rooms), f"Invalid room: {room}"
+            commands.append({"$type": "teleport_avatar_to",
+                             "avatar_id": "a",
+                             "position": rooms[room]})
+
         # Request SegmentationColors and CompositeObjects for this frame only.
-        resp = self.communicate([{"$type": "send_collisions",
-                                  "enter": True,
-                                  "stay": False,
-                                  "exit": False,
-                                  "collision_types": ["obj", "env"]},
-                                 {"$type": "send_segmentation_colors",
-                                  "frequency": "once"},
-                                 {"$type": "send_composite_objects",
-                                  "frequency": "once"},
-                                 {"$type": "send_rigidbodies",
-                                  "frequency": "once"},
-                                 {"$type": "send_transforms",
-                                  "frequency": "once"}])
+        resp = self.communicate(commands)
         # Parse composite object audio data.
         segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
         # Get the name of each object.

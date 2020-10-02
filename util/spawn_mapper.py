@@ -4,7 +4,7 @@ import numpy as np
 from tdw.controller import Controller
 from tdw.output_data import Environments
 from tdw.tdw_utils import TDWUtils
-from sticky_mitten_avatar.util import get_data, SCENE_BOUNDS_PATH
+from sticky_mitten_avatar.util import get_data, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH
 
 """
 Calculate avatar spawn positions per scene per layout.
@@ -58,6 +58,6 @@ if __name__ == "__main__":
                             min_distance = d
                             min_position = pos
                 # Add the free position closest to the center as a spawn position.
-                spawn_positions[scene][layout] = TDWUtils.array_to_vector3(min_position)
-    p.joinpath("spawn_positions.json").write_text(json.dumps(spawn_positions, indent=2, sort_keys=True))
+                spawn_positions[scene][layout].append(TDWUtils.array_to_vector3(min_position))
+    SPAWN_POSITIONS_PATH.write_text(json.dumps(spawn_positions, indent=2, sort_keys=True))
     c.communicate({"$type": "terminate"})
