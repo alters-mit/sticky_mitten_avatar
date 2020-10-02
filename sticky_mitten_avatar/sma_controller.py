@@ -373,6 +373,8 @@ class StickyMittenAvatarController(FloorplanController):
                          {"$type": "send_avatar_segmentation_colors",
                           "frequency": "once",
                           "ids": [avatar_id]},
+                         {"$type": "send_avatars",
+                          "frequency": "always"},
                          {"$type": "set_avatar_collision_detection_mode",
                           "mode": "continuous_dynamic",
                           "avatar_id": avatar_id},
