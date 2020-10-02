@@ -123,7 +123,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
         :param demo: If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step.
-        :param id_pass: If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run approximately 30% slower.
+        :param id_pass: If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run somewhat slower.
         :param audio: If True, include audio data in the FrameData.
         """
 

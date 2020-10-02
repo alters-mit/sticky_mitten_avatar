@@ -107,7 +107,7 @@ print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.4254207
 | port | The port number. |
 | launch_build | If True, automatically launch the build. |
 | demo | If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step. |
-| id_pass | If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run approximately 30% slower. |
+| id_pass | If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run somewhat slower. |
 | audio | If True, include audio data in the FrameData. |
 
 ***
