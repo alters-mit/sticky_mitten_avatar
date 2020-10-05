@@ -264,9 +264,9 @@ class StickyMittenAvatarController(FloorplanController):
                      "frequency": "once"}]
 
         # Teleport the avatar to a room.
-        if room is not None:
+        if scene is not None and layout is not None and room is not None:
             rooms = loads(SPAWN_POSITIONS_PATH.read_text())[scene[0]][str(layout)]
-            assert 0 >= room < len(rooms), f"Invalid room: {room}"
+            assert 0 <= room < len(rooms), f"Invalid room: {room}"
             commands.append({"$type": "teleport_avatar_to",
                              "avatar_id": "a",
                              "position": rooms[room]})
