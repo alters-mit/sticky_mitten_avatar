@@ -9,6 +9,8 @@ from pkg_resources import resource_filename
 OCCUPANCY_MAP_DIRECTORY = Path(resource_filename(__name__, "occupancy_maps"))
 # The path to the scene bounds data.
 SCENE_BOUNDS_PATH = OCCUPANCY_MAP_DIRECTORY.joinpath("scene_bounds.json")
+# The path to the spawn positions.
+SPAWN_POSITIONS_PATH = OCCUPANCY_MAP_DIRECTORY.joinpath("spawn_positions.json")
 
 T = TypeVar("T", bound=OutputData)
 # Output data types mapped to their IDs.

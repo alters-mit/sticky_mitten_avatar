@@ -13,7 +13,7 @@ from tdw.object_init_data import AudioInitData, TransformInitData
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD, \
-    OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH
+    OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -95,9 +95,9 @@ class StickyMittenAvatarController(FloorplanController):
     ```
 
     - `occupancy_map` A numpy array of positions in the scene and whether they are occupied.
-       This is populated by supplying `scene` and `layout` parameters in `init_scene()`. Otherwise, this is None.
+       If `scene` or `layout` is None, then this is None.
        Shape is `(width, length)` Data type = `int`. 0 = occupied. 1 = free. 2 = outside of the scene.
-       A position is occupied if there is an object (such as a table) or environment obstacle (such as a wall) within 0.5 meters of the position.
+       A position is occupied if there is an object (such as a table) or environment obstacle (such as a wall) within 0.25 meters of the position.
 
        This is static data for the _initial_ scene occupancy_maps. It won't update if an object's position changes.
 
@@ -123,7 +123,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
         :param demo: If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step.
-        :param id_pass: If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run approximately 30% slower.
+        :param id_pass: If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run somewhat slower.
         :param audio: If True, include audio data in the FrameData.
         :param screen_width: The width of the screen in pixels.
         :param screen_height: The height of the screen in pixels.
@@ -203,7 +203,7 @@ class StickyMittenAvatarController(FloorplanController):
                              {"$type": "set_time_step",
                               "time_step": 0.02}])
 
-    def init_scene(self, scene: str = None, layout: int = None) -> None:
+    def init_scene(self, scene: str = None, layout: int = None, room: int = 0) -> None:
         """
         Initialize a scene, populate it with objects, add the avatar, and set rendering options.
         The controller by default will load a simple empty room:
@@ -215,31 +215,33 @@ class StickyMittenAvatarController(FloorplanController):
         c.init_scene()
         ```
 
-        Set the `scene` and `layout` parameters in `init_scene()` to load an interior scene with furniture and props:
+        Set the `scene` and `layout` parameters in `init_scene()` to load an interior scene with furniture and props.
+        Set the `room` to spawn the avatar in the center of a room.
 
         ```python
         from sticky_mitten_avatar import StickyMittenAvatarController
 
         c = StickyMittenAvatarController()
-        c.init_scene(scene="2b", layout=0)
+        c.init_scene(scene="2b", layout=0, room=1)
         ```
 
-        Valid scenes and layouts:
+        Valid scenes, layouts, and rooms:
 
-        | `scene` | `layout` |
-        | --- | --- |
-        | 1a, 1b, or 1c | 0, 1, or 2 |
-        | 2a, 2b, or 2c | 0, 1, or 2 |
-        | 4a, 4b, or 4c | 0, 1, or 2 |
-        | 5a, 5b, or 5c | 0, 1, or 2 |
+        | `scene` | `layout` | `room` |
+        | --- | --- | --- |
+        | 1a, 1b, or 1c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6 |
+        | 2a, 2b, or 2c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7, 8 |
+        | 4a, 4b, or 4c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7 |
+        | 5a, 5b, or 5c | 0, 1, or 2 | 0, 1, 2, 3 |
 
         :param scene: The name of an interior floorplan scene. If None, the controller will load a simple empty room.
         :param layout: The furniture layout of the floorplan. If None, the controller will load a simple empty room.
+        :param room: The index of the room that the avatar will spawn in the center of. If `scene` or `layout` is None, the avatar will spawn in at (0, 0, 0).
         """
 
         # Initialize the scene.
         self.communicate(self._get_scene_init_commands(scene=scene, layout=layout))
-        # Load the occupancy_maps map.
+        # Load the occupancy map.
         if scene is not None and layout is not None:
             self.occupancy_map = np.load(str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
             self._scene_bounds = loads(SCENE_BOUNDS_PATH.read_text())[scene[0]]
@@ -247,20 +249,30 @@ class StickyMittenAvatarController(FloorplanController):
         # Create the avatar.
         self._init_avatar()
 
+        commands = [{"$type": "send_collisions",
+                     "enter": True,
+                     "stay": False,
+                     "exit": False,
+                     "collision_types": ["obj", "env"]},
+                    {"$type": "send_segmentation_colors",
+                     "frequency": "once"},
+                    {"$type": "send_composite_objects",
+                     "frequency": "once"},
+                    {"$type": "send_rigidbodies",
+                     "frequency": "once"},
+                    {"$type": "send_transforms",
+                     "frequency": "once"}]
+
+        # Teleport the avatar to a room.
+        if scene is not None and layout is not None and room is not None:
+            rooms = loads(SPAWN_POSITIONS_PATH.read_text())[scene[0]][str(layout)]
+            assert 0 <= room < len(rooms), f"Invalid room: {room}"
+            commands.append({"$type": "teleport_avatar_to",
+                             "avatar_id": "a",
+                             "position": rooms[room]})
+
         # Request SegmentationColors and CompositeObjects for this frame only.
-        resp = self.communicate([{"$type": "send_collisions",
-                                  "enter": True,
-                                  "stay": False,
-                                  "exit": False,
-                                  "collision_types": ["obj", "env"]},
-                                 {"$type": "send_segmentation_colors",
-                                  "frequency": "once"},
-                                 {"$type": "send_composite_objects",
-                                  "frequency": "once"},
-                                 {"$type": "send_rigidbodies",
-                                  "frequency": "once"},
-                                 {"$type": "send_transforms",
-                                  "frequency": "once"}])
+        resp = self.communicate(commands)
         # Parse composite object audio data.
         segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
         # Get the name of each object.

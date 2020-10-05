@@ -78,9 +78,9 @@ for body_part_id in c.static_avatar_data:
 ```
 
 - `occupancy_map` A numpy array of positions in the scene and whether they are occupied.
-   This is populated by supplying `scene` and `layout` parameters in `init_scene()`. Otherwise, this is None.
+   If `scene` or `layout` is None, then this is None.
    Shape is `(width, length)` Data type = `int`. 0 = occupied. 1 = free. 2 = outside of the scene.
-   A position is occupied if there is an object (such as a table) or environment obstacle (such as a wall) within 0.5 meters of the position.
+   A position is occupied if there is an object (such as a table) or environment obstacle (such as a wall) within 0.25 meters of the position.
 
    This is static data for the _initial_ scene occupancy_maps. It won't update if an object's position changes.
 
@@ -107,7 +107,7 @@ print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.4254207
 | port | The port number. |
 | launch_build | If True, automatically launch the build. |
 | demo | If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step. |
-| id_pass | If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run approximately 30% slower. |
+| id_pass | If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run somewhat slower. |
 | audio | If True, include audio data in the FrameData. |
 | screen_width | The width of the screen in pixels. |
 | screen_height | The height of the screen in pixels. |
@@ -116,7 +116,7 @@ print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.4254207
 
 #### init_scene
 
-**`def init_scene(self, scene: str = None, layout: int = None) -> None`**
+**`def init_scene(self, scene: str = None, layout: int = None, room: int = 0) -> None`**
 
 Initialize a scene, populate it with objects, add the avatar, and set rendering options.
 The controller by default will load a simple empty room:
@@ -125,24 +125,26 @@ from sticky_mitten_avatar import StickyMittenAvatarController
 c = StickyMittenAvatarController()
 c.init_scene()
 ```
-Set the `scene` and `layout` parameters in `init_scene()` to load an interior scene with furniture and props:
+Set the `scene` and `layout` parameters in `init_scene()` to load an interior scene with furniture and props.
+Set the `room` to spawn the avatar in the center of a room.
 ```python
 from sticky_mitten_avatar import StickyMittenAvatarController
 c = StickyMittenAvatarController()
-c.init_scene(scene="2b", layout=0)
+c.init_scene(scene="2b", layout=0, room=1)
 ```
-Valid scenes and layouts:
-| `scene` | `layout` |
-| --- | --- |
-| 1a, 1b, or 1c | 0, 1, or 2 |
-| 2a, 2b, or 2c | 0, 1, or 2 |
-| 4a, 4b, or 4c | 0, 1, or 2 |
-| 5a, 5b, or 5c | 0, 1, or 2 |
+Valid scenes, layouts, and rooms:
+| `scene` | `layout` | `room` |
+| --- | --- | --- |
+| 1a, 1b, or 1c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6 |
+| 2a, 2b, or 2c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7, 8 |
+| 4a, 4b, or 4c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7 |
+| 5a, 5b, or 5c | 0, 1, or 2 | 0, 1, 2, 3 |
 
 | Parameter | Description |
 | --- | --- |
 | scene | The name of an interior floorplan scene. If None, the controller will load a simple empty room. |
 | layout | The furniture layout of the floorplan. If None, the controller will load a simple empty room. |
+| room | The index of the room that the avatar will spawn in the center of. If `scene` or `layout` is None, the avatar will spawn in at (0, 0, 0). |
 
 ***
 
