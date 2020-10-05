@@ -221,25 +221,31 @@ _Returns:_  A `TaskStatus` indicating whether the avatar picked up the object an
 
 #### drop
 
-**`def drop(self, reset_arms: bool = True, do_motion: bool = True) -> TaskStatus`**
+**`def drop(self, arm: Arm, reset_arm: bool = True, do_motion: bool = True) -> TaskStatus`**
 
-Drop any held objects and reset the arms to their neutral positions.
+Drop any held objects held by the arm. Reset the arm to its neutral position.
+Possible [return values](task_status.md):
+- `success` (The avatar's arm dropped all objects.)
 
 | Parameter | Description |
 | --- | --- |
-| reset_arms | If True, reset arm positions to "neutral". |
+| arm | The arm that will drop any held objects. |
+| reset_arm | If True, reset the arm's positions to "neutral". |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
 
 ***
 
-#### reset_arms
+#### reset_arm
 
-**`def reset_arms(self, do_motion: bool = True) -> TaskStatus`**
+**`def reset_arm(self, arm: Arm, do_motion: bool = True) -> TaskStatus`**
 
-Reset the avatar's arms to their neutral positions.
+Reset an avatar's arm to its neutral positions.
+Possible [return values](task_status.md):
+- `success` (The avatar's arm reset.)
 
 | Parameter | Description |
 | --- | --- |
+| arm | The arm that will be reset. |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
 
 ***

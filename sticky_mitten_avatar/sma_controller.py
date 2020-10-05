@@ -655,32 +655,42 @@ class StickyMittenAvatarController(FloorplanController):
             self._end_task()
             return TaskStatus.failed_to_pick_up
 
-    def drop(self, reset_arms: bool = True, do_motion: bool = True) -> TaskStatus:
+    def drop(self, arm: Arm, reset_arm: bool = True, do_motion: bool = True) -> TaskStatus:
         """
-        Drop any held objects and reset the arms to their neutral positions.
+        Drop any held objects held by the arm. Reset the arm to its neutral position.
 
-        :param reset_arms: If True, reset arm positions to "neutral".
+        Possible [return values](task_status.md):
+
+        - `success` (The avatar's arm dropped all objects.)
+
+        :param arm: The arm that will drop any held objects.
+        :param reset_arm: If True, reset the arm's positions to "neutral".
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         """
 
         self._start_task()
 
-        self._avatar_commands.extend(self._avatar.drop(reset_arms=reset_arms))
+        self._avatar_commands.extend(self._avatar.drop(reset=reset_arm, arm=arm))
         if do_motion:
             self._do_joint_motion()
         self._end_task()
         return TaskStatus.success
 
-    def reset_arms(self, do_motion: bool = True) -> TaskStatus:
+    def reset_arm(self, arm: Arm, do_motion: bool = True) -> TaskStatus:
         """
-        Reset the avatar's arms to their neutral positions.
+        Reset an avatar's arm to its neutral positions.
 
+        Possible [return values](task_status.md):
+
+        - `success` (The avatar's arm reset.)
+
+        :param arm: The arm that will be reset.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         """
 
         self._start_task()
 
-        self._avatar_commands.extend(self._avatar.reset_arms())
+        self._avatar_commands.extend(self._avatar.reset_arms(arm=arm))
         if do_motion:
             self._do_joint_motion()
         self._end_task()
@@ -1196,7 +1206,7 @@ class StickyMittenAvatarController(FloorplanController):
                 mitten_collision = True
                 break
             count += 1
-        self.reset_arms()
+        self.reset_arm(arm=arm)
         self._avatar.status = TaskStatus.idle
         if mitten_collision:
             return TaskStatus.success

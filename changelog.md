@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Renamed `reset_arms()` to `reset_arm()`
+  - Added `arm` parameter to `reset_arm()`
+  - Added `arm` parameter to `drop()`
+
 ## 0.5.0
 
 ### Frontend
