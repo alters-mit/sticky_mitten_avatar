@@ -1,4 +1,3 @@
-from sticky_mitten_avatar.task_status import TaskStatus
 from typing import List
 from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 
@@ -106,7 +105,7 @@ if __name__ == "__main__":
         c.go_to(target=container, move_stopping_threshold=0.7, turn_force=700)
         c.grasp_object(object_id=container, arm=arm)
         c.shake(joint_name=f"elbow_{arm.name}")
-        c.drop(do_motion=False)
+        c.drop(do_motion=False, arm=arm)
     # Pick up the first container again.
     c.go_to(target=c.container_0, move_stopping_threshold=0.7)
     c.turn_to(target=c.container_0)
@@ -118,5 +117,5 @@ if __name__ == "__main__":
     c.reach_for_target(arm=Arm.left, target={"x": 0, "y": 0.4, "z": 1}, do_motion=False)
     for i in range(20):
         c.communicate([])
-    c.drop()
+    c.drop(arm=Arm.left)
     c.end()

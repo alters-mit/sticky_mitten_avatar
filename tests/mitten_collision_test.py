@@ -29,7 +29,7 @@ if __name__ == "__main__":
     # Try to grasp the object. This should result in a collision.
     result = c.grasp_object(object_id=c.o_id, arm=Arm.left)
     assert result == TaskStatus.mitten_collision, result
-    c.reset_arms()
+    c.reset_arm(arm=Arm.left)
     # Try again. This should result in a failure to pick up the object.
     result = c.grasp_object(object_id=c.o_id, arm=Arm.left, stop_on_mitten_collision=False)
     assert result == TaskStatus.no_longer_bending or result == TaskStatus.failed_to_pick_up, result

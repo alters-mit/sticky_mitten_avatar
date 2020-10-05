@@ -50,7 +50,8 @@ class IKUnitTests(StickyMittenAvatarController):
 
             self.reach_for_target(target={"x": -0.4, "y": 0.3, "z": 0.185}, arm=Arm.left)
             self.reach_for_target(target={"x": 0.4, "y": 0.3, "z": 0.185}, arm=Arm.right)
-            self.reset_arms()
+            self.reset_arm(arm=Arm.left)
+            self.reset_arm(arm=Arm.right)
             theta += d_theta
 
     def position(self) -> None:

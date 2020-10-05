@@ -433,32 +433,34 @@ class Avatar(ABC):
 
         return self._ik_goals[Arm.left] is None and self._ik_goals[Arm.right] is None
 
-    def drop(self, reset_arms: bool = True) -> List[dict]:
+    def drop(self, arm: Arm, reset: bool = True) -> List[dict]:
         """
-        Put down the object.
+        Drop all objects held by an arm.
 
-        :param reset_arms: If True, reset arm positions to "neutral".
+        :param arm: The arm that will drop all held objects.
+        :param reset: If True, reset the arm's positions to "neutral".
 
         :return: A list of commands to put down the object.
         """
 
         commands = [{"$type": "put_down",
-                     "is_left": True,
-                     "avatar_id": self.id},
-                    {"$type": "put_down",
-                     "is_left": False,
+                     "is_left": True if arm == Arm.left else False,
                      "avatar_id": self.id}]
-        if reset_arms:
-            commands.extend(self.reset_arms())
+        if reset:
+            commands.extend(self.reset_arms(arm=arm))
         return commands
 
-    def reset_arms(self) -> List[dict]:
+    def reset_arms(self, arm: Arm) -> List[dict]:
         """
+        :param arm: The arm that will be reset.
+
         :return: A list of commands to drop arms to their starting positions.
         """
 
         commands = []
         for j in self.JOINTS:
+            if j.arm != arm.name:
+                continue
             commands.append({"$type": "bend_arm_joint_to",
                              "joint": j.joint,
                              "axis": j.axis,
