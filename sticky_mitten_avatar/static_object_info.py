@@ -3,7 +3,7 @@ import numpy as np
 from json import loads
 from pathlib import Path
 from pkg_resources import resource_filename
-from tdw.output_data import SegmentationColors, Rigidbodies
+from tdw.output_data import SegmentationColors, Rigidbodies, Bounds
 from tdw.py_impact import ObjectInfo
 from tdw.object_init_data import TransformInitData
 
@@ -22,6 +22,7 @@ class StaticObjectInfo:
     - `audio`: [Audio properties.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#objectinfo)
     - `container`': If True, this object is container-shaped (a bowl or open basket that smaller objects can be placed in).
     - `kinematic`: If True, this object is kinematic, and won't respond to physics. Example: a painting hung on a wall.
+    - `size`: The size of the object as a numpy array: `[width, height, length]`
     """
 
     # The names of every container model.
@@ -44,10 +45,11 @@ class StaticObjectInfo:
         encoding="utf-8"))
 
     def __init__(self, object_id: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors,
-                 audio: ObjectInfo):
+                 bounds: Bounds, audio: ObjectInfo):
         """
         :param object_id: The unique ID of the object.
         :param rigidbodies: Rigidbodies output data.
+        :param bounds: Bounds output data.
         :param segmentation_colors: Segmentation colors output data.
         """
 
@@ -81,6 +83,16 @@ class StaticObjectInfo:
                 self.segmentation_color = np.array(segmentation_colors.get_object_color(i))
                 break
         assert self.segmentation_color is not None, f"Segmentation color not found: {self.object_id}"
+
+        # Get the size of the object.
+        self.size = np.array([0, 0, 0])
+        for i in range(bounds.get_num()):
+            if bounds.get_id(i) == self.object_id:
+                self.size = np.array([float(np.abs(bounds.get_right(i)[0] - bounds.get_left(i)[0])),
+                                      float(np.abs(bounds.get_top(i)[1] - bounds.get_bottom(i)[1])),
+                                      float(np.abs(bounds.get_front(i)[2] - bounds.get_back(i)[2]))])
+                break
+        assert np.linalg.norm(self.size) > 0, f"Bounds data not found for: {self.object_id}"
 
         # Get the mass.
         self.mass: float = -1

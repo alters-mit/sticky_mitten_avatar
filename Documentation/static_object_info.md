@@ -16,18 +16,20 @@ Fields:
 - `audio`: [Audio properties.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#objectinfo)
 - `container`': If True, this object is container-shaped (a bowl or open basket that smaller objects can be placed in).
 - `kinematic`: If True, this object is kinematic, and won't respond to physics. Example: a painting hung on a wall.
+- `size`: The size of the object as a numpy array: `[width, height, length]`
 
 ***
 
 #### \_\_init\_\_
 
-**`def __init__(self, object_id: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors, audio: ObjectInfo)`**
+**`def __init__(self, object_id: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors, bounds: Bounds, audio: ObjectInfo)`**
 
 
 | Parameter | Description |
 | --- | --- |
 | object_id | The unique ID of the object. |
 | rigidbodies | Rigidbodies output data. |
+| bounds | Bounds output data. |
 | segmentation_colors | Segmentation colors output data. |
 
 ***

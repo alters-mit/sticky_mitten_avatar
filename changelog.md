@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2
+
+- `StaticObjectInfo`:
+  - Added field `size`: The size of the object as a numpy array.
+
 ## 0.5.1
 
 ### Frontend

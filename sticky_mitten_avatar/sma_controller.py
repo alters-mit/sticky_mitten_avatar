@@ -261,6 +261,8 @@ class StickyMittenAvatarController(FloorplanController):
                     {"$type": "send_rigidbodies",
                      "frequency": "once"},
                     {"$type": "send_transforms",
+                     "frequency": "once"},
+                    {"$type": "send_bounds",
                      "frequency": "once"}]
 
         # Teleport the avatar to a room.
@@ -303,6 +305,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         # Cache the static object data.
         rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
+        bounds = get_data(resp=resp, d_type=Bounds)
         for i in range(segmentation_colors.get_num()):
             object_id = segmentation_colors.get_object_id(i)
             # Add audio data for either the root object or a sub-object.
@@ -316,7 +319,8 @@ class StickyMittenAvatarController(FloorplanController):
             static_object = StaticObjectInfo(object_id=object_id,
                                              segmentation_colors=segmentation_colors,
                                              rigidbodies=rigidbodies,
-                                             audio=object_audio)
+                                             audio=object_audio,
+                                             bounds=bounds)
             self.static_object_info[static_object.object_id] = static_object
         self._end_task()
 
