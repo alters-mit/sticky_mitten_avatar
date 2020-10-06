@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Dict, List, TypeVar, Type, Optional
 from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Images, SegmentationColors, Volumes, Raycast, \
-    CompositeObjects, CameraMatrices, Environments
+    CompositeObjects, CameraMatrices, Environments, OverlapSphere
 from pathlib import Path
 from pkg_resources import resource_filename
 
@@ -23,7 +23,8 @@ _OUTPUT_IDS: Dict[Type[OutputData], str] = {Transforms: "tran",
                                             Raycast: "rayc",
                                             CompositeObjects: "comp",
                                             CameraMatrices: "cama",
-                                            Environments: "envi"}
+                                            Environments: "envi",
+                                            OverlapSphere: "ovsp"}
 # Global forward directional vector.
 FORWARD = np.array([0, 0, 1])
 
@@ -32,7 +33,7 @@ def get_data(resp: List[bytes], d_type: Type[T]) -> Optional[T]:
     """
     Parse the output data list of byte arrays to get a single type output data object.
 
-    :param resp: The response from the build (a list of byte arrays).
+    :param resp: The response from the build (a byte array).
     :param d_type: The desired type of output data.
 
     :return: An object of type `d_type` from `resp`. If there is no object, returns None.

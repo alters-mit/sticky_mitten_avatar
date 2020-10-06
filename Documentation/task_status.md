@@ -38,6 +38,8 @@ Otherwise, the avatar may have tried moving, turning, bending an arm, etc. befor
 | `bad_raycast` | The avatar tried to cast array to the object but the ray was obstructed. |
 | `failed_to_tap` | The avatar tried to tap the object but the mitten never collided with it. |
 | `mitten_collision` | The avatar bent its arm but stopped part-way because the mitten collided with an object. |
+| `not_in_container` | The avatar tried to drop an object in a container but the object isn't in the container. |
+| `bad_joint` | This joint doesn't exist. |
 
 ***
 

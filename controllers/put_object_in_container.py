@@ -63,9 +63,8 @@ class PutObjectInContainer(StickyMittenAvatarController):
         self.turn_to(target=self.bowl_id)
 
         # Lift the object up a bit.
-        self.reach_for_target(target={"x": -0.1, "y": 0.6, "z": 0.5}, arm=Arm.left)
-        # Drop the object in the container.
-        self.drop(arm=Arm.left)
+        result = self.put_in_container(object_id=self.o_id, container_id=self.bowl_id, arm=Arm.left)
+        print(result)
         # Stop the build.
         self.end()
 

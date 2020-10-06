@@ -225,7 +225,7 @@ _Returns:_  A `TaskStatus` indicating whether the avatar picked up the object an
 
 Drop any held objects held by the arm. Reset the arm to its neutral position.
 Possible [return values](task_status.md):
-- `success` (The avatar's arm dropped all objects.)
+- `success` (The avatar's arm dropped all objects held by the arm.)
 
 | Parameter | Description |
 | --- | --- |
@@ -340,11 +340,14 @@ _Returns:_  A `TaskStatus` indicating whether the avatar moved forward by the di
 
 #### shake
 
-**`def shake(self, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> None`**
+**`def shake(self, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> TaskStatus`**
 
 Shake an avatar's arm for multiple iterations.
 Per iteration, the joint will bend forward by an angle and then bend back by an angle.
 The motion ends when all of the avatar's joints have stopped moving.
+Possible [return values](task_status.md):
+- `success`
+- `bad_joint`
 
 | Parameter | Description |
 | --- | --- |
@@ -353,6 +356,38 @@ The motion ends when all of the avatar's joints have stopped moving.
 | angle | Each shake will bend the joint by a angle in degrees within this range. |
 | num_shakes | The avatar will shake the joint a number of times within this range. |
 | force | The avatar will add strength to the joint by a value within this range. |
+
+_Returns:_  A `TaskStatus` indicating whether the avatar shook the joint and if not, why.
+
+***
+
+#### put_in_container
+
+**`def put_in_container(self, object_id: int, container_id: int, arm: Arm) -> TaskStatus`**
+
+Try to put an object in a container.
+Combines the following functions:
+1. `grasp_object(object_id, arm`) if the avatar isn't already grasping the object.
+2. `reach_for_target(position, arm)` where `position` is a point above the container.
+3. `drop(arm)`
+Possible [return values](task_status.md):
+- `success` (The avatar put the object in the container.)
+- `too_close_to_reach` (Can be the object's position or the container's position.)
+- `too_far_to_reach` (Can be the object's position or the container's position.)
+- `behind_avatar` (Can be the object's position or the container's position.)
+- `no_longer_bending` (Can be while grasping the object or while reaching for the container.)
+- `failed_to_pick_up`
+- `bad_raycast`
+- `mitten_collision` (Only while trying to grasp the object.)
+- `not_in_container`
+
+| Parameter | Description |
+| --- | --- |
+| object_id | The ID of the object that the avatar will try to put in the container. |
+| container_id | The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container')(static_object_info.md). |
+| arm | The arm that will try to pick up the object. |
+
+_Returns:_  A `TaskStatus` indicating whether the avatar put the object in the container and if not, why.
 
 ***
 

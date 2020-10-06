@@ -5,15 +5,15 @@ import numpy as np
 from pkg_resources import resource_filename
 from typing import Dict, List, Union, Optional, Tuple
 from tdw.floorplan_controller import FloorplanController
-from tdw.tdw_utils import TDWUtils
+from tdw.tdw_utils import TDWUtils, QuaternionUtils
 from tdw.librarian import ModelLibrarian
-from tdw.output_data import Bounds, Rigidbodies, SegmentationColors, Raycast, CompositeObjects
+from tdw.output_data import Bounds, Rigidbodies, SegmentationColors, Raycast, CompositeObjects, OverlapSphere
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from tdw.object_init_data import AudioInitData, TransformInitData
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
-from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD, \
-    OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH
+from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, \
+    FORWARD, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -665,7 +665,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         Possible [return values](task_status.md):
 
-        - `success` (The avatar's arm dropped all objects.)
+        - `success` (The avatar's arm dropped all objects held by the arm.)
 
         :param arm: The arm that will drop any held objects.
         :param reset_arm: If True, reset the arm's positions to "neutral".
@@ -983,17 +983,24 @@ class StickyMittenAvatarController(FloorplanController):
                           stop_on_collision=stop_on_collision)
 
     def shake(self, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30),
-              num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> None:
+              num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> TaskStatus:
         """
         Shake an avatar's arm for multiple iterations.
         Per iteration, the joint will bend forward by an angle and then bend back by an angle.
         The motion ends when all of the avatar's joints have stopped moving.
+
+        Possible [return values](task_status.md):
+
+        - `success`
+        - `bad_joint`
 
         :param joint_name: The name of the joint.
         :param axis: The axis of the joint's rotation.
         :param angle: Each shake will bend the joint by a angle in degrees within this range.
         :param num_shakes: The avatar will shake the joint a number of times within this range.
         :param force: The avatar will add strength to the joint by a value within this range.
+
+        :return: A `TaskStatus` indicating whether the avatar shook the joint and if not, why.
         """
 
         self._start_task()
@@ -1005,7 +1012,7 @@ class StickyMittenAvatarController(FloorplanController):
                 joint = j
                 break
         if joint is None:
-            return
+            return TaskStatus.bad_joint
 
         force = random.uniform(force[0], force[1])
         damper = 200
@@ -1053,6 +1060,82 @@ class StickyMittenAvatarController(FloorplanController):
                            "axis": joint.axis,
                            "avatar_id": self._avatar.id}])
         self._end_task()
+        return TaskStatus.success
+
+    def put_in_container(self, object_id: int, container_id: int, arm: Arm) -> TaskStatus:
+        """
+        Try to put an object in a container.
+        Combines the following functions:
+
+        1. `grasp_object(object_id, arm`) if the avatar isn't already grasping the object.
+        2. `reach_for_target(position, arm)` where `position` is a point above the container.
+        3. `drop(arm)`
+
+        Possible [return values](task_status.md):
+
+        - `success` (The avatar put the object in the container.)
+        - `too_close_to_reach` (Can be the object's position or the container's position.)
+        - `too_far_to_reach` (Can be the object's position or the container's position.)
+        - `behind_avatar` (Can be the object's position or the container's position.)
+        - `no_longer_bending` (Can be while grasping the object or while reaching for the container.)
+        - `failed_to_pick_up`
+        - `bad_raycast`
+        - `mitten_collision` (Only while trying to grasp the object.)
+        - `not_in_container`
+
+        :param object_id: The ID of the object that the avatar will try to put in the container.
+        :param container_id: The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container')(static_object_info.md).
+        :param arm: The arm that will try to pick up the object.
+
+        :return: A `TaskStatus` indicating whether the avatar put the object in the container and if not, why.
+        """
+
+        # Pick up the object.
+        if object_id not in self.frame.held_objects[arm]:
+            status = self.grasp_object(object_id=object_id, arm=arm)
+            if status != TaskStatus.success:
+                return status
+
+        # Get the up directional vector.
+        up = np.array(QuaternionUtils.get_up_direction(q=tuple(self.frame.object_transforms[container_id].rotation)))
+        # Get the height of the container.
+        height = self.static_object_info[container_id].size[1]
+        # Get a position above the base of the container.
+        pos = self.frame.object_transforms[container_id].position
+        target = TDWUtils.array_to_vector3(pos + (up * height))
+
+        # Reach for the target.
+        status = self.reach_for_target(target=target, arm=arm, stop_on_mitten_collision=False)
+        if status != TaskStatus.success:
+            return status
+
+        # Drop the object.
+        self.drop(arm=arm, reset_arm=False, do_motion=False)
+
+        # Loop until the object hits something.
+        done = False
+        while not done:
+            # Advance one frame.
+            resp = self.communicate([])
+            rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
+            # Check if the object stopped moving.
+            for i in range(rigidbodies.get_num()):
+                if rigidbodies.get_id(i) == object_id:
+                    done = rigidbodies.get_sleeping(i)
+                    break
+        # Spherecast from above the container down.
+        resp = self.communicate({"$type": "send_overlap_sphere",
+                                 "radius": min(self.static_object_info[object_id].size[0],
+                                               self.static_object_info[object_id].size[1],
+                                               self.static_object_info[object_id].size[2]) / 2,
+                                 "position": TDWUtils.array_to_vector3(
+                                     self.frame.object_transforms[object_id].position)})
+        overlap_sphere = get_data(resp=resp, d_type=OverlapSphere)
+        sphere_ids = overlap_sphere.get_object_ids()
+        if overlap_sphere.get_env() or len(sphere_ids) > 2 or container_id not in sphere_ids:
+            print(sphere_ids)
+            return TaskStatus.not_in_container
+        return TaskStatus.success
 
     def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None:
         """
