@@ -174,7 +174,7 @@ class FrameData:
                 for j in range(images.get_num_passes()):
                     if images.get_pass_mask(j) == "_id":
                         self.id_pass = images.get_image(j)
-                    elif images.get_pass_mask(j) == "_depth_simple":
+                    elif images.get_pass_mask(j) == "_depth":
                         self.depth_pass = images.get_image(j)
                     elif images.get_pass_mask(j) == "_img":
                         self.image_pass = images.get_image(j)

@@ -375,9 +375,9 @@ class StickyMittenAvatarController(FloorplanController):
                                           position=position)[:]
 
         if self._id_pass:
-            pass_masks = ["_img", "_id", "_depth_simple"]
+            pass_masks = ["_img", "_id", "_depth"]
         else:
-            pass_masks = ["_img", "_depth_simple"]
+            pass_masks = ["_img", "_depth"]
         # Rotate the avatar.
         # Request segmentation colors, body part names, and dynamic avatar data.
         # Turn off the follow camera.
