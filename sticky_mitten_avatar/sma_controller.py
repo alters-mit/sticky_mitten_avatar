@@ -118,7 +118,7 @@ class StickyMittenAvatarController(FloorplanController):
     _STOP_DRAG = 1000
 
     def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True,
-                 audio: bool = False, screen_width: int = 256, screen_height: int = 256):
+                 audio: bool = False, screen_width: int = 256, screen_height: int = 256, grayscale_depth: bool = True):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
@@ -127,10 +127,12 @@ class StickyMittenAvatarController(FloorplanController):
         :param audio: If True, include audio data in the FrameData.
         :param screen_width: The width of the screen in pixels.
         :param screen_height: The height of the screen in pixels.
+        :param grayscale_depth: If True, `frame.depth_pass` will be a grayscale image. If False, `frame.depth_pass` will be an RGB image (more precise but somewhat slower).
         """
 
         self._id_pass = id_pass
         self._audio = audio
+        self._grayscale_depth = grayscale_depth
 
         # The containers library.
         self._lib_containers = ModelLibrarian(library=resource_filename(__name__, "metadata_libraries/containers.json"))
@@ -375,9 +377,13 @@ class StickyMittenAvatarController(FloorplanController):
                                           position=position)[:]
 
         if self._id_pass:
-            pass_masks = ["_img", "_id", "_depth"]
+            pass_masks = ["_img", "_id"]
         else:
-            pass_masks = ["_img", "_depth"]
+            pass_masks = ["_img"]
+        if self._grayscale_depth:
+            pass_masks.append("_depth_simple")
+        else:
+            pass_masks.append("_depth")
         # Rotate the avatar.
         # Request segmentation colors, body part names, and dynamic avatar data.
         # Turn off the follow camera.
