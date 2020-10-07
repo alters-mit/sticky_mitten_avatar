@@ -7,7 +7,7 @@ from typing import Dict, List, Union, Optional, Tuple
 from tdw.floorplan_controller import FloorplanController
 from tdw.tdw_utils import TDWUtils, QuaternionUtils
 from tdw.librarian import ModelLibrarian
-from tdw.output_data import Bounds, Rigidbodies, SegmentationColors, Raycast, CompositeObjects, OverlapSphere
+from tdw.output_data import Bounds, Rigidbodies, SegmentationColors, Raycast, CompositeObjects
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from tdw.object_init_data import AudioInitData, TransformInitData
 from sticky_mitten_avatar.avatars import Arm, Baby
@@ -574,15 +574,17 @@ class StickyMittenAvatarController(FloorplanController):
         self._start_task()
 
         target = TDWUtils.vector3_to_array(target)
+        rotated_target = self._avatar.get_rotated_target(target=target)
 
         # Check if it is possible for the avatar to reach the target.
         if check_if_possible:
-            status = self._avatar.can_reach_target(target=target, arm=arm)
+            status = self._avatar.can_reach_target(target=rotated_target, arm=arm)
             if status != TaskStatus.success:
                 self._end_task()
                 return status
 
-        self._avatar_commands.extend(self._avatar.reach_for_target(arm=arm, target=target,
+        self._avatar_commands.extend(self._avatar.reach_for_target(arm=arm,
+                                                                   target=target,
                                                                    stop_on_mitten_collision=stop_on_mitten_collision))
         self._avatar.status = TaskStatus.ongoing
         if do_motion:
@@ -1074,14 +1076,14 @@ class StickyMittenAvatarController(FloorplanController):
         Possible [return values](task_status.md):
 
         - `success` (The avatar put the object in the container.)
-        - `too_close_to_reach` (Can be the object's position or the container's position.)
-        - `too_far_to_reach` (Can be the object's position or the container's position.)
-        - `behind_avatar` (Can be the object's position or the container's position.)
-        - `no_longer_bending` (Can be while grasping the object or while reaching for the container.)
-        - `failed_to_pick_up`
-        - `bad_raycast`
+        - `too_close_to_reach` (Either the object or the container is too close.)
+        - `too_far_to_reach` (Either the object or the container is too far away.)
+        - `behind_avatar` (Either the object or the container is behind the avatar.)
+        - `no_longer_bending` (While trying to grasping the object.)
+        - `failed_to_pick_up` (After trying to grasp the object.)
+        - `bad_raycast` (Before trying to grasp the object.)
         - `mitten_collision` (Only while trying to grasp the object.)
-        - `not_in_container`
+        - `not_in_container` (The object didn't land in the container.)
 
         :param object_id: The ID of the object that the avatar will try to put in the container.
         :param container_id: The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container')(static_object_info.md).
@@ -1102,39 +1104,43 @@ class StickyMittenAvatarController(FloorplanController):
         height = self.static_object_info[container_id].size[1]
         # Get a position above the base of the container.
         pos = self.frame.object_transforms[container_id].position
-        target = TDWUtils.array_to_vector3(pos + (up * height))
 
-        # Reach for the target.
-        status = self.reach_for_target(target=target, arm=arm, stop_on_mitten_collision=False)
+        target = pos + (up * height)
+        reachable_target = self._avatar.get_rotated_target(target=target)
+
+        # Raise the target towards the mitten until the avatar can reach it.
+        direction_to_mitten = self.frame.avatar_body_part_transforms[self._avatar.mitten_ids[arm]].position - pos
+        direction_to_mitten /= np.linalg.norm(direction_to_mitten)
+        d = 0
+        delta_d = 0.025
+        status = self._avatar.can_reach_target(target=reachable_target, arm=arm)
+        while status != TaskStatus.success and d < 0.5 and target[1] < 0.5:
+            status = self._avatar.can_reach_target(target=reachable_target, arm=arm)
+            d += delta_d
+            target += direction_to_mitten * delta_d
+            reachable_target = self._avatar.get_rotated_target(target=target)
         if status != TaskStatus.success:
             return status
+        # Reach for the target.
+        self.reach_for_target(target=TDWUtils.array_to_vector3(reachable_target),
+                              arm=arm,
+                              stop_on_mitten_collision=False,
+                              check_if_possible=False)
 
         # Drop the object.
         self.drop(arm=arm, reset_arm=False, do_motion=False)
 
         # Loop until the object hits something.
-        done = False
-        while not done:
+        sleeping = False
+        while not sleeping:
             # Advance one frame.
             resp = self.communicate([])
             rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
             # Check if the object stopped moving.
             for i in range(rigidbodies.get_num()):
                 if rigidbodies.get_id(i) == object_id:
-                    done = rigidbodies.get_sleeping(i)
+                    sleeping = rigidbodies.get_sleeping(i)
                     break
-        # Spherecast from above the container down.
-        resp = self.communicate({"$type": "send_overlap_sphere",
-                                 "radius": min(self.static_object_info[object_id].size[0],
-                                               self.static_object_info[object_id].size[1],
-                                               self.static_object_info[object_id].size[2]) / 2,
-                                 "position": TDWUtils.array_to_vector3(
-                                     self.frame.object_transforms[object_id].position)})
-        overlap_sphere = get_data(resp=resp, d_type=OverlapSphere)
-        sphere_ids = overlap_sphere.get_object_ids()
-        if overlap_sphere.get_env() or len(sphere_ids) > 2 or container_id not in sphere_ids:
-            print(sphere_ids)
-            return TaskStatus.not_in_container
         return TaskStatus.success
 
     def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None:

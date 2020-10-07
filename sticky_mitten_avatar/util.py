@@ -1,7 +1,7 @@
 import numpy as np
-from typing import Dict, List, TypeVar, Type, Optional
+from typing import Dict, List, TypeVar, Type, Optional, Tuple
 from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Images, SegmentationColors, Volumes, Raycast, \
-    CompositeObjects, CameraMatrices, Environments, OverlapSphere
+    CompositeObjects, CameraMatrices, Environments, Collision, EnvironmentCollision
 from pathlib import Path
 from pkg_resources import resource_filename
 
@@ -23,8 +23,7 @@ _OUTPUT_IDS: Dict[Type[OutputData], str] = {Transforms: "tran",
                                             Raycast: "rayc",
                                             CompositeObjects: "comp",
                                             CameraMatrices: "cama",
-                                            Environments: "envi",
-                                            OverlapSphere: "ovsp"}
+                                            Environments: "envi"}
 # Global forward directional vector.
 FORWARD = np.array([0, 0, 1])
 
@@ -47,6 +46,24 @@ def get_data(resp: List[bytes], d_type: Type[T]) -> Optional[T]:
         if r_id == _OUTPUT_IDS[d_type]:
             return d_type(resp[i])
     return None
+
+
+def get_collisions(resp: List[bytes]) -> Tuple[List[Collision], List[EnvironmentCollision]]:
+    """
+    :param resp: The response from the build (a byte array).
+
+    :return: Tuple: A list of collisions; a list of environment collisions.
+    """
+
+    collisions: List[Collision] = list()
+    env_collisions: List[EnvironmentCollision] = list()
+    for i in range(len(resp) - 1):
+        r_id = OutputData.get_data_type_id(resp[i])
+        if r_id == "coll":
+            collisions.append(Collision(resp[i]))
+        elif r_id == "enco":
+            env_collisions.append(EnvironmentCollision(resp[i]))
+    return collisions, env_collisions
 
 
 def get_bounds_dict(bounds: Bounds, index: int) -> Dict[str, np.array]:

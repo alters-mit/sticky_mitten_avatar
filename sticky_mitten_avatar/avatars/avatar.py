@@ -191,7 +191,7 @@ class Avatar(ABC):
             # If this is a short distance and the node is below head-level, then this is likely to intersect.
             if d < 0.1 and node[1] < 1:
                 if self._debug:
-                    print(f"Target {target} is too close to the avatar: {d}, {node}, {link.name}")
+                    print(f"Target {target} is too close to a joint: {d}, {node}, {link.name}")
                 return TaskStatus.too_close_to_reach
 
         d = np.linalg.norm(destination - target)
