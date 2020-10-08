@@ -1,10 +1,13 @@
 import numpy as np
-from typing import Dict, List
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils, QuaternionUtils
-from tdw.output_data import OutputData, Collision, EnvironmentCollision, Rigidbodies, Overlap, Transforms
-from sticky_mitten_avatar.util import get_data, get_collisions
+from tdw.output_data import Rigidbodies, Overlap, Transforms
+from sticky_mitten_avatar.util import get_data
 
+
+"""
+Test the algorithm for detecting whether an object is in a container.
+"""
 
 if __name__ == "__main__":
     basket_id = 0
@@ -50,6 +53,7 @@ if __name__ == "__main__":
     # Cast a box.
     rot = tr.get_rotation(0)
     up = QuaternionUtils.get_up_direction(rot)
+    assert up[1] > 0
     center = np.array(tr.get_position(0)) + (up * 0.2)
     resp = c.communicate({"$type": "send_overlap_box",
                           "position": TDWUtils.array_to_vector3(center),

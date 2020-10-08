@@ -70,4 +70,4 @@ class PutObjectInContainer(StickyMittenAvatarController):
 
 
 if __name__ == "__main__":
-    PutObjectInContainer().run()
+    PutObjectInContainer(launch_build=False).run()

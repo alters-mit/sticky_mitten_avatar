@@ -1,0 +1,20 @@
+{
+  "basket_18inx18inx12iin": "box",
+  "basket_18inx18inx12iin_bamboo": "box",
+  "basket_18inx18inx12iin_plastic_lattice": "box",
+  "basket_18inx18inx12iin_wicker": "box",
+  "basket_18inx18inx12iin_wood_mesh": "box",
+  "box_18inx18inx12in_cardboard": "box",
+  "box_24inx18inx12in_cherry": "box",
+  "box_tapered_beech": "box",
+  "box_tapered_white_mesh": "box",
+  "round_bowl_large_metal_perf": "sphere",
+  "round_bowl_large_padauk": "sphere",
+  "round_bowl_large_thin": "sphere",
+  "round_bowl_small_beech": "sphere",
+  "round_bowl_small_walnut": "sphere",
+  "round_bowl_talll_wenge": "sphere",
+  "serving_bowl": "sphere",
+  "shallow_basket_white_mesh": "box",
+  "shallow_basket_wicker": "box"
+}

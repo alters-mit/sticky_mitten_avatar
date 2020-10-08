@@ -7,7 +7,7 @@ from typing import Dict, List, Union, Optional, Tuple
 from tdw.floorplan_controller import FloorplanController
 from tdw.tdw_utils import TDWUtils, QuaternionUtils
 from tdw.librarian import ModelLibrarian
-from tdw.output_data import Bounds, Rigidbodies, SegmentationColors, Raycast, CompositeObjects
+from tdw.output_data import Bounds, Rigidbodies, SegmentationColors, Raycast, CompositeObjects, Overlap, Transforms
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from tdw.object_init_data import AudioInitData, TransformInitData
 from sticky_mitten_avatar.avatars import Arm, Baby
@@ -138,6 +138,9 @@ class StickyMittenAvatarController(FloorplanController):
         self._container_dimensions = loads(Path(resource_filename(__name__,
                                                                   "metadata_libraries/container_dimensions.json")).
                                            read_text(encoding="utf-8"))
+        self._container_shapes = loads(Path(resource_filename(__name__, "metadata_libraries/container_shapes.json")).
+                                       read_text(encoding="utf-8"))
+
         # Cached core model library.
         self._lib_core = ModelLibrarian()
         TransformInitData.LIBRARIES[self._lib_containers.library] = self._lib_containers
@@ -1083,7 +1086,8 @@ class StickyMittenAvatarController(FloorplanController):
         - `failed_to_pick_up` (After trying to grasp the object.)
         - `bad_raycast` (Before trying to grasp the object.)
         - `mitten_collision` (Only while trying to grasp the object.)
-        - `not_in_container` (The object didn't land in the container.)
+        - `not_in_container`
+        - `not_a_container`
 
         :param object_id: The ID of the object that the avatar will try to put in the container.
         :param container_id: The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container')(static_object_info.md).
@@ -1092,10 +1096,16 @@ class StickyMittenAvatarController(FloorplanController):
         :return: A `TaskStatus` indicating whether the avatar put the object in the container and if not, why.
         """
 
+        if not self.static_object_info[container_id].container:
+            return TaskStatus.not_a_container
+
+        self._start_task()
+
         # Pick up the object.
         if object_id not in self.frame.held_objects[arm]:
             status = self.grasp_object(object_id=object_id, arm=arm)
             if status != TaskStatus.success:
+                self._end_task()
                 return status
 
         # Get the up directional vector.
@@ -1120,6 +1130,7 @@ class StickyMittenAvatarController(FloorplanController):
             target += direction_to_mitten * delta_d
             reachable_target = self._avatar.get_rotated_target(target=target)
         if status != TaskStatus.success:
+            self._end_task()
             return status
         # Reach for the target.
         self.reach_for_target(target=TDWUtils.array_to_vector3(reachable_target),
@@ -1131,6 +1142,8 @@ class StickyMittenAvatarController(FloorplanController):
         self.drop(arm=arm, reset_arm=False, do_motion=False)
 
         # Loop until the object hits something.
+        self.communicate({"$type": "send_rigidbodies",
+                          "frequency": "always"})
         sleeping = False
         while not sleeping:
             # Advance one frame.
@@ -1141,6 +1154,51 @@ class StickyMittenAvatarController(FloorplanController):
                 if rigidbodies.get_id(i) == object_id:
                     sleeping = rigidbodies.get_sleeping(i)
                     break
+        # Get the current position of the container.
+        resp = self.communicate([{"$type": "send_rigidbodies",
+                                  "frequency": "never"},
+                                 {"$type": "send_transforms",
+                                  "frequency": "once"}])
+        tr = get_data(resp=resp, d_type=Transforms)
+        rot: Optional[np.array] = None
+        pos: Optional[np.array] = None
+        for i in range(tr.get_num()):
+            if tr.get_id(i) == container_id:
+                rot = np.array(tr.get_rotation(i))
+                pos = np.array(tr.get_position(i))
+
+        # If the container is upside-down, then the object is not in the container.
+        up = QuaternionUtils.get_up_direction(rot)
+        if up[1] < 0:
+            self._end_task()
+            return TaskStatus.not_in_container
+
+        # Get the shape of the container.
+        name = self.static_object_info[container_id].model_name
+        shape = self._container_shapes[name]
+
+        # Check the overlap of the container to see if the object is in that space. If so, it is in the container.
+        size = self.static_object_info[container_id].size
+        # Set the position to be in the center of the rotated object.
+        pos = TDWUtils.array_to_vector3(pos + (up * size[1] / 2))
+        # Decide which overlap shape to use depending on the container shape.
+        if shape == "box":
+            resp = self.communicate({"$type": "send_overlap_box",
+                                     "position": pos,
+                                     "rotation": TDWUtils.array_to_vector4(rot),
+                                     "half_extents": TDWUtils.array_to_vector3(size / 2)})
+        elif shape == "sphere":
+            resp = self.communicate({"$type": "send_overlap_sphere",
+                                     "position": pos,
+                                     "radius": min(size)})
+        else:
+            raise Exception(f"Bad shape for {name}: {shape}")
+        overlap = get_data(resp=resp, d_type=Overlap)
+        overlap_ids = overlap.get_object_ids()
+        if container_id not in overlap_ids and object_id not in overlap_ids:
+            self._end_task()
+            return TaskStatus.not_in_container
+        self._end_task()
         return TaskStatus.success
 
     def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None:
