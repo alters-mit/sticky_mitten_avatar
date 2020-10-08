@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Dict, List, TypeVar, Type, Optional, Tuple
 from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Images, SegmentationColors, Volumes, Raycast, \
-    CompositeObjects, CameraMatrices, Environments, Collision, EnvironmentCollision
+    CompositeObjects, CameraMatrices, Environments, Collision, EnvironmentCollision, Overlap
 from pathlib import Path
 from pkg_resources import resource_filename
 
@@ -23,7 +23,8 @@ _OUTPUT_IDS: Dict[Type[OutputData], str] = {Transforms: "tran",
                                             Raycast: "rayc",
                                             CompositeObjects: "comp",
                                             CameraMatrices: "cama",
-                                            Environments: "envi"}
+                                            Environments: "envi",
+                                            Overlap: "over"}
 # Global forward directional vector.
 FORWARD = np.array([0, 0, 1])
 

@@ -1,7 +1,8 @@
+import numpy as np
 from typing import Dict, List
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils, QuaternionUtils
-from tdw.output_data import OutputData, Collision, EnvironmentCollision, Rigidbodies
+from tdw.output_data import OutputData, Collision, EnvironmentCollision, Rigidbodies, Overlap, Transforms
 from sticky_mitten_avatar.util import get_data, get_collisions
 
 
@@ -28,7 +29,7 @@ if __name__ == "__main__":
                            "stay": True,
                            "exit": True}])
     sleeping = False
-    stays: List[Collision] = list()
+    # Iterate until the objects are sleeping.
     while not sleeping:
         resp = c.communicate([])
         rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
@@ -37,21 +38,25 @@ if __name__ == "__main__":
         for i in range(rigidbodies.get_num()):
             if rigidbodies.get_id(i) == o_id:
                 o_sleep = rigidbodies.get_sleeping(i)
-                collisions, env_collisions = get_collisions(resp=resp)
-                if not o_sleep:
-                    stays.clear()
-                    collisions, env_collisions = get_collisions(resp=resp)
-                    for coll in collisions:
-                        if coll.get_state() == "stay" and (coll.get_collider_id() == o_id or coll.get_collidee_id() == o_id):
-                            stays.append(coll)
             elif rigidbodies.get_id(i) == p_id:
                 p_sleep = rigidbodies.get_sleeping(i)
         sleeping = o_sleep and p_sleep
 
-    assert len(stays) > 0
-    coll = stays[0]
-    assert coll.get_state() == "stay"
-    assert coll.get_collidee_id() == o_id or coll.get_collider_id() == o_id
-    assert coll.get_collidee_id() == basket_id or coll.get_collider_id() == basket_id
-    for i in range(coll.get_num_contacts()):
-        assert coll.get_contact_normal(i)[1] > 0
+    resp = c.communicate({"$type": "send_transforms",
+                          "frequency": "once",
+                          "ids": [basket_id]})
+    tr = get_data(resp=resp, d_type=Transforms)
+
+    # Cast a box.
+    rot = tr.get_rotation(0)
+    up = QuaternionUtils.get_up_direction(rot)
+    center = np.array(tr.get_position(0)) + (up * 0.2)
+    resp = c.communicate({"$type": "send_overlap_box",
+                          "position": TDWUtils.array_to_vector3(center),
+                          "half_extents": {"x": 0.2, "y": 0.2, "z": 0.2},
+                          "rotation": TDWUtils.array_to_vector4(rot)})
+    overlap = get_data(resp=resp, d_type=Overlap)
+    overlap_ids = overlap.get_object_ids()
+    assert o_id in overlap_ids
+    assert basket_id in overlap_ids
+    assert p_id not in overlap_ids
