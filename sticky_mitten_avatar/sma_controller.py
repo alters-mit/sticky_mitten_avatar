@@ -6,10 +6,9 @@ from pkg_resources import resource_filename
 from typing import Dict, List, Union, Optional, Tuple
 from tdw.floorplan_controller import FloorplanController
 from tdw.tdw_utils import TDWUtils, QuaternionUtils
-from tdw.librarian import ModelLibrarian
 from tdw.output_data import Bounds, Rigidbodies, SegmentationColors, Raycast, CompositeObjects, Overlap, Transforms
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
-from tdw.object_init_data import AudioInitData, TransformInitData
+from tdw.object_init_data import AudioInitData
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, \
@@ -132,22 +131,8 @@ class StickyMittenAvatarController(FloorplanController):
         self._id_pass = id_pass
         self._audio = audio
 
-        # The containers library.
-        self._lib_containers = ModelLibrarian(library=resource_filename(__name__, "metadata_libraries/containers.json"))
-        # Get the container dimensions.
-        self._container_dimensions = loads(Path(resource_filename(__name__,
-                                                                  "metadata_libraries/container_dimensions.json")).
-                                           read_text(encoding="utf-8"))
         self._container_shapes = loads(Path(resource_filename(__name__, "metadata_libraries/container_shapes.json")).
                                        read_text(encoding="utf-8"))
-
-        # Cached core model library.
-        self._lib_core = ModelLibrarian()
-        TransformInitData.LIBRARIES[self._lib_containers.library] = self._lib_containers
-        lib_container_contents = ModelLibrarian(library=resource_filename(__name__,
-                                                                          "metadata_libraries/container_contents.json"))
-        TransformInitData.LIBRARIES[lib_container_contents.library] = lib_container_contents
-
         # Cache the entities.
         self._avatar: Optional[Avatar] = None
 
@@ -163,15 +148,6 @@ class StickyMittenAvatarController(FloorplanController):
         self._demo = demo
         # Load default audio values for objects.
         self._default_audio_values = PyImpact.get_object_info()
-        # Load custom audio values.
-        custom_audio_info = PyImpact.get_object_info(resource_filename(__name__, "audio.csv"))
-        for a in custom_audio_info:
-            av = custom_audio_info[a]
-            av.library = resource_filename(__name__, av.library)
-            self._default_audio_values[a] = av
-            # Update the object init data audio dictionary.
-            AudioInitData.AUDIO[a] = av
-
         self._audio_values: Dict[int, ObjectInfo] = dict()
 
         # The command for the third-person camera, if any.
@@ -508,47 +484,6 @@ class StickyMittenAvatarController(FloorplanController):
             audio = self._default_audio_values[model_name]
         self._audio_values[object_id] = audio
 
-        return object_id, commands
-
-    def _add_container(self, model_name: str, contents: List[str], position: Dict[str, float] = None,
-                       rotation: Dict[str, float] = None, audio: ObjectInfo = None,
-                       scale: Dict[str, float] = None) -> Tuple[int, List[dict]]:
-        """
-        Add a container to the scene. A container is an object that can hold other objects in it.
-        Containers must be from the "containers" library. See `get_container_records()`.
-
-        :param model_name: The name of the container.
-        :param contents: The model names of objects that will be put in the container. They will be assigned random positions and object IDs and default audio and physics values.
-        :param position: The position of the container.
-        :param rotation: The rotation of the container.
-        :param audio: Audio values for the container. If None, use default values.
-        :param scale: The scale of the container.
-
-        :return: Tuple: The object ID; A list of commands per object added: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode, set_physic_material]`
-        """
-
-        record = self._lib_containers.get_record(model_name)
-        assert record is not None, f"Couldn't find container record for: {model_name}"
-
-        if position is None:
-            position = {"x": 0, "y": 0, "z": 0}
-
-        # Get commands to add the container.
-        object_id, commands = self._add_object(model_name=model_name, position=position, rotation=rotation,
-                                               library=self._lib_containers.library, audio=audio, scale=scale)
-
-        # Get the radius and y value of the base of the container.
-        radius = self._container_dimensions[model_name]["r"]
-        y = self._container_dimensions[model_name]["y"]
-        # Add small objects.
-        for obj_name in contents:
-            obj = self._default_audio_values[obj_name]
-            o_pos = TDWUtils.array_to_vector3(TDWUtils.get_random_point_in_circle(
-                center=TDWUtils.vector3_to_array(position),
-                radius=radius))
-            o_pos["y"] = position["y"] + y
-            commands.extend(self._add_object(model_name=obj.name, position=o_pos, audio=obj, library=obj.library)[1])
-        self.model_librarian = self._lib_core
         return object_id, commands
 
     def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True,
