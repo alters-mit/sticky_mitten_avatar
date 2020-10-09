@@ -1,6 +1,5 @@
 from typing import List
 from sticky_mitten_avatar import StickyMittenAvatarController, Arm
-from sticky_mitten_avatar.task_status import TaskStatus
 
 
 class PutInHeldContainer(StickyMittenAvatarController):
@@ -17,8 +16,8 @@ class PutInHeldContainer(StickyMittenAvatarController):
         # Place a container and a jug directly in front of the avatar.
         commands.extend(container_commands)
         self.object_id, object_commands = self._add_object("jug05",
-                                                           position={"x": 0.215, "y": 0, "z": 0.216},
-                                                           scale={"x": 0.8, "y": 0.8, "z": 0.8})
+                                                           position={"x": 0.215, "y": 0, "z": 0.116},
+                                                           scale={"x": 0.3, "y": 0.3, "z": 0.3})
         commands.extend(object_commands)
         return commands
 
@@ -32,6 +31,6 @@ if __name__ == "__main__":
     c.grasp_object(object_id=c.container_id, arm=Arm.left)
 
     # Lift up the container.
-    c.reach_for_target(target={"x": -0.1, "y": 0.1, "z": 0.32}, arm=Arm.left)
+    c.reach_for_target(target={"x": -0.25, "y": 0.1, "z": 0.32}, arm=Arm.left)
     status = c.put_in_container(object_id=c.object_id, container_id=c.container_id, arm=Arm.right)
     print(status)
