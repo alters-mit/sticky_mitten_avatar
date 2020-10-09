@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.3
+
+- `StickyMittenAvatarController`
+  - Fixed: Camera turns off when it should be on, and vice-versa.
+
 ## 0.5.2
 
 - `StaticObjectInfo`:

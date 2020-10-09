@@ -406,6 +406,10 @@ class StickyMittenAvatarController(FloorplanController):
                          {"$type": "toggle_image_sensor",
                           "sensor_name": "FollowCamera",
                           "avatar_id": avatar_id}])
+        if not self._demo:
+            commands.append({"$type": "toggle_image_sensor",
+                             "sensor_name": "SensorContainer",
+                             "avatar_id": avatar_id})
         # Set all sides of both mittens to be sticky.
         for sub_mitten in ["palm", "back", "side"]:
             for is_left in [True, False]:
