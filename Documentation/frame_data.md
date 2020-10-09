@@ -163,3 +163,11 @@ _Returns:_  A dictionary of PIL images. Key = the name of the pass (img, id, dep
 
 ***
 
+#### get_depth_values
+
+**`def get_depth_values(self) -> np.array`**
+
+_Returns:_  A decoded depth pass as a numpy array of floats.
+
+***
+

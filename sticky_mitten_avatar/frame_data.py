@@ -292,6 +292,13 @@ class FrameData:
                 "id": Image.open(BytesIO(self.id_pass)),
                 "depth": Image.open(BytesIO(self.depth_pass))}
 
+    def get_depth_values(self) -> np.array:
+        """
+        :return: A decoded depth pass as a numpy array of floats.
+        """
+
+        return TDWUtils.get_depth_values(self.depth_pass)
+
     @staticmethod
     def _get_velocity(rigidbodies: Rigidbodies, o_id: int) -> float:
         """
