@@ -12,7 +12,13 @@ class StaticObjectInfo:
     """
     Info for an object that doesn't change between frames.
 
-    Fields:
+    *** Static Fields
+
+    - `CONTAINERS` The names of each container object.
+
+    ***
+
+    ## Fields
 
     - `object_id`: The unique ID of the object.
     - `mass`: The mass of the object.
@@ -23,15 +29,18 @@ class StaticObjectInfo:
     - `container`': If True, this object is container-shaped (a bowl or open basket that smaller objects can be placed in).
     - `kinematic`: If True, this object is kinematic, and won't respond to physics. Example: a painting hung on a wall.
     - `size`: The size of the object as a numpy array: `[width, height, length]`
+
+    ***
+    
     """
 
     # The names of every container model.
-    _CONTAINERS = ["basket_18inx18inx12iin", "basket_18inx18inx12iin_bamboo", "basket_18inx18inx12iin_plastic_lattice",
-                   "basket_18inx18inx12iin_wicker", "basket_18inx18inx12iin_wood_mesh", "box_18inx18inx12in_cardboard",
-                   "box_24inx18inx12in_cherry", "box_tapered_beech", "box_tapered_white_mesh",
-                   "round_bowl_large_metal_perf", "round_bowl_large_padauk", "round_bowl_large_thin",
-                   "round_bowl_small_beech", "round_bowl_small_walnut", "round_bowl_talll_wenge",
-                   "shallow_basket_white_mesh", "shallow_basket_wicker", "serving_bowl"]
+    CONTAINERS = ["basket_18inx18inx12iin", "basket_18inx18inx12iin_bamboo", "basket_18inx18inx12iin_plastic_lattice",
+                  "basket_18inx18inx12iin_wicker", "basket_18inx18inx12iin_wood_mesh", "box_18inx18inx12in_cardboard",
+                  "box_24inx18inx12in_cherry", "box_tapered_beech", "box_tapered_white_mesh",
+                  "round_bowl_large_metal_perf", "round_bowl_large_padauk", "round_bowl_large_thin",
+                  "round_bowl_small_beech", "round_bowl_small_walnut", "round_bowl_talll_wenge",
+                  "shallow_basket_white_mesh", "shallow_basket_wicker", "serving_bowl"]
     # Objects that we can assume are kinematic.
     _KINEMATIC = ['24_in_wall_cabinet_white_wood', '24_in_wall_cabinet_wood_beach_honey',
                   '36_in_wall_cabinet_white_wood', '36_in_wall_cabinet_wood_beach_honey', 'blue_rug',
@@ -56,7 +65,7 @@ class StaticObjectInfo:
         self.object_id = object_id
         self.audio = audio
         self.model_name = self.audio.name
-        self.container = self.model_name in StaticObjectInfo._CONTAINERS
+        self.container = self.model_name in StaticObjectInfo.CONTAINERS
         self.kinematic = self.model_name in StaticObjectInfo._KINEMATIC
 
         self.category = ""
