@@ -1136,7 +1136,7 @@ class StickyMittenAvatarController(FloorplanController):
             raise Exception(f"Bad shape for {name}: {shape}")
         overlap = get_data(resp=resp, d_type=Overlap)
         overlap_ids = overlap.get_object_ids()
-        if container_id not in overlap_ids and object_id not in overlap_ids:
+        if container_id not in overlap_ids or object_id not in overlap_ids:
             self._end_task()
             return TaskStatus.not_in_container
         self._end_task()
