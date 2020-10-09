@@ -31,7 +31,7 @@ class StaticObjectInfo:
     - `size`: The size of the object as a numpy array: `[width, height, length]`
 
     ***
-    
+
     """
 
     # The names of every container model.

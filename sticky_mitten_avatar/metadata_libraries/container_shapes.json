@@ -13,8 +13,8 @@
   "round_bowl_large_thin": "sphere",
   "round_bowl_small_beech": "sphere",
   "round_bowl_small_walnut": "sphere",
-  "round_bowl_talll_wenge": "sphere",
-  "serving_bowl": "sphere",
+  "round_bowl_talll_wenge": "capsule",
+  "serving_bowl": "capsule",
   "shallow_basket_white_mesh": "box",
   "shallow_basket_wicker": "box"
 }

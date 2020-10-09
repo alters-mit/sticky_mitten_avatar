@@ -1180,16 +1180,22 @@ class StickyMittenAvatarController(FloorplanController):
         # Check the overlap of the container to see if the object is in that space. If so, it is in the container.
         size = self.static_object_info[container_id].size
         # Set the position to be in the center of the rotated object.
-        pos = TDWUtils.array_to_vector3(pos + (up * size[1] / 2))
+        center = TDWUtils.array_to_vector3(pos + (up * size[1] / 2))
+        pos = TDWUtils.array_to_vector3(pos)
         # Decide which overlap shape to use depending on the container shape.
         if shape == "box":
             resp = self.communicate({"$type": "send_overlap_box",
-                                     "position": pos,
+                                     "position": center,
                                      "rotation": TDWUtils.array_to_vector4(rot),
                                      "half_extents": TDWUtils.array_to_vector3(size / 2)})
         elif shape == "sphere":
             resp = self.communicate({"$type": "send_overlap_sphere",
+                                     "position": center,
+                                     "radius": min(size)})
+        elif shape == "capsule":
+            resp = self.communicate({"$type": "send_overlap_capsule",
                                      "position": pos,
+                                     "end": center,
                                      "radius": min(size)})
         else:
             raise Exception(f"Bad shape for {name}: {shape}")
