@@ -31,6 +31,6 @@ if __name__ == "__main__":
     c.grasp_object(object_id=c.container_id, arm=Arm.left)
 
     # Lift up the container.
-    c.reach_for_target(target={"x": -0.25, "y": 0.1, "z": 0.32}, arm=Arm.left)
+    print(c.reach_for_target(target={"x": -0.25, "y": 0.1, "z": 0.32}, arm=Arm.left, stop_on_mitten_collision=False))
     status = c.put_in_container(object_id=c.object_id, container_id=c.container_id, arm=Arm.right)
     print(status)

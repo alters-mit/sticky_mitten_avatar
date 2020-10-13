@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 from ikpy.chain import Chain
 from ikpy.link import URDFLink, OriginLink
@@ -86,3 +87,22 @@ class Baby(Avatar):
                      translation_vector=[0, 0, -0.0625],
                      orientation=[0, 0, 0],
                      rotation=[0, 0, 0])])
+
+    def _get_default_sticky_mitten_profile(self) -> dict:
+        return {"shoulder_pitch": {"mass": 3, "damper": 155, "force": 150},
+                "shoulder_yaw": {"mass": 3, "damper": 155, "force": 150},
+                "shoulder_roll": {"mass": 3, "damper": 155, "force": 150},
+                "elbow": {"mass": 2, "damper": 155, "force": 150},
+                "wrist_roll": {"mass": 1.5, "damper": 130, "force": 150},
+                "wrist_pitch": {"mass": 1.5, "damper": 105, "force": 125}}
+
+    def _get_start_bend_sticky_mitten_profile(self) -> dict:
+        return {"shoulder_pitch": {"mass": 3, "damper": 75, "force": 450},
+                "shoulder_yaw": {"mass": 3, "damper": 75, "force": 450},
+                "shoulder_roll": {"mass": 3, "damper": 75, "force": 450},
+                "elbow": {"mass": 2, "damper": 75, "force": 450},
+                "wrist_roll": {"mass": 1.5, "damper": 50, "force": 450},
+                "wrist_pitch": {"mass": 1.5, "damper": 50, "force": 345}}
+
+    def _get_mass(self) -> float:
+        return 80

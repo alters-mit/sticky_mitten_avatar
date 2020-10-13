@@ -395,18 +395,6 @@ class StickyMittenAvatarController(FloorplanController):
                                  "is_left": is_left,
                                  "avatar_id": avatar_id,
                                  "show": False})
-        # Strengthen the avatar.
-        for joint in Avatar.JOINTS:
-            commands.extend([{"$type": "adjust_joint_force_by",
-                              "delta": 80,
-                              "joint": joint.joint,
-                              "axis": joint.axis,
-                              "avatar_id": avatar_id},
-                             {"$type": "adjust_joint_damper_by",
-                              "delta": 300,
-                              "joint": joint.joint,
-                              "axis": joint.axis,
-                              "avatar_id": avatar_id}])
 
         if self._demo:
             commands.append({"$type": "add_audio_sensor",
@@ -421,6 +409,10 @@ class StickyMittenAvatarController(FloorplanController):
             raise Exception(f"Avatar not defined: {avatar_type}")
         # Cache the avatar.
         self._avatar = avatar
+
+        # Set the joint values profile.
+        commands.append(self._avatar.get_default_sticky_mitten_profile())
+
         self.static_avatar_info = self._avatar.body_parts_static
 
     def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
