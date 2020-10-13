@@ -84,6 +84,8 @@ class _IKGoal:
         self.stop_on_mitten_collision = stop_on_mitten_collision
         self.rotations = rotations
 
+        self.moving_joints = Avatar.ANGLE_ORDER[:]
+
         self.pick_up_id = pick_up_id
         if target is not None and isinstance(target, list):
             self.target = np.array(target)
@@ -117,7 +119,7 @@ class Avatar(ABC):
                            Joint(arm="right", axis="roll", part="wrist"),
                            Joint(arm="right", axis="pitch", part="wrist")]
 
-    _ANGLE_ORDER = ["shoulder_pitch", "shoulder_yaw", "shoulder_roll", "elbow_pitch", "wrist_roll", "wrist_pitch"]
+    ANGLE_ORDER = ["shoulder_pitch", "shoulder_yaw", "shoulder_roll", "elbow_pitch", "wrist_roll", "wrist_pitch"]
 
     def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False):
         """
@@ -430,6 +432,35 @@ class Avatar(ABC):
                 else:
                     angles_0 = self.frame.get_angles_right()
                     angles_1 = frame.get_angles_right()
+                # Try to stop any moving joints.
+                if self._ik_goals[arm].rotations is not None:
+                    joint_profile = self._get_default_sticky_mitten_profile()
+                    for angle, joint_name in zip(angles_1, self.ANGLE_ORDER):
+                        target_angle = self._ik_goals[arm].rotations[joint_name]
+                        # Check if the joint stopped moving. Ignore if the joint already stopped.
+                        if np.abs(angle - target_angle) < 0.01 and joint_name in self._ik_goals[arm].moving_joints:
+                            self._ik_goals[arm].moving_joints.remove(joint_name)
+                            j = joint_name.split("_")
+                            j_name = f"{j[0]}_{arm.name}"
+                            axis = j[1]
+                            if "elbow" in joint_name:
+                                joint_name = "elbow"
+                            # Stop the joint from moving any more.
+                            commands.extend([{"$type": "set_joint_damper",
+                                              "joint": j_name,
+                                              "axis": axis,
+                                              "damper": joint_profile[joint_name]["damper"],
+                                              "avatar_id": self.id},
+                                             {"$type": "set_joint_force",
+                                              "joint": j_name,
+                                              "axis": axis,
+                                              "force": joint_profile[joint_name]["force"],
+                                              "avatar_id": self.id},
+                                             {"$type": "set_joint_angular_drag",
+                                              "joint": j_name,
+                                              "axis": axis,
+                                              "angular_drag": joint_profile[joint_name]["angular_drag"],
+                                              "avatar_id": self.id}])
                 # Is any joint still moving?
                 moving = False
                 for a0, a1 in zip(angles_0, angles_1):
