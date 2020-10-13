@@ -4,6 +4,7 @@
 
 - `StickyMittenAvatarController`:
   - Fixed: `go_to` and `move_forward_by` sometimes don't update frame data.
+  - Fixed: `reach_for_target` checks for mitten collisions with held objects.
 - `FrameData`:
   - Depth maps are always RGB instead of grayscale.
   - Added: `get_depth_values()` 

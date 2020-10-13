@@ -310,6 +310,10 @@ class Avatar(ABC):
                 for arm in self._ik_goals:
                     if self._ik_goals[arm] is not None:
                         if (collider_id == self.mitten_ids[arm] or collidee_id == self.mitten_ids[arm]) and \
+                                (collider_id not in frame.get_held_right() and
+                                 collider_id not in frame.get_held_left() and
+                                 collidee_id not in frame.get_held_right() and
+                                 collidee_id not in frame.get_held_left()) and \
                                 self._ik_goals[arm].stop_on_mitten_collision and \
                                 (self._ik_goals[arm].target is None or
                                  (self._ik_goals[arm].pick_up_id != collidee_id and
