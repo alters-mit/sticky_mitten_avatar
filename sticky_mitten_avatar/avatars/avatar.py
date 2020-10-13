@@ -244,7 +244,7 @@ class Avatar(ABC):
 
         self._ik_goals[arm] = _IKGoal(target=target, stop_on_mitten_collision=stop_on_mitten_collision)
 
-        commands = [self.get_start_bend_sticky_mitten_profile()]
+        commands = [self.get_start_bend_sticky_mitten_profile(arm=arm)]
         if self._debug:
             print([np.rad2deg(r) for r in rotations])
             self._plot_ik(target=ik_target, arm=arm)
@@ -373,7 +373,7 @@ class Avatar(ABC):
                 if d < 0.05:
                     if self._debug:
                         print(f"{arm.name} mitten is at target position {self._ik_goals[arm].target}. Stopping.")
-                    commands.extend(self._stop_arms(arm=arm))
+                    commands.extend(self._stop_arm(arm=arm))
                     temp_goals[arm] = None
                     self.status = TaskStatus.success
                 else:
@@ -384,7 +384,7 @@ class Avatar(ABC):
                                 pick_up_id in frame.get_held_right():
                             if self._debug:
                                 print(f"{arm.name} mitten picked up {self._ik_goals[arm].pick_up_id}. Stopping.")
-                            commands.extend(self._stop_arms(arm=arm))
+                            commands.extend(self._stop_arm(arm=arm))
                             temp_goals[arm] = None
                             self.status = TaskStatus.success
                         # Keep bending the arm and trying to pick up the object.
@@ -435,6 +435,7 @@ class Avatar(ABC):
                     if self._debug:
                         print(f"{arm.name} is no longer bending. Cancelling.")
                     self.status = TaskStatus.no_longer_bending
+                    commands.extend(self._stop_arm(arm=arm))
                     temp_goals[arm] = None
         self._ik_goals = temp_goals
         self.frame = frame
@@ -507,11 +508,11 @@ class Avatar(ABC):
             return True, Arm.right
         return False, Arm.left
 
-    def _stop_arms(self, arm: Arm) -> List[dict]:
+    def _stop_arm(self, arm: Arm) -> List[dict]:
         """
         :param arm: The arm to stop.
 
-        :return: Commands to stop all arm movement.
+        :return: Commands to stop all the arm from moving.
         """
 
         if arm == Arm.left:
@@ -629,17 +630,18 @@ class Avatar(ABC):
 
         raise Exception()
 
-    def _get_sticky_mitten_profile(self, profile: dict) -> dict:
+    def _get_sticky_mitten_profile(self, left: dict, right: dict) -> dict:
         """
-        :param profile: The joint values.
+        :param left: Joint values for the left arm.
+        :param right: Joint values for the right arm.
 
         :return: A `set_sticky_mitten_profile` command.
         """
 
         return {"$type": "set_sticky_mitten_profile",
                 "profile": {"mass": self._mass,
-                            "arm_left": profile,
-                            "arm_right": profile,
+                            "arm_left": left,
+                            "arm_right": right,
                             "avatar_id": self.id}}
 
     def get_default_sticky_mitten_profile(self) -> dict:
@@ -647,11 +649,19 @@ class Avatar(ABC):
         :return: A `set_sticky_mitten_profile` command for the default joint values.
         """
 
-        return self._get_sticky_mitten_profile(self._get_default_sticky_mitten_profile())
+        profile = self._get_default_sticky_mitten_profile()
 
-    def get_start_bend_sticky_mitten_profile(self) -> dict:
+        return self._get_sticky_mitten_profile(left=profile, right=profile)
+
+    def get_start_bend_sticky_mitten_profile(self, arm: Arm) -> dict:
         """
         :return: A `set_sticky_mitten_profile` command for beginning an arm-bending action.
         """
 
-        return self._get_sticky_mitten_profile(self._get_start_bend_sticky_mitten_profile())
+        # The profile for the moving arm.
+        move = self._get_start_bend_sticky_mitten_profile()
+        # The profile for the stopping arm.
+        fixed = self._get_default_sticky_mitten_profile()
+
+        return self._get_sticky_mitten_profile(left=move if arm == Arm.left else fixed,
+                                               right=move if arm == Arm.right else fixed)
