@@ -31,7 +31,5 @@ if __name__ == "__main__":
     c.grasp_object(object_id=c.container_id, arm=Arm.left)
 
     # Put the object in the container.
-    status = c.put_in_container(object_id=c.object_id, container_id=c.container_id, arm=Arm.right)
-    print(status)
+    c.put_in_container(object_id=c.object_id, container_id=c.container_id, arm=Arm.right)
     c.reset_arm(arm=Arm.right)
-
