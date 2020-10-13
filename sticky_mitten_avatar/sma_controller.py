@@ -354,9 +354,9 @@ class StickyMittenAvatarController(FloorplanController):
                                           position=position)[:]
 
         if self._id_pass:
-            pass_masks = ["_img", "_id", "_depth_simple"]
+            pass_masks = ["_img", "_id", "_depth"]
         else:
-            pass_masks = ["_img", "_depth_simple"]
+            pass_masks = ["_img", "_depth"]
         # Rotate the avatar.
         # Request segmentation colors, body part names, and dynamic avatar data.
         # Turn off the follow camera.
@@ -372,9 +372,6 @@ class StickyMittenAvatarController(FloorplanController):
                           "ids": [avatar_id]},
                          {"$type": "send_avatars",
                           "frequency": "always"},
-                         {"$type": "set_avatar_collision_detection_mode",
-                          "mode": "continuous_dynamic",
-                          "avatar_id": avatar_id},
                          {"$type": "set_avatar_drag",
                           "drag": self._STOP_DRAG,
                           "angular_drag": self._STOP_DRAG,
@@ -385,6 +382,10 @@ class StickyMittenAvatarController(FloorplanController):
                          {"$type": "toggle_image_sensor",
                           "sensor_name": "FollowCamera",
                           "avatar_id": avatar_id}])
+        if not self._demo:
+            commands.append({"$type": "toggle_image_sensor",
+                             "sensor_name": "SensorContainer",
+                             "avatar_id": avatar_id})
         # Set all sides of both mittens to be sticky.
         for sub_mitten in ["palm", "back", "side"]:
             for is_left in [True, False]:
@@ -859,6 +860,7 @@ class StickyMittenAvatarController(FloorplanController):
         status = self.turn_to(target=TDWUtils.array_to_vector3(target), force=turn_force,
                               stopping_threshold=turn_stopping_threshold)
         if status != TaskStatus.success:
+            self._stop_avatar()
             return status
 
         self._avatar.status = TaskStatus.ongoing
