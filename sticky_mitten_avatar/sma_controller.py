@@ -926,6 +926,7 @@ class StickyMittenAvatarController(FloorplanController):
         status = self.turn_to(target=TDWUtils.array_to_vector3(target), force=turn_force,
                               stopping_threshold=turn_stopping_threshold)
         if status != TaskStatus.success:
+            self._stop_avatar()
             return status
 
         self._avatar.status = TaskStatus.ongoing
