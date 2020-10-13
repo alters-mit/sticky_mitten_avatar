@@ -1,8 +1,16 @@
 # Changelog
 
+## 0.5.4
+
+- `StickyMittenAvatarController`:
+  - Fixed: `go_to` and `move_forward_by` sometimes don't update frame data.
+- `FrameData`:
+  - Depth maps are always RGB instead of grayscale.
+  - Added: `get_depth_values()` 
+
 ## 0.5.3
 
-- `StickyMittenAvatarController`
+- `StickyMittenAvatarController`:
   - Fixed: Camera turns off when it should be on, and vice-versa.
 
 ## 0.5.2

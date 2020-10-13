@@ -375,9 +375,9 @@ class StickyMittenAvatarController(FloorplanController):
                                           position=position)[:]
 
         if self._id_pass:
-            pass_masks = ["_img", "_id", "_depth_simple"]
+            pass_masks = ["_img", "_id", "_depth"]
         else:
-            pass_masks = ["_img", "_depth_simple"]
+            pass_masks = ["_img", "_depth"]
         # Rotate the avatar.
         # Request segmentation colors, body part names, and dynamic avatar data.
         # Turn off the follow camera.
@@ -920,6 +920,7 @@ class StickyMittenAvatarController(FloorplanController):
         status = self.turn_to(target=TDWUtils.array_to_vector3(target), force=turn_force,
                               stopping_threshold=turn_stopping_threshold)
         if status != TaskStatus.success:
+            self._stop_avatar()
             return status
 
         self._avatar.status = TaskStatus.ongoing

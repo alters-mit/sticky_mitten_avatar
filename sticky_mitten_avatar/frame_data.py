@@ -50,9 +50,10 @@ class FrameData:
 
      ![](images/pass_masks/id_0.png)
 
-    - `depth_pass` Image pass of depth values per pixel as a numpy array. Use the camera matrices to interpret this data. The shader used to calculate the depth pass is the [same as the one used in AI2-Thor](https://github.com/allenai/ai2thor/blob/master/unity/Assets/ImageSynthesis/Shaders/DepthBW.shader).
+    - `depth_pass` Image pass of depth values per pixel as a numpy array. Use the camera matrices to interpret this data.
+       Depth values are encoded into the RGB image; see `get_depth_values()`.
 
-     ![](images/pass_masks/depth_simple_0.png)
+     ![](images/pass_masks/depth_0.png)
 
     - `projection_matrix` The [camera projection matrix](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md#cameramatrices) of the avatar's camera as a numpy array.
     - `camera_matrix` The [camera matrix](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md#cameramatrices) of the avatar's camera as a numpy array.
@@ -174,7 +175,7 @@ class FrameData:
                 for j in range(images.get_num_passes()):
                     if images.get_pass_mask(j) == "_id":
                         self.id_pass = images.get_image(j)
-                    elif images.get_pass_mask(j) == "_depth_simple":
+                    elif images.get_pass_mask(j) == "_depth" or images.get_pass_mask(j) == "_depth_simple":
                         self.depth_pass = images.get_image(j)
                     elif images.get_pass_mask(j) == "_img":
                         self.image_pass = images.get_image(j)
@@ -286,6 +287,13 @@ class FrameData:
         return {"img": Image.open(BytesIO(self.image_pass)),
                 "id": Image.open(BytesIO(self.id_pass)),
                 "depth": Image.open(BytesIO(self.depth_pass))}
+
+    def get_depth_values(self) -> np.array:
+        """
+        :return: A decoded depth pass as a numpy array of floats.
+        """
+
+        return TDWUtils.get_depth_values(self.depth_pass)
 
     @staticmethod
     def _get_velocity(rigidbodies: Rigidbodies, o_id: int) -> float:

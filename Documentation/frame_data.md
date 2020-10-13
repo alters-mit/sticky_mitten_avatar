@@ -38,9 +38,10 @@ c.end()
 
  ![](images/pass_masks/id_0.png)
 
-- `depth_pass` Image pass of depth values per pixel as a numpy array. Use the camera matrices to interpret this data. The shader used to calculate the depth pass is the [same as the one used in AI2-Thor](https://github.com/allenai/ai2thor/blob/master/unity/Assets/ImageSynthesis/Shaders/DepthBW.shader).
+- `depth_pass` Image pass of depth values per pixel as a numpy array. Use the camera matrices to interpret this data.
+   Depth values are encoded into the RGB image; see `get_depth_values()`.
 
- ![](images/pass_masks/depth_simple_0.png)
+ ![](images/pass_masks/depth_0.png)
 
 - `projection_matrix` The [camera projection matrix](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md#cameramatrices) of the avatar's camera as a numpy array.
 - `camera_matrix` The [camera matrix](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md#cameramatrices) of the avatar's camera as a numpy array.
@@ -155,6 +156,14 @@ The image pass is a jpg file and the other passes are png files.
 Convert each image pass to PIL images.
 
 _Returns:_  A dictionary of PIL images. Key = the name of the pass (img, id, depth)
+
+***
+
+#### get_depth_values
+
+**`def get_depth_values(self) -> np.array`**
+
+_Returns:_  A decoded depth pass as a numpy array of floats.
 
 ***
 
