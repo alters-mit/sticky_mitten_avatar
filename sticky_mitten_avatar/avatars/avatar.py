@@ -244,7 +244,7 @@ class Avatar(ABC):
 
         self._ik_goals[arm] = _IKGoal(target=target, stop_on_mitten_collision=stop_on_mitten_collision)
 
-        commands = []
+        commands = [self.get_start_bend_sticky_mitten_profile()]
         if self._debug:
             print([np.rad2deg(r) for r in rotations])
             self._plot_ik(target=ik_target, arm=arm)
@@ -253,7 +253,17 @@ class Avatar(ABC):
             commands.extend([{"$type": "remove_position_markers"},
                              {"$type": "add_position_marker",
                               "position": TDWUtils.array_to_vector3(target)}])
-        commands.append(self.get_start_bend_sticky_mitten_profile())
+        a = arm.name
+        for c, r in zip(self._arms[arm].links[1:-1], rotations[1:-1]):
+            j = c.name.split("_")
+            joint = f"{j[0]}_{a}"
+            axis = j[1]
+            # Apply the motion. Strengthen the joint.
+            commands.extend([{"$type": "bend_arm_joint_to",
+                              "angle": np.rad2deg(r),
+                              "joint": joint,
+                              "axis": axis,
+                              "avatar_id": self.id}])
         return commands
 
     def grasp_object(self, object_id: int, target: np.array, arm: Arm, stop_on_mitten_collision: bool) -> List[dict]:
