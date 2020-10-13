@@ -38,8 +38,32 @@ class Joint:
         self.axis = axis
         self.arm = arm
 
+    def _key(self):
+        return self.joint, self.axis, self.arm
+
     def __str__(self):
-        return self.joint + " " + self.axis
+        return self.arm + " " + self.joint + " " + self.axis
+
+    def __hash__(self):
+        return hash(self._key())
+
+    def __eq__(self, other):
+        return isinstance(other, Joint) and self._key() == other._key()
+
+
+class JointPhysicsValues:
+    """
+    The physics values for a joint.
+    """
+
+    def __init__(self, force: float, damper: float):
+        """
+        :param force: The joint's force.
+        :param damper: The joint's damper.
+        """
+
+        self.force = force
+        self.damper = damper
 
 
 class _IKGoal:
@@ -89,10 +113,6 @@ class Avatar(ABC):
                            Joint(arm="right", axis="pitch", part="elbow"),
                            Joint(arm="right", axis="roll", part="wrist"),
                            Joint(arm="right", axis="pitch", part="wrist")]
-    # Additional force applied to bending joints.
-    _BEND_FORCE = 120
-    # Damper delta when bending joints.
-    _BEND_DAMPER = -300
 
     def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False):
         """
@@ -155,6 +175,8 @@ class Avatar(ABC):
         self.env_collisions: List[int] = list()
 
         self.status = TaskStatus.idle
+
+        self._mass = self._get_mass()
 
     def can_reach_target(self, target: np.array, arm: Arm) -> TaskStatus:
         """
@@ -231,28 +253,7 @@ class Avatar(ABC):
             commands.extend([{"$type": "remove_position_markers"},
                              {"$type": "add_position_marker",
                               "position": TDWUtils.array_to_vector3(target)}])
-
-        a = arm.name
-        for c, r in zip(self._arms[arm].links[1:-1], rotations[1:-1]):
-            j = c.name.split("_")
-            joint = f"{j[0]}_{a}"
-            axis = j[1]
-            # Apply the motion. Strengthen the joint.
-            commands.extend([{"$type": "bend_arm_joint_to",
-                             "angle": np.rad2deg(r),
-                              "joint": joint,
-                              "axis": axis,
-                              "avatar_id": self.id},
-                             {"$type": "adjust_joint_force_by",
-                              "delta": Avatar._BEND_FORCE,
-                              "joint": joint,
-                              "axis": axis,
-                              "avatar_id": self.id},
-                             {"$type": "adjust_joint_damper_by",
-                              "delta": Avatar._BEND_DAMPER,
-                              "joint": joint,
-                              "axis": axis,
-                              "avatar_id": self.id}])
+        commands.append(self.get_start_bend_sticky_mitten_profile())
         return commands
 
     def grasp_object(self, object_id: int, target: np.array, arm: Arm, stop_on_mitten_collision: bool) -> List[dict]:
@@ -506,7 +507,7 @@ class Avatar(ABC):
             joints = Avatar.JOINTS[6:]
             angles = self.frame.get_angles_right()
 
-        commands = []
+        commands = [self.get_default_sticky_mitten_profile()]
         # Get the current angle and bend the joint to that angle.
         for j, a in zip(joints, angles):
             theta = float(a)
@@ -516,16 +517,6 @@ class Avatar(ABC):
             # Reset force and damper.
             commands.extend([{"$type": "bend_arm_joint_to",
                               "angle": theta,
-                              "joint": j.joint,
-                              "axis": j.axis,
-                              "avatar_id": self.id},
-                             {"$type": "adjust_joint_force_by",
-                              "delta": -Avatar._BEND_FORCE,
-                              "joint": j.joint,
-                              "axis": j.axis,
-                              "avatar_id": self.id},
-                             {"$type": "adjust_joint_damper_by",
-                              "delta": -Avatar._BEND_DAMPER,
                               "joint": j.joint,
                               "axis": j.axis,
                               "avatar_id": self.id}])
@@ -600,3 +591,53 @@ class Avatar(ABC):
         # Get the IK solution.
         rotations = self._arms[arm].inverse_kinematics(target_position=ik_target, target_orientation=target_orientation)
         return rotations, ik_target
+
+    @abstractmethod
+    def _get_default_sticky_mitten_profile(self) -> dict:
+        """
+        :return: The default StickyMittenProfile of the joints.
+        """
+
+        raise Exception()
+
+    @abstractmethod
+    def _get_start_bend_sticky_mitten_profile(self) -> dict:
+        """
+        :return: The StickyMittenProfile required for beginning to bend an arm.
+        """
+
+        raise Exception()
+
+    def _get_mass(self) -> float:
+        """
+        :return: The mass of the avatar.
+        """
+
+        raise Exception()
+
+    def _get_sticky_mitten_profile(self, profile: dict) -> dict:
+        """
+        :param profile: The joint values.
+
+        :return: A `set_sticky_mitten_profile` command.
+        """
+
+        return {"$type": "set_sticky_mitten_profile",
+                "profile": {"mass": self._mass,
+                            "arm_left": profile,
+                            "arm_right": profile,
+                            "avatar_id": self.id}}
+
+    def get_default_sticky_mitten_profile(self) -> dict:
+        """
+        :return: A `set_sticky_mitten_profile` command for the default joint values.
+        """
+
+        return self._get_sticky_mitten_profile(self._get_default_sticky_mitten_profile())
+
+    def get_start_bend_sticky_mitten_profile(self) -> dict:
+        """
+        :return: A `set_sticky_mitten_profile` command for beginning an arm-bending action.
+        """
+
+        return self._get_sticky_mitten_profile(self._get_start_bend_sticky_mitten_profile())
