@@ -13,7 +13,7 @@ class PutObjectInContainer(StickyMittenAvatarController):
     Save an image per frame.
     """
 
-    def __init__(self, port: int = 1071, launch_build: bool = True):
+    def __init__(self, port: int = 1071, launch_build: bool = False):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.

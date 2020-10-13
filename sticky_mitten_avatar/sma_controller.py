@@ -1030,12 +1030,22 @@ class StickyMittenAvatarController(FloorplanController):
 
         self._start_task()
 
-        # Pick up the object.
+        # Grasp the object.
         if object_id not in self.frame.held_objects[arm]:
             status = self.grasp_object(object_id=object_id, arm=arm)
             if status != TaskStatus.success:
                 self._end_task()
                 return status
+        # Lift the container.
+        self.reach_for_target(target={"x": 0.05 if arm == Arm.right else -0.05, "y": 0.15, "z": 0.32},
+                              arm=Arm.left if arm == Arm.right else Arm.right,
+                              check_if_possible=False,
+                              stop_on_mitten_collision=False)
+        # Lift up the object.
+        self.reach_for_target(target={"x": 0.2 if arm == Arm.right else -0.2, "y": 0.45, "z": 0.2},
+                              arm=arm,
+                              check_if_possible=False,
+                              stop_on_mitten_collision=False)
 
         # Get the up directional vector.
         up = np.array(QuaternionUtils.get_up_direction(q=tuple(self.frame.object_transforms[container_id].rotation)))
@@ -1081,7 +1091,7 @@ class StickyMittenAvatarController(FloorplanController):
             # Check if the object stopped moving.
             for i in range(rigidbodies.get_num()):
                 if rigidbodies.get_id(i) == object_id:
-                    sleeping = rigidbodies.get_sleeping(i)
+                    sleeping = rigidbodies.get_sleeping(i) or np.linalg.norm(rigidbodies.get_velocity(i)) < 0.01
                     break
         # Get the current position of the container.
         resp = self.communicate([{"$type": "send_rigidbodies",

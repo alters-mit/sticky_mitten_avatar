@@ -12,7 +12,7 @@ class PutInHeldContainer(StickyMittenAvatarController):
         commands = super()._get_scene_init_commands()
         self.container_id, container_commands = self._add_object("basket_18inx18inx12iin",
                                                                  scale={"x": 0.4, "y": 0.4, "z": 0.4},
-                                                                 position={"x": -0.115, "y": 0, "z": 0.216})
+                                                                 position={"x": -0.215, "y": 0, "z": 0.216})
         # Place a container and a jug directly in front of the avatar.
         commands.extend(container_commands)
         self.object_id, object_commands = self._add_object("jug05",
@@ -30,7 +30,8 @@ if __name__ == "__main__":
     c.grasp_object(object_id=c.object_id, arm=Arm.right)
     c.grasp_object(object_id=c.container_id, arm=Arm.left)
 
-    # Lift up the container.
-    print(c.reach_for_target(target={"x": 0, "y": 0.4, "z": 0.32}, arm=Arm.left))
+    # Put the object in the container.
     status = c.put_in_container(object_id=c.object_id, container_id=c.container_id, arm=Arm.right)
     print(status)
+    c.reset_arm(arm=Arm.right)
+

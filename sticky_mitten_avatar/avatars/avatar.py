@@ -72,14 +72,17 @@ class _IKGoal:
     """
 
     def __init__(self, target: Union[np.array, list, None], pick_up_id: int = None,
-                 stop_on_mitten_collision: bool = False):
+                 stop_on_mitten_collision: bool = False,
+                 rotations: Dict[str, float] = None):
         """
         :param pick_up_id: If not None, the ID of the object to pick up.
         :param target: The target position of the mitten.
         :param stop_on_mitten_collision: If True, stop moving if the mitten collides with anything.
+        :param rotations: The target rotations.
         """
 
         self.stop_on_mitten_collision = stop_on_mitten_collision
+        self.rotations = rotations
 
         self.pick_up_id = pick_up_id
         if target is not None and isinstance(target, list):
@@ -113,6 +116,8 @@ class Avatar(ABC):
                            Joint(arm="right", axis="pitch", part="elbow"),
                            Joint(arm="right", axis="roll", part="wrist"),
                            Joint(arm="right", axis="pitch", part="wrist")]
+
+    _ANGLE_ORDER = ["shoulder_pitch", "shoulder_yaw", "shoulder_roll", "elbow_pitch", "wrist_roll", "wrist_pitch"]
 
     def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False):
         """
@@ -242,7 +247,12 @@ class Avatar(ABC):
         angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
         target = rotate_point_around(point=ik_target, angle=angle) + self.frame.get_position()
 
-        self._ik_goals[arm] = _IKGoal(target=target, stop_on_mitten_collision=stop_on_mitten_collision)
+        rotation_targets = dict()
+        for c, r in zip(self._arms[arm].links[1:-1], rotations[1:-1]):
+            rotation_targets[c.name] = r
+
+        self._ik_goals[arm] = _IKGoal(target=target, stop_on_mitten_collision=stop_on_mitten_collision,
+                                      rotations=rotation_targets)
 
         commands = [self.get_start_bend_sticky_mitten_profile(arm=arm)]
         if self._debug:
@@ -254,15 +264,13 @@ class Avatar(ABC):
                              {"$type": "add_position_marker",
                               "position": TDWUtils.array_to_vector3(target)}])
         a = arm.name
-        for c, r in zip(self._arms[arm].links[1:-1], rotations[1:-1]):
-            j = c.name.split("_")
-            joint = f"{j[0]}_{a}"
-            axis = j[1]
-            # Apply the motion. Strengthen the joint.
+        for c in self._ik_goals[arm].rotations:
+            j = c.split("_")
+            # Apply the motion.
             commands.extend([{"$type": "bend_arm_joint_to",
-                              "angle": np.rad2deg(r),
-                              "joint": joint,
-                              "axis": axis,
+                              "angle": np.rad2deg(self._ik_goals[arm].rotations[c]),
+                              "joint": f"{j[0]}_{a}",
+                              "axis": j[1],
                               "avatar_id": self.id}])
         return commands
 
@@ -473,7 +481,7 @@ class Avatar(ABC):
         :return: A list of commands to drop arms to their starting positions.
         """
 
-        commands = []
+        commands = [self.get_start_bend_sticky_mitten_profile(arm=arm)]
         for j in self.JOINTS:
             if j.arm != arm.name:
                 continue
