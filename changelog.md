@@ -6,6 +6,7 @@
   - Fixed: `go_to` and `move_forward_by` sometimes don't update frame data.
 - `FrameData`:
   - Depth maps are always RGB instead of grayscale.
+  - Added: `get_depth_values()` 
 
 ## 0.5.3
 
