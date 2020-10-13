@@ -39,11 +39,7 @@ c.end()
  ![](images/pass_masks/id_0.png)
 
 - `depth_pass` Image pass of depth values per pixel as a numpy array. Use the camera matrices to interpret this data.
-   If the `grayscale_depth` of the `StickyMittenAvatarController` is True: The shader used to calculate the depth pass is the [same as the one used in AI2-Thor](https://github.com/allenai/ai2thor/blob/master/unity/Assets/ImageSynthesis/Shaders/DepthBW.shader).
-
- ![](images/pass_masks/depth_simple_0.png)
-
- If the `grayscale_depth` of the `StickyMittenAvatarController` is False: The depth pass is an RGB image with more precise data:
+   Depth values are encoded into the RGB image; see `get_depth_values()`.
 
  ![](images/pass_masks/depth_0.png)
 

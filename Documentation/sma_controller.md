@@ -99,7 +99,7 @@ print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.4254207
 
 #### \_\_init\_\_
 
-**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True, audio: bool = False, screen_width: int = 256, screen_height: int = 256, grayscale_depth: bool = True)`**
+**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True, audio: bool = False, screen_width: int = 256, screen_height: int = 256)`**
 
 
 | Parameter | Description |
@@ -111,7 +111,6 @@ print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.4254207
 | audio | If True, include audio data in the FrameData. |
 | screen_width | The width of the screen in pixels. |
 | screen_height | The height of the screen in pixels. |
-| grayscale_depth | If True, `frame.depth_pass` will be a grayscale image. If False, `frame.depth_pass` will be an RGB image (more precise but somewhat slower). |
 
 ***
 
