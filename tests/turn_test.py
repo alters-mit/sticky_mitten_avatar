@@ -8,8 +8,8 @@ class TurnTest(StickyMittenAvatarController):
     Test the avatar turning nearly 360 degrees.
     """
 
-    def __init__(self, port: int = 1071, launch_build: bool = True, ):
-        super().__init__(port=port, launch_build=launch_build)
+    def __init__(self, port: int = 1071):
+        super().__init__(port=port, launch_build=False)
         self.o_1 = 0
         self.o_2 = 1
 
@@ -23,7 +23,7 @@ class TurnTest(StickyMittenAvatarController):
 
 
 if __name__ == "__main__":
-    c = TurnTest(launch_build=False)
+    c = TurnTest()
     c.init_scene()
     status = c.turn_to(target=c.o_1)
     assert status == TaskStatus.success, status
