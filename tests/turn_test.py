@@ -10,17 +10,23 @@ class TurnTest(StickyMittenAvatarController):
 
     def __init__(self, port: int = 1071, launch_build: bool = True, ):
         super().__init__(port=port, launch_build=launch_build)
-        self.object_id = self.get_unique_id()
+        self.o_1 = 0
+        self.o_2 = 1
 
     def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
         commands = super()._get_scene_init_commands()
-        self.object_id, jug_commands = self._add_object("jug05", position={"x": 0.2, "y": 0, "z": -1.5})
-        commands.extend(jug_commands)
+        self.o_1, o_1_commands = self._add_object("jug05", position={"x": 0.2, "y": 0, "z": -1.5})
+        commands.extend(o_1_commands)
+        self.o_2, o_2_commands = self._add_object("jug05", position={"x": -0.2, "y": 0, "z": 1.5})
+        commands.extend(o_2_commands)
         return commands
 
 
 if __name__ == "__main__":
     c = TurnTest(launch_build=False)
     c.init_scene()
-    status = c.turn_to(target=c.object_id)
+    status = c.turn_to(target=c.o_1)
     assert status == TaskStatus.success, status
+    status = c.turn_to(target=c.o_2)
+    assert status == TaskStatus.success, status
+    c.end()
