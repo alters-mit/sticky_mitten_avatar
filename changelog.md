@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.6.0
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - **Added: `put_in_container()`**. Try to put an object in a container. 
+  - The arms of the avatar are much less "floppy". They will get looser and stronger when tying to bend the arm, and stiffer and weaker to hold a position.
+  - Fixed: `turn_to()` and `turn_by()` often overshoot the target angle.
+  - `shake()` now returns a `TaskStatus` 
+- `StaticObjectInfo`:
+  - Added static field `CONTAINERS`. The names of every possible container.
+- Example controllers:
+  - Added example controller: `put_in_held_container.py`
+  - In `put_in_container.py`, replaced the last few actions with `put_in_container()`
+- Test Controllers:
+  - Made `ik_unit_tests.py` more reliable and informative.
+  - Added: `in_box_test.py`  Test the algorithm for checking whether an object is in a container.
+  - Improved `turn_test.py` by adding a second target.
+
+### Backend
+
+- Made `Joint` class hashable.
+- `Avatar`:
+  - `Avatar` uses the `set_sticky_mitten_profile` command to bend arms.
+  - Renamed `reset_arms()` to `reset_arm()`
+  - If the avatar tries to bend an arm that is holding an object, it will strengthen that arm's wrist.
+  - If an avatar tries to bend an arm, it will loosen it and increase its strength.
+  - If an avatar isn't trying to bend an arm, it will stiffen it and decrease its strength.
+  - While bending an arm (and *not* trying to pick up an object), the avatar slow down each joint individually as they arrive at their destinations (result: more accurate arm articulation).
+- `_IKGoal`:
+  - Added `rotations` parameter and field to `_IKGoal` constructor (caches the target angles of each joint in the IK chain).
+  - Added `moving_joints` field to `_IKGoal` (the names of the joints that are still moving).
+- `util.py`:
+  - Added: `get_collisions()`
+- Removed all files from `sticky_mitten_avatar` module that are only used by `shake_demo.py` and moved them to `controllers/shake_demo`
+- Removed: `container_dimensions.json`
+- Added: `container_shapes.json` (used to determine if an object is in a container)
+- Moved a lot of code pertinent only to `shake_demo.py` from `sticky_mitten_avatar_controller.py` to `shake_demo.py`
+
 ## 0.5.4
 
 - `StickyMittenAvatarController`:

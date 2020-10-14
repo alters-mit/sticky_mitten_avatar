@@ -1,4 +1,9 @@
-from typing import List
+from pathlib import Path
+from typing import List, Dict, Tuple
+from tdw.py_impact import PyImpact, ObjectInfo
+from tdw.tdw_utils import TDWUtils
+from tdw.librarian import ModelLibrarian
+from tdw.object_init_data import TransformInitData, AudioInitData
 from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 
 
@@ -9,11 +14,58 @@ class BoxRoomContainers(StickyMittenAvatarController):
     put on the sofa.
     """
 
+    _SHOEBOX_RADIUS = 0.07225619999999999
+    _SHOEBOX_Y = 0.01
+    _SHOEBOX_LIBRARY = ModelLibrarian(str(Path("shake_demo/containers.json").resolve()))
+    _CONTENTS_LIBRARY = ModelLibrarian(str(Path("shake_demo/container_contents.json").resolve()))
+    _CORE_LIBRARY = ModelLibrarian()
+
     def __init__(self, port: int = 1071, launch_build: bool = False):
+        TransformInitData.LIBRARIES[BoxRoomContainers._SHOEBOX_LIBRARY.library] = BoxRoomContainers._SHOEBOX_LIBRARY
+        TransformInitData.LIBRARIES[BoxRoomContainers._CONTENTS_LIBRARY.library] = BoxRoomContainers._CONTENTS_LIBRARY
+
         super().__init__(port=port, launch_build=launch_build, demo=True, audio=True)
         self.avatar_id = "a"
         self.container_0 = 0
         self.container_1 = 1
+
+        # Load custom audio values.
+        custom_audio_info = PyImpact.get_object_info("shake_demo/audio.csv")
+        for a in custom_audio_info:
+            av = custom_audio_info[a]
+            av.library = str(Path(av.library).resolve())
+            self._default_audio_values[a] = av
+            # Update the object init data audio dictionary.
+            AudioInitData.AUDIO[a] = av
+
+    def _add_container(self, contents: List[str], position: Dict[str, float] = None,
+                       rotation: Dict[str, float] = None, audio: ObjectInfo = None) -> Tuple[int, List[dict]]:
+        """
+        Add a container to the scene. A container is an object that can hold other objects in it.
+        Containers must be from the "containers" library. See `get_container_records()`.
+
+        :param contents: The model names of objects that will be put in the container.
+        :param position: The position of the container.
+        :param rotation: The rotation of the container.
+        :param audio: Audio values for the container. If None, use default values.
+
+        :return: Tuple: The object ID; A list of commands per object added.
+        """
+
+        # Get commands to add the container.
+        object_id, commands = self._add_object(model_name="shoebox_fused", position=position, rotation=rotation,
+                                               library=BoxRoomContainers._SHOEBOX_LIBRARY.library, audio=audio)
+
+        # Add small objects.
+        for obj_name in contents:
+            obj = self._default_audio_values[obj_name]
+            o_pos = TDWUtils.array_to_vector3(TDWUtils.get_random_point_in_circle(
+                center=TDWUtils.vector3_to_array(position),
+                radius=BoxRoomContainers._SHOEBOX_RADIUS))
+            o_pos["y"] = position["y"] + BoxRoomContainers._SHOEBOX_Y
+            commands.extend(self._add_object(model_name=obj.name, position=o_pos, audio=obj, library=obj.library)[1])
+        self.model_librarian = BoxRoomContainers._CORE_LIBRARY
+        return object_id, commands
 
     def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
         # Load the scene.
@@ -54,13 +106,11 @@ class BoxRoomContainers(StickyMittenAvatarController):
                                          rotation={"x": 0.0, "y": 29.550001010645264, "z": 0.0})[1])
 
         # Add the containers.
-        self.container_0, container_commands_0 = self._add_container(model_name="shoebox_fused",
-                                                                     contents=["sphere", "sphere"],
+        self.container_0, container_commands_0 = self._add_container(contents=["sphere", "sphere"],
                                                                      position={"x": 0.779, "y": 0.3711542, "z": -0.546},
                                                                      rotation={"x": 0, "y": 13, "z": 0})
         commands.extend(container_commands_0)
-        self.container_1, container_commands_1 = self._add_container(model_name="shoebox_fused",
-                                                                     contents=["cone", "cone", "cone", "cone"],
+        self.container_1, container_commands_1 = self._add_container(contents=["cone", "cone", "cone", "cone"],
                                                                      position={"x": 1.922, "y": 0.3359459, "z": 1.25},
                                                                      rotation={"x": 0, "y": 15, "z": 0})
         commands.extend(container_commands_1)

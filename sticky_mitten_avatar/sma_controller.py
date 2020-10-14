@@ -5,15 +5,14 @@ import numpy as np
 from pkg_resources import resource_filename
 from typing import Dict, List, Union, Optional, Tuple
 from tdw.floorplan_controller import FloorplanController
-from tdw.tdw_utils import TDWUtils
-from tdw.librarian import ModelLibrarian
-from tdw.output_data import Bounds, Rigidbodies, SegmentationColors, Raycast, CompositeObjects
+from tdw.tdw_utils import TDWUtils, QuaternionUtils
+from tdw.output_data import Bounds, Rigidbodies, SegmentationColors, Raycast, CompositeObjects, Overlap, Transforms
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
-from tdw.object_init_data import AudioInitData, TransformInitData
+from tdw.object_init_data import AudioInitData
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
-from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD, \
-    OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH
+from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, \
+    FORWARD, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -132,19 +131,8 @@ class StickyMittenAvatarController(FloorplanController):
         self._id_pass = id_pass
         self._audio = audio
 
-        # The containers library.
-        self._lib_containers = ModelLibrarian(library=resource_filename(__name__, "metadata_libraries/containers.json"))
-        # Get the container dimensions.
-        self._container_dimensions = loads(Path(resource_filename(__name__,
-                                                                  "metadata_libraries/container_dimensions.json")).
-                                           read_text(encoding="utf-8"))
-        # Cached core model library.
-        self._lib_core = ModelLibrarian()
-        TransformInitData.LIBRARIES[self._lib_containers.library] = self._lib_containers
-        lib_container_contents = ModelLibrarian(library=resource_filename(__name__,
-                                                                          "metadata_libraries/container_contents.json"))
-        TransformInitData.LIBRARIES[lib_container_contents.library] = lib_container_contents
-
+        self._container_shapes = loads(Path(resource_filename(__name__, "metadata_libraries/container_shapes.json")).
+                                       read_text(encoding="utf-8"))
         # Cache the entities.
         self._avatar: Optional[Avatar] = None
 
@@ -160,15 +148,6 @@ class StickyMittenAvatarController(FloorplanController):
         self._demo = demo
         # Load default audio values for objects.
         self._default_audio_values = PyImpact.get_object_info()
-        # Load custom audio values.
-        custom_audio_info = PyImpact.get_object_info(resource_filename(__name__, "audio.csv"))
-        for a in custom_audio_info:
-            av = custom_audio_info[a]
-            av.library = resource_filename(__name__, av.library)
-            self._default_audio_values[a] = av
-            # Update the object init data audio dictionary.
-            AudioInitData.AUDIO[a] = av
-
         self._audio_values: Dict[int, ObjectInfo] = dict()
 
         # The command for the third-person camera, if any.
@@ -416,18 +395,6 @@ class StickyMittenAvatarController(FloorplanController):
                                  "is_left": is_left,
                                  "avatar_id": avatar_id,
                                  "show": False})
-        # Strengthen the avatar.
-        for joint in Avatar.JOINTS:
-            commands.extend([{"$type": "adjust_joint_force_by",
-                              "delta": 80,
-                              "joint": joint.joint,
-                              "axis": joint.axis,
-                              "avatar_id": avatar_id},
-                             {"$type": "adjust_joint_damper_by",
-                              "delta": 300,
-                              "joint": joint.joint,
-                              "axis": joint.axis,
-                              "avatar_id": avatar_id}])
 
         if self._demo:
             commands.append({"$type": "add_audio_sensor",
@@ -442,6 +409,10 @@ class StickyMittenAvatarController(FloorplanController):
             raise Exception(f"Avatar not defined: {avatar_type}")
         # Cache the avatar.
         self._avatar = avatar
+
+        # Set the joint values profile.
+        commands.append(self._avatar.get_default_sticky_mitten_profile())
+
         self.static_avatar_info = self._avatar.body_parts_static
 
     def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
@@ -508,47 +479,6 @@ class StickyMittenAvatarController(FloorplanController):
 
         return object_id, commands
 
-    def _add_container(self, model_name: str, contents: List[str], position: Dict[str, float] = None,
-                       rotation: Dict[str, float] = None, audio: ObjectInfo = None,
-                       scale: Dict[str, float] = None) -> Tuple[int, List[dict]]:
-        """
-        Add a container to the scene. A container is an object that can hold other objects in it.
-        Containers must be from the "containers" library. See `get_container_records()`.
-
-        :param model_name: The name of the container.
-        :param contents: The model names of objects that will be put in the container. They will be assigned random positions and object IDs and default audio and physics values.
-        :param position: The position of the container.
-        :param rotation: The rotation of the container.
-        :param audio: Audio values for the container. If None, use default values.
-        :param scale: The scale of the container.
-
-        :return: Tuple: The object ID; A list of commands per object added: `[add_object, set_mass, scale_object ,set_object_collision_detection_mode, set_physic_material]`
-        """
-
-        record = self._lib_containers.get_record(model_name)
-        assert record is not None, f"Couldn't find container record for: {model_name}"
-
-        if position is None:
-            position = {"x": 0, "y": 0, "z": 0}
-
-        # Get commands to add the container.
-        object_id, commands = self._add_object(model_name=model_name, position=position, rotation=rotation,
-                                               library=self._lib_containers.library, audio=audio, scale=scale)
-
-        # Get the radius and y value of the base of the container.
-        radius = self._container_dimensions[model_name]["r"]
-        y = self._container_dimensions[model_name]["y"]
-        # Add small objects.
-        for obj_name in contents:
-            obj = self._default_audio_values[obj_name]
-            o_pos = TDWUtils.array_to_vector3(TDWUtils.get_random_point_in_circle(
-                center=TDWUtils.vector3_to_array(position),
-                radius=radius))
-            o_pos["y"] = position["y"] + y
-            commands.extend(self._add_object(model_name=obj.name, position=o_pos, audio=obj, library=obj.library)[1])
-        self.model_librarian = self._lib_core
-        return object_id, commands
-
     def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True,
                          check_if_possible: bool = True, stop_on_mitten_collision: bool = True) -> TaskStatus:
         """
@@ -583,7 +513,8 @@ class StickyMittenAvatarController(FloorplanController):
                 self._end_task()
                 return status
 
-        self._avatar_commands.extend(self._avatar.reach_for_target(arm=arm, target=target,
+        self._avatar_commands.extend(self._avatar.reach_for_target(arm=arm,
+                                                                   target=target,
                                                                    stop_on_mitten_collision=stop_on_mitten_collision))
         self._avatar.status = TaskStatus.ongoing
         if do_motion:
@@ -666,7 +597,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         Possible [return values](task_status.md):
 
-        - `success` (The avatar's arm dropped all objects.)
+        - `success` (The avatar's arm dropped all objects held by the arm.)
 
         :param arm: The arm that will drop any held objects.
         :param reset_arm: If True, reset the arm's positions to "neutral".
@@ -695,7 +626,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         self._start_task()
 
-        self._avatar_commands.extend(self._avatar.reset_arms(arm=arm))
+        self._avatar_commands.extend(self._avatar.reset_arm(arm=arm))
         if do_motion:
             self._do_joint_motion()
         self._end_task()
@@ -756,7 +687,8 @@ class StickyMittenAvatarController(FloorplanController):
                               forward=np.array(self._avatar.frame.get_forward()),
                               position=target)
             # Arrived at the correct alignment.
-            if np.abs(angle) < stopping_threshold or np.abs(angle) > np.abs(initial_angle):
+            if np.abs(angle) < stopping_threshold or ((initial_angle < 0 and angle > 0) or
+                                                      (initial_angle > 0 and angle < 0)):
                 return TaskStatus.success, angle
 
             return TaskStatus.ongoing, angle
@@ -985,17 +917,24 @@ class StickyMittenAvatarController(FloorplanController):
                           stop_on_collision=stop_on_collision)
 
     def shake(self, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30),
-              num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> None:
+              num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> TaskStatus:
         """
         Shake an avatar's arm for multiple iterations.
         Per iteration, the joint will bend forward by an angle and then bend back by an angle.
         The motion ends when all of the avatar's joints have stopped moving.
+
+        Possible [return values](task_status.md):
+
+        - `success`
+        - `bad_joint`
 
         :param joint_name: The name of the joint.
         :param axis: The axis of the joint's rotation.
         :param angle: Each shake will bend the joint by a angle in degrees within this range.
         :param num_shakes: The avatar will shake the joint a number of times within this range.
         :param force: The avatar will add strength to the joint by a value within this range.
+
+        :return: A `TaskStatus` indicating whether the avatar shook the joint and if not, why.
         """
 
         self._start_task()
@@ -1007,7 +946,7 @@ class StickyMittenAvatarController(FloorplanController):
                 joint = j
                 break
         if joint is None:
-            return
+            return TaskStatus.bad_joint
 
         force = random.uniform(force[0], force[1])
         damper = 200
@@ -1055,6 +994,157 @@ class StickyMittenAvatarController(FloorplanController):
                            "axis": joint.axis,
                            "avatar_id": self._avatar.id}])
         self._end_task()
+        return TaskStatus.success
+
+    def put_in_container(self, object_id: int, container_id: int, arm: Arm) -> TaskStatus:
+        """
+        Try to put an object in a container.
+        Combines the following functions:
+
+        1. `grasp_object(object_id, arm`) if the avatar isn't already grasping the object.
+        2. `reach_for_target(position, arm)` where `position` is a point above the container.
+        3. `drop(arm)`
+
+        Possible [return values](task_status.md):
+
+        - `success` (The avatar put the object in the container.)
+        - `too_close_to_reach` (Either the object or the container is too close.)
+        - `too_far_to_reach` (Either the object or the container is too far away.)
+        - `behind_avatar` (Either the object or the container is behind the avatar.)
+        - `no_longer_bending` (While trying to grasping the object.)
+        - `failed_to_pick_up` (After trying to grasp the object.)
+        - `bad_raycast` (Before trying to grasp the object.)
+        - `mitten_collision` (Only while trying to grasp the object.)
+        - `not_in_container`
+        - `not_a_container`
+
+        :param object_id: The ID of the object that the avatar will try to put in the container.
+        :param container_id: The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container')(static_object_info.md).
+        :param arm: The arm that will try to pick up the object.
+
+        :return: A `TaskStatus` indicating whether the avatar put the object in the container and if not, why.
+        """
+
+        if not self.static_object_info[container_id].container:
+            return TaskStatus.not_a_container
+
+        self._start_task()
+
+        # Grasp the object.
+        if object_id not in self.frame.held_objects[arm]:
+            status = self.grasp_object(object_id=object_id, arm=arm)
+            if status != TaskStatus.success:
+                self._end_task()
+                return status
+        # Lift the container.
+        self.reach_for_target(target={"x": 0.05 if arm == Arm.right else -0.05, "y": 0.15, "z": 0.32},
+                              arm=Arm.left if arm == Arm.right else Arm.right,
+                              check_if_possible=False,
+                              stop_on_mitten_collision=False)
+        # Lift up the object.
+        self.reach_for_target(target={"x": 0.2 if arm == Arm.right else -0.2, "y": 0.45, "z": 0.2},
+                              arm=arm,
+                              check_if_possible=False,
+                              stop_on_mitten_collision=False)
+
+        # Get the up directional vector.
+        up = np.array(QuaternionUtils.get_up_direction(q=tuple(self.frame.object_transforms[container_id].rotation)))
+        # Get the height of the container.
+        height = self.static_object_info[container_id].size[1]
+        # Get a position above the base of the container.
+        pos = self.frame.object_transforms[container_id].position
+
+        target = pos + (up * height)
+        reachable_target = self._avatar.get_rotated_target(target=target)
+
+        # Raise the target towards the mitten until the avatar can reach it.
+        direction_to_mitten = self.frame.avatar_body_part_transforms[self._avatar.mitten_ids[arm]].position - pos
+        direction_to_mitten /= np.linalg.norm(direction_to_mitten)
+        d = 0
+        delta_d = 0.025
+        status = self._avatar.can_reach_target(target=reachable_target, arm=arm)
+        while status != TaskStatus.success and d < 0.5 and target[1] < 0.5:
+            status = self._avatar.can_reach_target(target=reachable_target, arm=arm)
+            d += delta_d
+            target += direction_to_mitten * delta_d
+            reachable_target = self._avatar.get_rotated_target(target=target)
+        if status != TaskStatus.success:
+            self._end_task()
+            return status
+        # Reach for the target.
+        self.reach_for_target(target=TDWUtils.array_to_vector3(reachable_target),
+                              arm=arm,
+                              stop_on_mitten_collision=False,
+                              check_if_possible=False)
+
+        # Drop the object.
+        self.drop(arm=arm, reset_arm=False, do_motion=False)
+
+        # Loop until the object hits something.
+        self.communicate({"$type": "send_rigidbodies",
+                          "frequency": "always"})
+        sleeping = False
+        while not sleeping:
+            # Advance one frame.
+            resp = self.communicate([])
+            rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
+            # Check if the object stopped moving.
+            for i in range(rigidbodies.get_num()):
+                if rigidbodies.get_id(i) == object_id:
+                    sleeping = rigidbodies.get_sleeping(i) or np.linalg.norm(rigidbodies.get_velocity(i)) < 0.01
+                    break
+        # Get the current position of the container.
+        resp = self.communicate([{"$type": "send_rigidbodies",
+                                  "frequency": "never"},
+                                 {"$type": "send_transforms",
+                                  "frequency": "once"}])
+        tr = get_data(resp=resp, d_type=Transforms)
+        rot: Optional[np.array] = None
+        pos: Optional[np.array] = None
+        for i in range(tr.get_num()):
+            if tr.get_id(i) == container_id:
+                rot = np.array(tr.get_rotation(i))
+                pos = np.array(tr.get_position(i))
+
+        # If the container is upside-down, then the object is not in the container.
+        up = QuaternionUtils.get_up_direction(rot)
+        if up[1] < 0:
+            self._end_task()
+            return TaskStatus.not_in_container
+
+        # Get the shape of the container.
+        name = self.static_object_info[container_id].model_name
+        shape = self._container_shapes[name]
+
+        # Check the overlap of the container to see if the object is in that space. If so, it is in the container.
+        size = self.static_object_info[container_id].size
+        # Set the position to be in the center of the rotated object.
+        center = TDWUtils.array_to_vector3(pos + (up * size[1] / 2))
+        pos = TDWUtils.array_to_vector3(pos)
+        # Decide which overlap shape to use depending on the container shape.
+        if shape == "box":
+            resp = self.communicate({"$type": "send_overlap_box",
+                                     "position": center,
+                                     "rotation": TDWUtils.array_to_vector4(rot),
+                                     "half_extents": TDWUtils.array_to_vector3(size / 2)})
+        elif shape == "sphere":
+            resp = self.communicate({"$type": "send_overlap_sphere",
+                                     "position": center,
+                                     "radius": min(size)})
+        elif shape == "capsule":
+            resp = self.communicate({"$type": "send_overlap_capsule",
+                                     "position": pos,
+                                     "end": center,
+                                     "radius": min(size)})
+        else:
+            raise Exception(f"Bad shape for {name}: {shape}")
+        overlap = get_data(resp=resp, d_type=Overlap)
+        overlap_ids = overlap.get_object_ids()
+        if container_id not in overlap_ids or object_id not in overlap_ids:
+            self._end_task()
+            return TaskStatus.not_in_container
+        self._end_task()
+        return TaskStatus.success
 
     def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None:
         """

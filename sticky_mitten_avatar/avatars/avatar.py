@@ -38,8 +38,17 @@ class Joint:
         self.axis = axis
         self.arm = arm
 
+    def _key(self):
+        return self.joint, self.axis, self.arm
+
     def __str__(self):
-        return self.joint + " " + self.axis
+        return self.arm + " " + self.joint + " " + self.axis
+
+    def __hash__(self):
+        return hash(self._key())
+
+    def __eq__(self, other):
+        return isinstance(other, Joint) and self._key() == other._key()
 
 
 class _IKGoal:
@@ -48,14 +57,19 @@ class _IKGoal:
     """
 
     def __init__(self, target: Union[np.array, list, None], pick_up_id: int = None,
-                 stop_on_mitten_collision: bool = False):
+                 stop_on_mitten_collision: bool = False,
+                 rotations: Dict[str, float] = None):
         """
         :param pick_up_id: If not None, the ID of the object to pick up.
         :param target: The target position of the mitten.
         :param stop_on_mitten_collision: If True, stop moving if the mitten collides with anything.
+        :param rotations: The target rotations.
         """
 
         self.stop_on_mitten_collision = stop_on_mitten_collision
+        self.rotations = rotations
+
+        self.moving_joints = Avatar.ANGLE_ORDER[:]
 
         self.pick_up_id = pick_up_id
         if target is not None and isinstance(target, list):
@@ -89,10 +103,8 @@ class Avatar(ABC):
                            Joint(arm="right", axis="pitch", part="elbow"),
                            Joint(arm="right", axis="roll", part="wrist"),
                            Joint(arm="right", axis="pitch", part="wrist")]
-    # Additional force applied to bending joints.
-    _BEND_FORCE = 120
-    # Damper delta when bending joints.
-    _BEND_DAMPER = -300
+
+    ANGLE_ORDER = ["shoulder_pitch", "shoulder_yaw", "shoulder_roll", "elbow_pitch", "wrist_roll", "wrist_pitch"]
 
     def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False):
         """
@@ -156,6 +168,8 @@ class Avatar(ABC):
 
         self.status = TaskStatus.idle
 
+        self._mass = self._get_mass()
+
     def can_reach_target(self, target: np.array, arm: Arm) -> TaskStatus:
         """
         :param target: The target position.
@@ -172,7 +186,7 @@ class Avatar(ABC):
             return TaskStatus.too_close_to_reach
         if target[2] < 0:
             if self._debug:
-                print(f"Target {target} z < 0")
+                print(f"Target {target} is behind avatar.")
             return TaskStatus.behind_avatar
 
         # Check if the IK solution reaches the target.
@@ -191,7 +205,7 @@ class Avatar(ABC):
             # If this is a short distance and the node is below head-level, then this is likely to intersect.
             if d < 0.1 and node[1] < 1:
                 if self._debug:
-                    print(f"Target {target} is too close to the avatar: {d}, {node}, {link.name}")
+                    print(f"Target {target} is too close to a joint: {d}, {node}, {link.name}")
                 return TaskStatus.too_close_to_reach
 
         d = np.linalg.norm(destination - target)
@@ -220,9 +234,23 @@ class Avatar(ABC):
         angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
         target = rotate_point_around(point=ik_target, angle=angle) + self.frame.get_position()
 
-        self._ik_goals[arm] = _IKGoal(target=target, stop_on_mitten_collision=stop_on_mitten_collision)
+        rotation_targets = dict()
+        for c, r in zip(self._arms[arm].links[1:-1], rotations[1:-1]):
+            rotation_targets[c.name] = r
 
-        commands = []
+        self._ik_goals[arm] = _IKGoal(target=target, stop_on_mitten_collision=stop_on_mitten_collision,
+                                      rotations=rotation_targets)
+
+        commands = [self.get_start_bend_sticky_mitten_profile(arm=arm)]
+
+        # If the avatar is holding something, strengthen the wrist.
+        held = self.frame.get_held_left() if arm == Arm.left else self.frame.get_held_right()
+        if len(held) > 0:
+            commands.append({"$type": "set_joint_angular_drag",
+                             "joint": f"wrist_{arm.name}",
+                             "axis": "roll",
+                             "angular_drag": 50,
+                             "avatar_id": self.id})
         if self._debug:
             print([np.rad2deg(r) for r in rotations])
             self._plot_ik(target=ik_target, arm=arm)
@@ -231,27 +259,14 @@ class Avatar(ABC):
             commands.extend([{"$type": "remove_position_markers"},
                              {"$type": "add_position_marker",
                               "position": TDWUtils.array_to_vector3(target)}])
-
         a = arm.name
-        for c, r in zip(self._arms[arm].links[1:-1], rotations[1:-1]):
-            j = c.name.split("_")
-            joint = f"{j[0]}_{a}"
-            axis = j[1]
-            # Apply the motion. Strengthen the joint.
+        for c in self._ik_goals[arm].rotations:
+            j = c.split("_")
+            # Apply the motion.
             commands.extend([{"$type": "bend_arm_joint_to",
-                             "angle": np.rad2deg(r),
-                              "joint": joint,
-                              "axis": axis,
-                              "avatar_id": self.id},
-                             {"$type": "adjust_joint_force_by",
-                              "delta": Avatar._BEND_FORCE,
-                              "joint": joint,
-                              "axis": axis,
-                              "avatar_id": self.id},
-                             {"$type": "adjust_joint_damper_by",
-                              "delta": Avatar._BEND_DAMPER,
-                              "joint": joint,
-                              "axis": axis,
+                              "angle": np.rad2deg(self._ik_goals[arm].rotations[c]),
+                              "joint": f"{j[0]}_{a}",
+                              "axis": j[1],
                               "avatar_id": self.id}])
         return commands
 
@@ -362,7 +377,7 @@ class Avatar(ABC):
                 if d < 0.05:
                     if self._debug:
                         print(f"{arm.name} mitten is at target position {self._ik_goals[arm].target}. Stopping.")
-                    commands.extend(self._stop_arms(arm=arm))
+                    commands.extend(self._stop_arm(arm=arm))
                     temp_goals[arm] = None
                     self.status = TaskStatus.success
                 else:
@@ -373,7 +388,7 @@ class Avatar(ABC):
                                 pick_up_id in frame.get_held_right():
                             if self._debug:
                                 print(f"{arm.name} mitten picked up {self._ik_goals[arm].pick_up_id}. Stopping.")
-                            commands.extend(self._stop_arms(arm=arm))
+                            commands.extend(self._stop_arm(arm=arm))
                             temp_goals[arm] = None
                             self.status = TaskStatus.success
                         # Keep bending the arm and trying to pick up the object.
@@ -411,6 +426,42 @@ class Avatar(ABC):
                 else:
                     angles_0 = self.frame.get_angles_right()
                     angles_1 = frame.get_angles_right()
+                # Try to stop any moving joints.
+                if self._ik_goals[arm].rotations is not None and self._ik_goals[arm].pick_up_id is not None:
+                    joint_profile = self._get_default_sticky_mitten_profile()
+                    for angle, joint_name in zip(angles_1, Avatar.ANGLE_ORDER):
+                        target_angle = self._ik_goals[arm].rotations[joint_name]
+                        # Check if the joint stopped moving. Ignore if the joint already stopped.
+                        if target_angle > 0.01 and np.abs(angle - target_angle) < 0.01 and \
+                                joint_name in self._ik_goals[arm].moving_joints:
+                            self._ik_goals[arm].moving_joints.remove(joint_name)
+                            j = joint_name.split("_")
+                            j_name = f"{j[0]}_{arm.name}"
+                            axis = j[1]
+                            # Set the name of the elbow to the expected profile key.
+                            if "elbow" in joint_name:
+                                profile_key = "elbow"
+                            else:
+                                profile_key = joint_name
+                            if self._debug:
+                                print(f"{joint_name} {arm.name} slowing down: {np.abs(angle - target_angle)}")
+                            # Stop the joint from moving any more.
+                            # Set the damper, force, and angular drag to "default" (non-moving) values.
+                            commands.extend([{"$type": "set_joint_damper",
+                                              "joint": j_name,
+                                              "axis": axis,
+                                              "damper": joint_profile[profile_key]["damper"],
+                                              "avatar_id": self.id},
+                                             {"$type": "set_joint_force",
+                                              "joint": j_name,
+                                              "axis": axis,
+                                              "force": joint_profile[profile_key]["force"],
+                                              "avatar_id": self.id},
+                                             {"$type": "set_joint_angular_drag",
+                                              "joint": j_name,
+                                              "axis": axis,
+                                              "angular_drag": joint_profile[profile_key]["angular_drag"],
+                                              "avatar_id": self.id}])
                 # Is any joint still moving?
                 moving = False
                 for a0, a1 in zip(angles_0, angles_1):
@@ -421,9 +472,11 @@ class Avatar(ABC):
                 if moving:
                     temp_goals[arm] = self._ik_goals[arm]
                 else:
-                    if self._debug:
-                        print(f"{arm.name} is no longer bending. Cancelling.")
-                    self.status = TaskStatus.no_longer_bending
+                    if self._ik_goals[arm].rotations is not None:
+                        if self._debug:
+                            print(f"{arm.name} is no longer bending. Cancelling.")
+                        self.status = TaskStatus.no_longer_bending
+                        commands.extend(self._stop_arm(arm=arm))
                     temp_goals[arm] = None
         self._ik_goals = temp_goals
         self.frame = frame
@@ -451,17 +504,17 @@ class Avatar(ABC):
                      "is_left": True if arm == Arm.left else False,
                      "avatar_id": self.id}]
         if reset:
-            commands.extend(self.reset_arms(arm=arm))
+            commands.extend(self.reset_arm(arm=arm))
         return commands
 
-    def reset_arms(self, arm: Arm) -> List[dict]:
+    def reset_arm(self, arm: Arm) -> List[dict]:
         """
         :param arm: The arm that will be reset.
 
         :return: A list of commands to drop arms to their starting positions.
         """
 
-        commands = []
+        commands = [self.get_reset_arm_sticky_mitten_profile(arm=arm)]
         for j in self.JOINTS:
             if j.arm != arm.name:
                 continue
@@ -496,11 +549,11 @@ class Avatar(ABC):
             return True, Arm.right
         return False, Arm.left
 
-    def _stop_arms(self, arm: Arm) -> List[dict]:
+    def _stop_arm(self, arm: Arm) -> List[dict]:
         """
         :param arm: The arm to stop.
 
-        :return: Commands to stop all arm movement.
+        :return: Commands to stop all the arm from moving.
         """
 
         if arm == Arm.left:
@@ -510,7 +563,7 @@ class Avatar(ABC):
             joints = Avatar.JOINTS[6:]
             angles = self.frame.get_angles_right()
 
-        commands = []
+        commands = [self.get_default_sticky_mitten_profile()]
         # Get the current angle and bend the joint to that angle.
         for j, a in zip(joints, angles):
             theta = float(a)
@@ -520,16 +573,6 @@ class Avatar(ABC):
             # Reset force and damper.
             commands.extend([{"$type": "bend_arm_joint_to",
                               "angle": theta,
-                              "joint": j.joint,
-                              "axis": j.axis,
-                              "avatar_id": self.id},
-                             {"$type": "adjust_joint_force_by",
-                              "delta": -Avatar._BEND_FORCE,
-                              "joint": j.joint,
-                              "axis": j.axis,
-                              "avatar_id": self.id},
-                             {"$type": "adjust_joint_damper_by",
-                              "delta": -Avatar._BEND_DAMPER,
                               "joint": j.joint,
                               "axis": j.axis,
                               "avatar_id": self.id}])
@@ -604,3 +647,87 @@ class Avatar(ABC):
         # Get the IK solution.
         rotations = self._arms[arm].inverse_kinematics(target_position=ik_target, target_orientation=target_orientation)
         return rotations, ik_target
+
+    @abstractmethod
+    def _get_default_sticky_mitten_profile(self) -> dict:
+        """
+        :return: The default StickyMittenProfile of the joints.
+        """
+
+        raise Exception()
+
+    @abstractmethod
+    def _get_start_bend_sticky_mitten_profile(self) -> dict:
+        """
+        :return: The StickyMittenProfile required for beginning to bend an arm.
+        """
+
+        raise Exception()
+
+    @abstractmethod
+    def _get_reset_arm_sticky_mitten_profile(self) -> dict:
+        """
+        :return: The StickyMittenProfile required for beginning to reset an arm.
+        """
+
+        raise Exception()
+
+    def _get_mass(self) -> float:
+        """
+        :return: The mass of the avatar.
+        """
+
+        raise Exception()
+
+    def _get_sticky_mitten_profile(self, left: dict, right: dict) -> dict:
+        """
+        :param left: Joint values for the left arm.
+        :param right: Joint values for the right arm.
+
+        :return: A `set_sticky_mitten_profile` command.
+        """
+
+        return {"$type": "set_sticky_mitten_profile",
+                "profile": {"mass": self._mass,
+                            "arm_left": left,
+                            "arm_right": right,
+                            "avatar_id": self.id}}
+
+    def get_default_sticky_mitten_profile(self) -> dict:
+        """
+        :return: A `set_sticky_mitten_profile` command for the default joint values.
+        """
+
+        profile = self._get_default_sticky_mitten_profile()
+
+        return self._get_sticky_mitten_profile(left=profile, right=profile)
+
+    def get_start_bend_sticky_mitten_profile(self, arm: Arm) -> dict:
+        """
+        :param arm: The arm that is bending.
+
+        :return: A `set_sticky_mitten_profile` command for beginning an arm-bending action.
+        """
+
+        # The profile for the moving arm.
+        move = self._get_start_bend_sticky_mitten_profile()
+        # The profile for the stopping arm.
+        fixed = self._get_default_sticky_mitten_profile()
+
+        return self._get_sticky_mitten_profile(left=move if arm == Arm.left else fixed,
+                                               right=move if arm == Arm.right else fixed)
+
+    def get_reset_arm_sticky_mitten_profile(self, arm: Arm):
+        """
+        :param arm: The arm that is resetting.
+
+        :return: A `set_sticky_mitten_profile` command for beginning an arm-reset action.
+        """
+
+        # The profile for the moving arm.
+        move = self._get_reset_arm_sticky_mitten_profile()
+        # The profile for the stopping arm.
+        fixed = self._get_default_sticky_mitten_profile()
+
+        return self._get_sticky_mitten_profile(left=move if arm == Arm.left else fixed,
+                                               right=move if arm == Arm.right else fixed)

@@ -6,7 +6,21 @@
 
 Info for an object that doesn't change between frames.
 
-Fields:
+*** Static Fields
+
+- `CONTAINERS` The names of every possible container object.
+
+```python
+from sticky_mitten_avatar.static_object_info import StaticObjectInfo
+
+# Print the name of each container.
+for container in StaticObjectInfo.CONTAINERS:
+    print(container)
+```
+
+***
+
+## Fields
 
 - `object_id`: The unique ID of the object.
 - `mass`: The mass of the object.
@@ -17,6 +31,8 @@ Fields:
 - `container`': If True, this object is container-shaped (a bowl or open basket that smaller objects can be placed in).
 - `kinematic`: If True, this object is kinematic, and won't respond to physics. Example: a painting hung on a wall.
 - `size`: The size of the object as a numpy array: `[width, height, length]`
+
+***
 
 ***
 

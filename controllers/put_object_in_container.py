@@ -13,7 +13,7 @@ class PutObjectInContainer(StickyMittenAvatarController):
     Save an image per frame.
     """
 
-    def __init__(self, port: int = 1071, launch_build: bool = True):
+    def __init__(self, port: int = 1071, launch_build: bool = False):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
@@ -58,17 +58,17 @@ class PutObjectInContainer(StickyMittenAvatarController):
         self.reach_for_target(target={"x": -0.1, "y": 0.6, "z": 0.32}, arm=Arm.left)
 
         # Go to the bowl.
+        # self.turn_by(angle=45)
         self.go_to(target=self.bowl_id, move_stopping_threshold=0.3)
 
         self.turn_to(target=self.bowl_id)
 
         # Lift the object up a bit.
-        self.reach_for_target(target={"x": -0.1, "y": 0.6, "z": 0.5}, arm=Arm.left)
-        # Drop the object in the container.
-        self.drop(arm=Arm.left)
+        result = self.put_in_container(object_id=self.o_id, container_id=self.bowl_id, arm=Arm.left)
+        print(result)
         # Stop the build.
         self.end()
 
 
 if __name__ == "__main__":
-    PutObjectInContainer().run()
+    PutObjectInContainer(launch_build=False).run()

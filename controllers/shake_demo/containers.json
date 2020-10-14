@@ -1,0 +1,76 @@
+{
+    "description": "A library of containers (models with a hollow interior).",
+    "records": {
+        "shoebox_fused": {
+            "asset_bundle_sizes": {
+                "Darwin": 2255365,
+                "Linux": 2481558,
+                "Windows": 2081817
+            },
+            "bounds": {
+                "back": {
+                    "x": 4.723668e-06,
+                    "y": 0.07922205,
+                    "z": -0.1592964
+                },
+                "bottom": {
+                    "x": 4.723668e-06,
+                    "y": 0,
+                    "z": -0.0003212094
+                },
+                "center": {
+                    "x": 4.723668e-06,
+                    "y": 0.07922205,
+                    "z": -0.0003212094
+                },
+                "front": {
+                    "x": 4.723668e-06,
+                    "y": 0.07922205,
+                    "z": 0.158654
+                },
+                "left": {
+                    "x": -0.1022515,
+                    "y": 0.07922205,
+                    "z": -0.0003212094
+                },
+                "right": {
+                    "x": 0.1022609,
+                    "y": 0.07922205,
+                    "z": -0.0003212094
+                },
+                "top": {
+                    "x": 4.723668e-06,
+                    "y": 0.1584441,
+                    "z": -0.0003212094
+                }
+            },
+            "canonical_rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "composite_object": false,
+            "do_not_use": false,
+            "do_not_use_reason": "",
+            "flex": true,
+            "name": "shoebox_fused",
+            "physics_quality": -1,
+            "scale_factor": 1,
+            "substructure": [
+                {
+                    "materials": [
+                        "cardboard_corrugated"
+                    ],
+                    "name": "shoebox_fused"
+                }
+            ],
+            "urls": {
+                "Darwin": "asset_bundles/Darwin/shoebox_fused",
+                "Linux": "asset_bundles/Linux/shoebox_fused",
+                "Windows": "asset_bundles/Windows/shoebox_fused"
+            },
+            "wcategory": "container",
+            "wnid": "n02886585"
+        }
+    }
+}
