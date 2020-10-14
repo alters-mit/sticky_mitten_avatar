@@ -443,23 +443,27 @@ class Avatar(ABC):
                             j = joint_name.split("_")
                             j_name = f"{j[0]}_{arm.name}"
                             axis = j[1]
+                            # Set the name of the elbow to the expected profile key.
                             if "elbow" in joint_name:
-                                joint_name = "elbow"
+                                profile_key = "elbow"
+                            else:
+                                profile_key = joint_name
                             # Stop the joint from moving any more.
+                            # Set the damper, force, and angular drag to "default" (non-moving) values.
                             commands.extend([{"$type": "set_joint_damper",
                                               "joint": j_name,
                                               "axis": axis,
-                                              "damper": joint_profile[joint_name]["damper"],
+                                              "damper": joint_profile[profile_key]["damper"],
                                               "avatar_id": self.id},
                                              {"$type": "set_joint_force",
                                               "joint": j_name,
                                               "axis": axis,
-                                              "force": joint_profile[joint_name]["force"],
+                                              "force": joint_profile[profile_key]["force"],
                                               "avatar_id": self.id},
                                              {"$type": "set_joint_angular_drag",
                                               "joint": j_name,
                                               "axis": axis,
-                                              "angular_drag": joint_profile[joint_name]["angular_drag"],
+                                              "angular_drag": joint_profile[profile_key]["angular_drag"],
                                               "avatar_id": self.id}])
                 # Is any joint still moving?
                 moving = False
