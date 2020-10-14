@@ -58,6 +58,7 @@ class PutObjectInContainer(StickyMittenAvatarController):
         self.reach_for_target(target={"x": -0.1, "y": 0.6, "z": 0.32}, arm=Arm.left)
 
         # Go to the bowl.
+        # self.turn_by(angle=45)
         self.go_to(target=self.bowl_id, move_stopping_threshold=0.3)
 
         self.turn_to(target=self.bowl_id)

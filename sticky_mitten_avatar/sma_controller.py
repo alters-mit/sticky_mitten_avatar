@@ -687,7 +687,8 @@ class StickyMittenAvatarController(FloorplanController):
                               forward=np.array(self._avatar.frame.get_forward()),
                               position=target)
             # Arrived at the correct alignment.
-            if np.abs(angle) < stopping_threshold or np.abs(angle) > np.abs(initial_angle):
+            if np.abs(angle) < stopping_threshold or ((initial_angle < 0 and angle > 0) or
+                                                      (initial_angle > 0 and angle < 0)):
                 return TaskStatus.success, angle
 
             return TaskStatus.ongoing, angle
