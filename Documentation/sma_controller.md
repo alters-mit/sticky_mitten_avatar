@@ -372,14 +372,15 @@ Combines the following functions:
 3. `drop(arm)`
 Possible [return values](task_status.md):
 - `success` (The avatar put the object in the container.)
-- `too_close_to_reach` (Can be the object's position or the container's position.)
-- `too_far_to_reach` (Can be the object's position or the container's position.)
-- `behind_avatar` (Can be the object's position or the container's position.)
-- `no_longer_bending` (Can be while grasping the object or while reaching for the container.)
-- `failed_to_pick_up`
-- `bad_raycast`
+- `too_close_to_reach` (Either the object or the container is too close.)
+- `too_far_to_reach` (Either the object or the container is too far away.)
+- `behind_avatar` (Either the object or the container is behind the avatar.)
+- `no_longer_bending` (While trying to grasping the object.)
+- `failed_to_pick_up` (After trying to grasp the object.)
+- `bad_raycast` (Before trying to grasp the object.)
 - `mitten_collision` (Only while trying to grasp the object.)
 - `not_in_container`
+- `not_a_container`
 
 | Parameter | Description |
 | --- | --- |

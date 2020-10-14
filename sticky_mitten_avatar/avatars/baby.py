@@ -101,8 +101,16 @@ class Baby(Avatar):
                 "shoulder_yaw": {"mass": 3, "damper": 75, "force": 450, "angular_drag": 1},
                 "shoulder_roll": {"mass": 3, "damper": 75, "force": 450, "angular_drag": 1},
                 "elbow": {"mass": 2, "damper": 75, "force": 450, "angular_drag": 1},
-                "wrist_roll": {"mass": 1.5, "damper": 500, "force": 450, "angular_drag": 50},
+                "wrist_roll": {"mass": 1.5, "damper": 500, "force": 450, "angular_drag": 1},
                 "wrist_pitch": {"mass": 1.5, "damper": 50, "force": 345, "angular_drag": 1}}
+
+    def _get_reset_arm_sticky_mitten_profile(self) -> dict:
+        return {"shoulder_pitch": {"mass": 3, "damper": 0, "force": 250, "angular_drag": 10},
+                "shoulder_yaw": {"mass": 3, "damper": 0, "force": 250, "angular_drag": 10},
+                "shoulder_roll": {"mass": 3, "damper": 0, "force": 250, "angular_drag": 10},
+                "elbow": {"mass": 2, "damper": 0, "force": 250, "angular_drag": 10},
+                "wrist_roll": {"mass": 1.5, "damper": 0, "force": 250, "angular_drag": 10},
+                "wrist_pitch": {"mass": 1.5, "damper": 0, "force": 225, "angular_drag": 10}}
 
     def _get_mass(self) -> float:
         return 80

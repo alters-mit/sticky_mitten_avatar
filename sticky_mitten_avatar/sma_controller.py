@@ -505,11 +505,10 @@ class StickyMittenAvatarController(FloorplanController):
         self._start_task()
 
         target = TDWUtils.vector3_to_array(target)
-        rotated_target = self._avatar.get_rotated_target(target=target)
 
         # Check if it is possible for the avatar to reach the target.
         if check_if_possible:
-            status = self._avatar.can_reach_target(target=rotated_target, arm=arm)
+            status = self._avatar.can_reach_target(target=target, arm=arm)
             if status != TaskStatus.success:
                 self._end_task()
                 return status
@@ -627,7 +626,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         self._start_task()
 
-        self._avatar_commands.extend(self._avatar.reset_arms(arm=arm))
+        self._avatar_commands.extend(self._avatar.reset_arm(arm=arm))
         if do_motion:
             self._do_joint_motion()
         self._end_task()

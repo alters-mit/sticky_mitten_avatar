@@ -16,6 +16,14 @@ class StaticObjectInfo:
 
     - `CONTAINERS` The names of each container object.
 
+    ```python
+    from sticky_mitten_avatar.static_object_info import StaticObjectInfo
+
+    # Print the name of each container.
+    for container in StaticObjectInfo.CONTAINERS:
+        print(container)
+    ```
+
     ***
 
     ## Fields
