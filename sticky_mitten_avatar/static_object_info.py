@@ -14,7 +14,7 @@ class StaticObjectInfo:
 
     *** Static Fields
 
-    - `CONTAINERS` The names of each container object.
+    - `CONTAINERS` The names of every possible container object.
 
     ```python
     from sticky_mitten_avatar.static_object_info import StaticObjectInfo

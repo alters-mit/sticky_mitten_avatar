@@ -51,21 +51,6 @@ class Joint:
         return isinstance(other, Joint) and self._key() == other._key()
 
 
-class JointPhysicsValues:
-    """
-    The physics values for a joint.
-    """
-
-    def __init__(self, force: float, damper: float):
-        """
-        :param force: The joint's force.
-        :param damper: The joint's damper.
-        """
-
-        self.force = force
-        self.damper = damper
-
-
 class _IKGoal:
     """
     The goal of an IK action.
@@ -444,7 +429,7 @@ class Avatar(ABC):
                 # Try to stop any moving joints.
                 if self._ik_goals[arm].rotations is not None and self._ik_goals[arm].pick_up_id is not None:
                     joint_profile = self._get_default_sticky_mitten_profile()
-                    for angle, joint_name in zip(angles_1, self.ANGLE_ORDER):
+                    for angle, joint_name in zip(angles_1, Avatar.ANGLE_ORDER):
                         target_angle = self._ik_goals[arm].rotations[joint_name]
                         # Check if the joint stopped moving. Ignore if the joint already stopped.
                         if target_angle > 0.01 and np.abs(angle - target_angle) < 0.01 and \

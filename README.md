@@ -78,6 +78,7 @@ All example controllers can be found in: `controllers/`
 | Controller                   | Description                                                  |
 | ---------------------------- | ------------------------------------------------------------ |
 | `put_object_in_container.py` | Put an object in a container.                                |
+| `put_in_held_container.py`   | Put an object held with one mitten into a container held by another mitten. |
 | `shake_demo.py`              | An avatar shakes two different containers with different audio properties. |
 
 ## Tests
@@ -89,6 +90,7 @@ All example controllers can be found in: `controllers/`
 | `turn_test.py`             | Test avatar turning.                                         |
 | `composite_object_test.py` | Test if the avatar can grasp a sub-object of a composite object. |
 | `mitten_collision_test.py` | Test mitten collision detection.                             |
+| `in_box_test.py`           | Test the algorithm for checking whether an object is in a container. |
 
 ## Utility Scripts
 
