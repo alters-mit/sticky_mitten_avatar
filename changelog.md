@@ -4,6 +4,7 @@
 
 - `StickyMittenAvatarController`:
   - Fixed: The controller never sends global initialization commands.
+  - Fixed: `move_forward_by()` will try to turn the avatar before moving.
   - The controller will check the build version and warn the user about a version mismatch.
 
 ## 0.6.0

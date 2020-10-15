@@ -795,7 +795,7 @@ class StickyMittenAvatarController(FloorplanController):
 
     def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80,
               turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35,
-              stop_on_collision: bool = True) -> TaskStatus:
+              stop_on_collision: bool = True, turn: bool = True) -> TaskStatus:
         """
         Move the avatar to a target position or object.
 
@@ -813,6 +813,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param move_force: The force at which the avatar will move. More force = faster, but might overshoot the target.
         :param move_stopping_threshold: Stop within this distance of the target.
         :param stop_on_collision: If True, stop moving when the object collides with a large object (mass > 90) or the environment (e.g. a wall).
+        :param turn: If True, try turning to face the target before moving.
 
         :return:  A `TaskStatus` indicating whether the avatar arrived at the target and if not, why.
         """
@@ -861,12 +862,13 @@ class StickyMittenAvatarController(FloorplanController):
         # Get the distance to the target.
         initial_distance = np.linalg.norm(np.array(initial_position) - target)
 
-        # Turn to the target.
-        status = self.turn_to(target=TDWUtils.array_to_vector3(target), force=turn_force,
-                              stopping_threshold=turn_stopping_threshold)
-        if status != TaskStatus.success:
-            self._stop_avatar()
-            return status
+        if turn:
+            # Turn to the target.
+            status = self.turn_to(target=TDWUtils.array_to_vector3(target), force=turn_force,
+                                  stopping_threshold=turn_stopping_threshold)
+            if status != TaskStatus.success:
+                self._stop_avatar()
+                return status
 
         self._avatar.status = TaskStatus.ongoing
 
@@ -910,7 +912,6 @@ class StickyMittenAvatarController(FloorplanController):
         Possible [return values](task_status.md):
 
         - `success` (The avatar moved forward by the distance.)
-        - `turned_360`
         - `too_long`
         - `overshot`
         - `collided_with_something_heavy` (if `stop_on_collision == True`)
@@ -927,7 +928,7 @@ class StickyMittenAvatarController(FloorplanController):
         # The target is at `distance` away from the avatar's position along the avatar's forward directional vector.
         target = np.array(self._avatar.frame.get_position()) + (np.array(self._avatar.frame.get_forward()) * distance)
         return self.go_to(target=target, move_force=move_force, move_stopping_threshold=move_stopping_threshold,
-                          stop_on_collision=stop_on_collision)
+                          stop_on_collision=stop_on_collision, turn=False)
 
     def shake(self, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30),
               num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> TaskStatus:
