@@ -7,10 +7,14 @@ from pkg_resources import resource_filename
 
 # The directory of the occupancy_maps map files.
 OCCUPANCY_MAP_DIRECTORY = Path(resource_filename(__name__, "occupancy_maps"))
+# The map of positions per room per scene.
+ROOM_MAP_DIRECTORY = Path(resource_filename(__name__, "room_maps"))
 # The path to the scene bounds data.
 SCENE_BOUNDS_PATH = OCCUPANCY_MAP_DIRECTORY.joinpath("scene_bounds.json")
 # The path to the spawn positions.
 SPAWN_POSITIONS_PATH = OCCUPANCY_MAP_DIRECTORY.joinpath("spawn_positions.json")
+# The size of each occupancy grid cell.
+OCCUPANCY_CELL_SIZE = 0.25
 
 T = TypeVar("T", bound=OutputData)
 # Output data types mapped to their IDs.

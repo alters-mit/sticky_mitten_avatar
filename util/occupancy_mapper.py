@@ -3,7 +3,7 @@ import numpy as np
 from json import dumps
 from tdw.floorplan_controller import FloorplanController
 from tdw.output_data import Raycast
-from sticky_mitten_avatar.util import OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH
+from sticky_mitten_avatar.util import OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, OCCUPANCY_CELL_SIZE
 from sticky_mitten_avatar.environments import Environments
 
 
@@ -16,7 +16,6 @@ Save the results to a file.
 if __name__ == "__main__":
     c = FloorplanController()
     # This is the minimum size of a surface.
-    r = 0.25
 
     bounds: Dict[str, Dict[str, float]] = dict()
 
@@ -50,7 +49,7 @@ if __name__ == "__main__":
                     resp = c.communicate({"$type": "send_spherecast",
                                           "origin": {"x": x, "y": 10, "z": z},
                                           "destination": {"x": x, "y": 0, "z": z},
-                                          "radius": r})
+                                          "radius": OCCUPANCY_CELL_SIZE})
                     # Get the y values of each position in the spherecast.
                     ys = []
                     hits = []
@@ -74,9 +73,9 @@ if __name__ == "__main__":
                             c.communicate({"$type": "add_position_marker",
                                            "position": {"x": x, "y": 0, "z": z}})
                     row.append(occupied)
-                    z += r
+                    z += OCCUPANCY_CELL_SIZE
                 positions.append(row)
-                x += r
+                x += OCCUPANCY_CELL_SIZE
             # Save the numpy data.
             np.save(str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene}_{layout}").resolve()),
                     np.array(positions))

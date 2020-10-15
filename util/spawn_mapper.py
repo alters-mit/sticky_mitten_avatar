@@ -4,7 +4,7 @@ import numpy as np
 from tdw.controller import Controller
 from tdw.output_data import Environments
 from tdw.tdw_utils import TDWUtils
-from sticky_mitten_avatar.util import get_data, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH
+from sticky_mitten_avatar.util import get_data, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH, OCCUPANCY_CELL_SIZE
 
 """
 Calculate avatar spawn positions per scene per layout.
@@ -50,8 +50,8 @@ if __name__ == "__main__":
                 min_position = None
                 for ix, iy in np.ndindex(occ.shape):
                     if occ[ix, iy] == 1:
-                        x = scene_bounds["x_min"] + (ix * 0.25)
-                        z = scene_bounds["z_min"] + (iy * 0.25)
+                        x = scene_bounds["x_min"] + (ix * OCCUPANCY_CELL_SIZE)
+                        z = scene_bounds["z_min"] + (iy * OCCUPANCY_CELL_SIZE)
                         pos = np.array([x, 0, z])
                         d = np.linalg.norm(pos - center)
                         if d < min_distance:

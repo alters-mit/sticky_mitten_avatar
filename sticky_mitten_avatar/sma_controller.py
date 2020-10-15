@@ -14,7 +14,7 @@ from tdw.release.pypi import PyPi
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, \
-    FORWARD, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH
+    FORWARD, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH, ROOM_MAP_DIRECTORY
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -138,9 +138,11 @@ class StickyMittenAvatarController(FloorplanController):
         # Cache the entities.
         self._avatar: Optional[Avatar] = None
 
-        # Create an empty occupancy_maps map.
+        # Create an empty occupancy map.
         self.occupancy_map: Optional[np.array] = None
         self._scene_bounds: Optional[dict] = None
+        # Create an empty room map.
+        self._room_map: Optional[np.array] = None
 
         # Commands sent by avatars.
         self._avatar_commands: List[dict] = []
@@ -154,7 +156,6 @@ class StickyMittenAvatarController(FloorplanController):
 
         # The command for the third-person camera, if any.
         self._cam_commands: Optional[list] = None
-
         self.frame: Optional[FrameData] = None
 
         super().__init__(port=port, launch_build=launch_build)
@@ -195,7 +196,7 @@ class StickyMittenAvatarController(FloorplanController):
                 print(f"Your installed version of tdw ({python_version} doesn't match the version of the build "
                       f"{build_version}. This might cause errors!")
 
-    def init_scene(self, scene: str = None, layout: int = None, room: int = 0, num_containers: int = 3) -> None:
+    def init_scene(self, scene: str = None, layout: int = None, room: int = 0) -> None:
         """
         Initialize a scene, populate it with objects, add the avatar, and set rendering options.
         The controller by default will load a simple empty room:
@@ -229,36 +230,37 @@ class StickyMittenAvatarController(FloorplanController):
         :param scene: The name of an interior floorplan scene. If None, the controller will load a simple empty room.
         :param layout: The furniture layout of the floorplan. If None, the controller will load a simple empty room.
         :param room: The index of the room that the avatar will spawn in the center of. If `scene` or `layout` is None, the avatar will spawn in at (0, 0, 0).
-        :param num_containers: The number of containers that will spawn in the room. They will always be placed at random floor positions.
         """
 
         # Initialize the scene.
         commands = self._get_scene_init_commands(scene=scene, layout=layout)
-        # Get free positions for containers.
-        free_positions: List[Tuple[int, int]] = list()
-        for ix, iy in np.ndindex(self.occupancy_map.shape):
-            if self.occupancy_map[ix][iy] == 1:
-                free_positions.append((ix, iy))
-        random.shuffle(free_positions)
-
-        # Procedurally add containers.
-        for i in range(num_containers):
-            ix, iy = free_positions[i]
-            free, x, z = self.get_occupancy_position(ix, iy)
-            # This space is no longer free.
-            self.occupancy_map[ix][iy] = 0
-            container_name = random.choice(StaticObjectInfo.CONTAINERS)
-            commands.extend(self._add_object(position={"x": x, "y": 0, "z": z},
-                                             rotation={"x": 0, "y": random.uniform(-179, 179), "z": z},
-                                             scale={"x": 0.5, "y": 0.5, "z": 0.5},
-                                             audio=self._audio_values[container_name],
-                                             model_name=container_name)[1])
-        self.communicate(commands)
 
         # Load the occupancy map.
         if scene is not None and layout is not None:
             self.occupancy_map = np.load(str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
             self._scene_bounds = loads(SCENE_BOUNDS_PATH.read_text())[scene[0]]
+            self._room_map = np.load(str(ROOM_MAP_DIRECTORY.joinpath(f"{scene[0]}.npy").resolve()))
+
+            for i in range(0, np.amax(self._room_map)):
+                # Sometimes, don't add a container.
+                if random.random() < 0.5:
+                    continue
+                # Get all free positions in the room.
+                room_positions: List[Tuple[int, int]] = list()
+                for ix, iy in np.ndindex(self._room_map):
+                    if self._room_map[ix][iy] == i and self.occupancy_map[ix][iy] == 1:
+                        room_positions.append((ix, iy))
+                ix, iy = random.choice(room_positions)
+
+                # Add a container.
+                free, x, z = self.get_occupancy_position(ix, iy)
+                container_name = random.choice(StaticObjectInfo.CONTAINERS)
+                commands.extend(self._add_object(position={"x": x, "y": 0, "z": z},
+                                                 rotation={"x": 0, "y": random.uniform(-179, 179), "z": z},
+                                                 scale={"x": 0.5, "y": 0.5, "z": 0.5},
+                                                 audio=self._audio_values[container_name],
+                                                 model_name=container_name)[1])
+            self.communicate(commands)
 
         # Create the avatar.
         self._init_avatar()
