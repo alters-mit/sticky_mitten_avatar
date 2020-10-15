@@ -190,7 +190,7 @@ class StickyMittenAvatarController(FloorplanController):
         if not launch_build:
             version = get_data(resp=resp, d_type=Version)
             build_version = version.get_tdw_version()
-            python_version = PyPi.get_installed_tdw_version()
+            python_version = PyPi.get_installed_tdw_version(truncate=True)
             if build_version != python_version:
                 print(f"Your installed version of tdw ({python_version} doesn't match the version of the build "
                       f"{build_version}. This might cause errors!")
