@@ -6,9 +6,11 @@ from pkg_resources import resource_filename
 from typing import Dict, List, Union, Optional, Tuple
 from tdw.floorplan_controller import FloorplanController
 from tdw.tdw_utils import TDWUtils, QuaternionUtils
-from tdw.output_data import Bounds, Rigidbodies, SegmentationColors, Raycast, CompositeObjects, Overlap, Transforms
+from tdw.output_data import Bounds, Rigidbodies, SegmentationColors, Raycast, CompositeObjects, Overlap, Transforms,\
+    Version
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from tdw.object_init_data import AudioInitData
+from tdw.release.pypi import PyPi
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, \
@@ -174,13 +176,24 @@ class StickyMittenAvatarController(FloorplanController):
                      "sleep_threshold": 0.1},
                     {"$type": "set_screen_size",
                      "width": screen_width,
-                     "height": screen_height}]
+                     "height": screen_height},
+                    {"$type": "send_version"}]
         # Set the frame rate and timestep for audio.
         if self._demo:
             commands.extend([{"$type": "set_target_framerate",
                              "framerate": 30},
                              {"$type": "set_time_step",
                               "time_step": 0.02}])
+        resp = self.communicate(commands)
+
+        # Make sure that the build is the correct version.
+        if not launch_build:
+            version = get_data(resp=resp, d_type=Version)
+            build_version = version.get_tdw_version()
+            python_version = PyPi.get_installed_tdw_version()
+            if build_version != python_version:
+                print(f"Your installed version of tdw ({python_version} doesn't match the version of the build "
+                      f"{build_version}. This might cause errors!")
 
     def init_scene(self, scene: str = None, layout: int = None, room: int = 0) -> None:
         """

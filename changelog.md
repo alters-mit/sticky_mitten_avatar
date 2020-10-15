@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1
+
+- `StickyMittenAvatarController`:
+  - Fixed: The controller never sends global initialization commands.
+  - The controller will check the build version and warn the user about a version mismatch.
+
 ## 0.6.0
 
 ### Frontend
