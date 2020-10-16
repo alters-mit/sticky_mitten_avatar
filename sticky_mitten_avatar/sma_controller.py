@@ -113,8 +113,6 @@ class StickyMittenAvatarController(FloorplanController):
     print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.42542076110839844)
     ```
 
-    - `target_objects` The IDs of each "target object" that can be placed in a container.
-
     ## Functions
 
     """
@@ -146,7 +144,7 @@ class StickyMittenAvatarController(FloorplanController):
         self.occupancy_map: Optional[np.array] = None
         self._scene_bounds: Optional[dict] = None
         # The IDs of each target object.
-        self.target_objects: List[int] = list()
+        self._target_object_ids: List[int] = list()
 
         # Commands sent by avatars.
         self._avatar_commands: List[dict] = []
@@ -313,7 +311,8 @@ class StickyMittenAvatarController(FloorplanController):
                                              segmentation_colors=segmentation_colors,
                                              rigidbodies=rigidbodies,
                                              audio=object_audio,
-                                             bounds=bounds)
+                                             bounds=bounds,
+                                             target_object=object_id in self._target_object_ids)
             self.static_object_info[static_object.object_id] = static_object
         self._end_task()
 
@@ -1425,7 +1424,7 @@ class StickyMittenAvatarController(FloorplanController):
                     for ix, iy in np.ndindex(room_map.shape):
                         if room_map[ix][iy] == i:
                             # If this is the floor or a low-lying surface, add the position.
-                            if 0 <= ys_map[ix][iy] < 0.3:
+                            if 0 <= ys_map[ix][iy] <= 0.5:
                                 placeable_positions.append((ix, iy))
                     if len(placeable_positions) > 0:
                         rooms[i] = placeable_positions
@@ -1476,7 +1475,7 @@ class StickyMittenAvatarController(FloorplanController):
                                                                   scale={"x": scale, "y": scale, "z": scale},
                                                                   audio=audio,
                                                                   model_name=target_object_name)
-                    self.target_objects.append(object_id)
+                    self._target_object_ids.append(object_id)
                     commands.extend(object_commands)
             return commands
 
