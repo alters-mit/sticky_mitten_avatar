@@ -8,6 +8,7 @@
   - Added *target objects* which are procedurally placed in a room in the scene.
   - Containers are now procedurally placed throughout the scene.
   - Added: `goal_positions` The positions of possible goal positions in the scene for the avatar to place objects.
+  - Default value of parameter `room` in`init_scene()` is now -1; if it is -1, the room is chosen randomly.
 - `FrameData`:
   - Fixed: missing parameters in audio code.
 - `StaticObjectInfo`:

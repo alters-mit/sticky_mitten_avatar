@@ -145,7 +145,7 @@ class StickyMittenAvatarController(FloorplanController):
         self._id_pass = id_pass
         self._audio = audio
 
-        self._container_shapes = loads(Path(resource_filename(__name__, "object_datacontainer_shapes.json")).
+        self._container_shapes = loads(Path(resource_filename(__name__, "object_data/container_shapes.json")).
                                        read_text(encoding="utf-8"))
         # Cache the entities.
         self._avatar: Optional[Avatar] = None
@@ -209,7 +209,7 @@ class StickyMittenAvatarController(FloorplanController):
                 print(f"Your installed version of tdw ({python_version} doesn't match the version of the build "
                       f"{build_version}. This might cause errors!")
 
-    def init_scene(self, scene: str = None, layout: int = None, room: int = 0) -> None:
+    def init_scene(self, scene: str = None, layout: int = None, room: int = -1) -> None:
         """
         Initialize a scene, populate it with objects, add the avatar, and set rendering options.
         The controller by default will load a simple empty room:
@@ -242,7 +242,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         :param scene: The name of an interior floorplan scene. If None, the controller will load a simple empty room.
         :param layout: The furniture layout of the floorplan. If None, the controller will load a simple empty room.
-        :param room: The index of the room that the avatar will spawn in the center of. If `scene` or `layout` is None, the avatar will spawn in at (0, 0, 0).
+        :param room: The index of the room that the avatar will spawn in the center of. If `scene` or `layout` is None, the avatar will spawn in at (0, 0, 0). If `room == -1` the room will be chosen randomly.
         """
 
         # Initialize the scene.
@@ -270,6 +270,8 @@ class StickyMittenAvatarController(FloorplanController):
         # Teleport the avatar to a room.
         if scene is not None and layout is not None and room is not None:
             rooms = loads(SPAWN_POSITIONS_PATH.read_text())[scene[0]][str(layout)]
+            if room == -1:
+                room = random.randint(0, len(rooms) - 1)
             assert 0 <= room < len(rooms), f"Invalid room: {room}"
             commands.append({"$type": "teleport_avatar_to",
                              "avatar_id": "a",
