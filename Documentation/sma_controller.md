@@ -93,6 +93,15 @@ print(c.occupancy_map[37][16]) # 0 (occupied)
 print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.42542076110839844)
 ```
 
+- `goal_positions` Target positions for the avatar to move objects to as a numpy array. Shape: `(-1, 3)` (x, y, z)
+  These positions are all on surfaces above floor-level.
+
+```python
+c.init_scene(scene="2a", layout=1)
+
+print(c.goal_positions[0]) # [-10.25364399   0.49080563  -1.42542076]
+```
+
 ## Functions
 
 ***

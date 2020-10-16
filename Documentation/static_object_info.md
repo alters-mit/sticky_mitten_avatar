@@ -30,6 +30,7 @@ for container in StaticObjectInfo.CONTAINERS:
 - `audio`: [Audio properties.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#objectinfo)
 - `container`': If True, this object is container-shaped (a bowl or open basket that smaller objects can be placed in).
 - `kinematic`: If True, this object is kinematic, and won't respond to physics. Example: a painting hung on a wall.
+- `target_object`: If True, this is a small object that the avatar can place in a container.
 - `size`: The size of the object as a numpy array: `[width, height, length]`
 
 ***
@@ -38,7 +39,7 @@ for container in StaticObjectInfo.CONTAINERS:
 
 #### \_\_init\_\_
 
-**`def __init__(self, object_id: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors, bounds: Bounds, audio: ObjectInfo)`**
+**`def __init__(self, object_id: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors, bounds: Bounds, audio: ObjectInfo, target_object: bool = False)`**
 
 
 | Parameter | Description |

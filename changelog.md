@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.6.2
+
+### Frontend
+
+- `StickyMittenAvatar`:
+  - Added *target objects* which are procedurally placed in a room in the scene.
+  - Containers are now procedurally placed throughout the scene.
+  - Added: `goal_positions` The positions of possible goal positions in the scene for the avatar to place objects.
+- `FrameData`:
+  - Fixed: missing parameters in audio code.
+- `StaticObjectInfo`:
+  - Added: `target_object` If True, this is a small object that the avatar can place in a container.
+
+### Backend
+
+- Added: `paths.py` Paths to files in this Python module. (Moved all path-related fields to here from `util.py`)
+- Added: `util.OCCUPANCY_CELL_SIZE` The size of each occupancy grid cell. 
+- `StickyMittenAvatarController` uses *room maps* and *y maps* to procedurally place objects.
+- Moved `composite_object_audio.json` and `container_shapes.json` to `object_data/`
+- Moved `scene_bounds.json` and `spawn_positions.json` to `scene_data/`
+- Moved `occupancy_maps/` to `scene_data/`
+- Added: `scene_data/room_maps/` Numpy arrays of which positions in an occupancy map correspond to which room.
+- Added: `scene_data/y_maps/` The maximum y value at each position in each occupancy map.
+- Added: `object_data/target_objects.csv` The names of valid target objects and their scale values.
+- Removed: `add_model.py` (nonfunctional; no longer needed).
+- `occupancy_mapper.py` writes *y maps* in addition to occupancy maps.
+- Added: `room_positions.py` Generate *room maps* of positions.
+
 ## 0.6.1
 
 - `StickyMittenAvatarController`:

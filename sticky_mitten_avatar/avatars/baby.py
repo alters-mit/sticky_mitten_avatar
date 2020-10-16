@@ -1,4 +1,3 @@
-from typing import List
 import numpy as np
 from ikpy.chain import Chain
 from ikpy.link import URDFLink, OriginLink

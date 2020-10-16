@@ -1,11 +1,10 @@
 from typing import Optional
 import numpy as np
 from json import loads
-from pathlib import Path
-from pkg_resources import resource_filename
 from tdw.output_data import SegmentationColors, Rigidbodies, Bounds
 from tdw.py_impact import ObjectInfo
 from tdw.object_init_data import TransformInitData
+from sticky_mitten_avatar.paths import COMPOSITE_OBJECT_AUDIO_PATH
 
 
 class StaticObjectInfo:
@@ -36,6 +35,7 @@ class StaticObjectInfo:
     - `audio`: [Audio properties.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#objectinfo)
     - `container`': If True, this object is container-shaped (a bowl or open basket that smaller objects can be placed in).
     - `kinematic`: If True, this object is kinematic, and won't respond to physics. Example: a painting hung on a wall.
+    - `target_object`: If True, this is a small object that the avatar can place in a container.
     - `size`: The size of the object as a numpy array: `[width, height, length]`
 
     ***
@@ -58,11 +58,10 @@ class StaticObjectInfo:
                   'cabinet_full_height_white_wood', 'cabinet_full_height_wood_beach_honey', 'carpet_rug',
                   'elf_painting', 'flat_woven_rug', 'framed_painting', 'fruit_basket', 'its_about_time_painting',
                   'purple_woven_rug', 'silver_frame_painting']
-    _COMPOSITE_OBJECTS = loads(Path(resource_filename(__name__, "composite_object_audio.json")).read_text(
-        encoding="utf-8"))
+    _COMPOSITE_OBJECTS = loads(COMPOSITE_OBJECT_AUDIO_PATH.read_text(encoding="utf-8"))
 
     def __init__(self, object_id: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors,
-                 bounds: Bounds, audio: ObjectInfo):
+                 bounds: Bounds, audio: ObjectInfo, target_object: bool = False):
         """
         :param object_id: The unique ID of the object.
         :param rigidbodies: Rigidbodies output data.
@@ -75,6 +74,7 @@ class StaticObjectInfo:
         self.model_name = self.audio.name
         self.container = self.model_name in StaticObjectInfo.CONTAINERS
         self.kinematic = self.model_name in StaticObjectInfo._KINEMATIC
+        self.target_object = target_object
 
         self.category = ""
         # This is a sub-object of a composite object.

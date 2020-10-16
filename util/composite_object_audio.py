@@ -1,9 +1,9 @@
-from pathlib import Path
 import json
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
 from tdw.output_data import CompositeObjects, SegmentationColors
 from sticky_mitten_avatar.util import get_data
+from sticky_mitten_avatar.paths import COMPOSITE_OBJECT_AUDIO_PATH
 
 """
 Get default audio data for each sub-object of a composite object.
@@ -46,7 +46,6 @@ if __name__ == "__main__":
                                                  "machine": machine,
                                                  "resonance": 0}
     # Add the data.
-    p = Path("../sticky_mitten_avatar/composite_object_audio.json")
-    data = json.loads(p.read_text(encoding="utf-8"))
+    data = json.loads(COMPOSITE_OBJECT_AUDIO_PATH.read_text(encoding="utf-8"))
     data[args.model] = sub_objects
-    p.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+    COMPOSITE_OBJECT_AUDIO_PATH.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")

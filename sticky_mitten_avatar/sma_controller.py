@@ -1,3 +1,4 @@
+from csv import DictReader
 from json import loads
 from pathlib import Path
 import random
@@ -13,8 +14,10 @@ from tdw.object_init_data import AudioInitData
 from tdw.release.pypi import PyPi
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
-from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, \
-    FORWARD, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH
+from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD, \
+    OCCUPANCY_CELL_SIZE
+from sticky_mitten_avatar.paths import SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, \
+    ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, TARGET_OBJECTS_PATH, COMPOSITE_OBJECT_AUDIO_PATH
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -111,6 +114,15 @@ class StickyMittenAvatarController(FloorplanController):
     print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.42542076110839844)
     ```
 
+    - `goal_positions` Target positions for the avatar to move objects to as a numpy array. Shape: `(-1, 3)` (x, y, z)
+      These positions are all on surfaces above floor-level.
+
+    ```python
+    c.init_scene(scene="2a", layout=1)
+
+    print(c.goal_positions[0]) # [-10.25364399   0.49080563  -1.42542076]
+    ```
+
     ## Functions
 
     """
@@ -133,14 +145,17 @@ class StickyMittenAvatarController(FloorplanController):
         self._id_pass = id_pass
         self._audio = audio
 
-        self._container_shapes = loads(Path(resource_filename(__name__, "metadata_libraries/container_shapes.json")).
+        self._container_shapes = loads(Path(resource_filename(__name__, "object_datacontainer_shapes.json")).
                                        read_text(encoding="utf-8"))
         # Cache the entities.
         self._avatar: Optional[Avatar] = None
 
-        # Create an empty occupancy_maps map.
+        # Create an empty occupancy map.
         self.occupancy_map: Optional[np.array] = None
         self._scene_bounds: Optional[dict] = None
+        self.goal_positions: Optional[np.array] = None
+        # The IDs of each target object.
+        self._target_object_ids: List[int] = list()
 
         # Commands sent by avatars.
         self._avatar_commands: List[dict] = []
@@ -154,7 +169,6 @@ class StickyMittenAvatarController(FloorplanController):
 
         # The command for the third-person camera, if any.
         self._cam_commands: Optional[list] = None
-
         self.frame: Optional[FrameData] = None
 
         super().__init__(port=port, launch_build=launch_build)
@@ -233,10 +247,6 @@ class StickyMittenAvatarController(FloorplanController):
 
         # Initialize the scene.
         self.communicate(self._get_scene_init_commands(scene=scene, layout=layout))
-        # Load the occupancy map.
-        if scene is not None and layout is not None:
-            self.occupancy_map = np.load(str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
-            self._scene_bounds = loads(SCENE_BOUNDS_PATH.read_text())[scene[0]]
 
         # Create the avatar.
         self._init_avatar()
@@ -277,8 +287,7 @@ class StickyMittenAvatarController(FloorplanController):
         composite_objects = get_data(resp=resp, d_type=CompositeObjects)
         composite_object_audio: Dict[int, ObjectInfo] = dict()
         # Get the audio values per sub object.
-        composite_object_json = loads(Path(resource_filename(__name__, "composite_object_audio.json")).read_text(
-            encoding="utf-8"))
+        composite_object_json = loads(COMPOSITE_OBJECT_AUDIO_PATH.read_text( encoding="utf-8"))
         for i in range(composite_objects.get_num()):
             composite_object_id = composite_objects.get_object_id(i)
             composite_object_data = composite_object_json[object_names[composite_object_id]]
@@ -312,7 +321,8 @@ class StickyMittenAvatarController(FloorplanController):
                                              segmentation_colors=segmentation_colors,
                                              rigidbodies=rigidbodies,
                                              audio=object_audio,
-                                             bounds=bounds)
+                                             bounds=bounds,
+                                             target_object=object_id in self._target_object_ids)
             self.static_object_info[static_object.object_id] = static_object
         self._end_task()
 
@@ -1336,13 +1346,14 @@ class StickyMittenAvatarController(FloorplanController):
 
         :param i: The i coordinate in the occupancy map.
         :param j: The j coordinate in the occupancy map.
+
         :return: Tuple: True if the position is in the occupancy map; x coordinate; z coordinate.
         """
 
         if self.occupancy_map is None or self._scene_bounds is None:
             return False, 0, 0,
-        x = self._scene_bounds["x_min"] + (i * 0.25)
-        z = self._scene_bounds["z_min"] + (j * 0.25)
+        x = self._scene_bounds["x_min"] + (i * OCCUPANCY_CELL_SIZE)
+        z = self._scene_bounds["z_min"] + (j * OCCUPANCY_CELL_SIZE)
         return True, x, z
 
     def _get_raycast_point(self, object_id: int, origin: np.array, forward: float = 0.2) -> (bool, np.array):
@@ -1405,7 +1416,88 @@ class StickyMittenAvatarController(FloorplanController):
         """
 
         if scene is not None and layout is not None:
-            return self.get_scene_init_commands(scene=scene, layout=layout, audio=True)
+            commands = self.get_scene_init_commands(scene=scene, layout=layout, audio=True)
+
+            self.occupancy_map = np.load(
+                str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
+            self._scene_bounds = loads(SCENE_BOUNDS_PATH.read_text())[scene[0]]
+
+            # Procedurally add containers and target objects.
+            if scene is not None and layout is not None:
+                room_map = np.load(str(ROOM_MAP_DIRECTORY.joinpath(f"{scene[0]}.npy").resolve()))
+                ys_map = np.load(str(Y_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
+
+                # Get all "placeable" positions in the room.
+                rooms: Dict[int, List[Tuple[int, int]]] = dict()
+                for i in range(0, np.amax(room_map)):
+                    # Get all free positions in the room.
+                    placeable_positions: List[Tuple[int, int]] = list()
+                    for ix, iy in np.ndindex(room_map.shape):
+                        if room_map[ix][iy] == i:
+                            # If this is the floor or a low-lying surface, add the position.
+                            if 0 <= ys_map[ix][iy] <= 0.5:
+                                placeable_positions.append((ix, iy))
+                    if len(placeable_positions) > 0:
+                        rooms[i] = placeable_positions
+
+                # Add 0-1 containers per room.
+                for room in list(rooms.keys()):
+                    # Maybe don't add a container in this room.
+                    if random.random() < 0.25:
+                        continue
+
+                    # Get a random position in the room.
+                    ix, iy = random.choice(rooms[room])
+
+                    # Get the (x, z) coordinates for this position.
+                    # The y coordinate is in `ys_map`.
+                    free, x, z = self.get_occupancy_position(ix, iy)
+                    container_name = random.choice(StaticObjectInfo.CONTAINERS)
+                    commands.extend(self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
+                                                     rotation={"x": 0, "y": random.uniform(-179, 179), "z": z},
+                                                     scale={"x": 0.5, "y": 0.5, "z": 0.5},
+                                                     audio=self._default_audio_values[container_name],
+                                                     model_name=container_name)[1])
+                # Pick a room to add target objects.
+                target_objects: Dict[str, float] = dict()
+                with open(str(TARGET_OBJECTS_PATH.resolve())) as csvfile:
+                    reader = DictReader(csvfile)
+                    for row in reader:
+                        target_objects[row["name"]] = float(row["scale"])
+                target_object_names = list(target_objects.keys())
+
+                # Get all positions in the room and shuffle the order.
+                target_room_positions = random.choice(list(rooms.values()))
+                random.shuffle(target_room_positions)
+                # Add the objects.
+                for i in range(random.randint(8, 12)):
+                    ix, iy = random.choice(target_room_positions)
+                    # Get the (x, z) coordinates for this position.
+                    # The y coordinate is in `ys_map`.
+                    free, x, z = self.get_occupancy_position(ix, iy)
+                    target_object_name = random.choice(target_object_names)
+                    # Set custom object info for the target objects.
+                    audio = ObjectInfo(name=target_object_name, mass=0.1, material=AudioMaterial.ceramic, resonance=0.6,
+                                       amp=0.01, library="models_core.json", bounciness=0.5)
+                    scale = target_objects[target_object_name]
+                    object_id, object_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
+                                                                  rotation={"x": 0, "y": random.uniform(-179, 179),
+                                                                            "z": z},
+                                                                  scale={"x": scale, "y": scale, "z": scale},
+                                                                  audio=audio,
+                                                                  model_name=target_object_name)
+                    self._target_object_ids.append(object_id)
+                    commands.extend(object_commands)
+
+                # Set the goal positions.
+                goals: List[float] = list()
+                for ix, iy in np.ndindex(ys_map.shape):
+                    if 0.03 <= ys_map[ix][iy] <= 0.5:
+                        free, x, z = self.get_occupancy_position(ix, iy)
+                        goals.extend([x, ys_map[ix][iy], z])
+                self.goal_positions = np.array(goals).reshape(-1, 3)
+
+            return commands
 
         return [{"$type": "load_scene",
                  "scene_name": "ProcGenScene"},

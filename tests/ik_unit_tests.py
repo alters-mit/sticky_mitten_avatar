@@ -1,8 +1,6 @@
-from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.avatars import Arm
 from sticky_mitten_avatar import StickyMittenAvatarController
 from sticky_mitten_avatar.task_status import TaskStatus
-from sticky_mitten_avatar.util import rotate_point_around, get_angle_between, FORWARD
 
 
 class IKUnitTests(StickyMittenAvatarController):
