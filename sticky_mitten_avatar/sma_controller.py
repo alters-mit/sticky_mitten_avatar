@@ -1,3 +1,4 @@
+from csv import DictReader
 from json import loads
 from pathlib import Path
 import random
@@ -14,7 +15,8 @@ from tdw.release.pypi import PyPi
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, \
-    FORWARD, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH, ROOM_MAP_DIRECTORY
+    FORWARD, SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, ROOM_MAP_DIRECTORY, YS_MAP_DIRECTORY, \
+    TARGET_OBJECTS_PATH
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -111,6 +113,8 @@ class StickyMittenAvatarController(FloorplanController):
     print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.42542076110839844)
     ```
 
+    - `target_objects` The IDs of each "target object" that can be placed in a container.
+
     ## Functions
 
     """
@@ -141,8 +145,8 @@ class StickyMittenAvatarController(FloorplanController):
         # Create an empty occupancy map.
         self.occupancy_map: Optional[np.array] = None
         self._scene_bounds: Optional[dict] = None
-        # Create an empty room map.
-        self._room_map: Optional[np.array] = None
+        # The IDs of each target object.
+        self.target_objects: List[int] = list()
 
         # Commands sent by avatars.
         self._avatar_commands: List[dict] = []
@@ -233,34 +237,7 @@ class StickyMittenAvatarController(FloorplanController):
         """
 
         # Initialize the scene.
-        commands = self._get_scene_init_commands(scene=scene, layout=layout)
-
-        # Load the occupancy map.
-        if scene is not None and layout is not None:
-            self.occupancy_map = np.load(str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
-            self._scene_bounds = loads(SCENE_BOUNDS_PATH.read_text())[scene[0]]
-            self._room_map = np.load(str(ROOM_MAP_DIRECTORY.joinpath(f"{scene[0]}.npy").resolve()))
-
-            for i in range(0, np.amax(self._room_map)):
-                # Sometimes, don't add a container.
-                if random.random() < 0.5:
-                    continue
-                # Get all free positions in the room.
-                room_positions: List[Tuple[int, int]] = list()
-                for ix, iy in np.ndindex(self._room_map):
-                    if self._room_map[ix][iy] == i and self.occupancy_map[ix][iy] == 1:
-                        room_positions.append((ix, iy))
-                ix, iy = random.choice(room_positions)
-
-                # Add a container.
-                free, x, z = self.get_occupancy_position(ix, iy)
-                container_name = random.choice(StaticObjectInfo.CONTAINERS)
-                commands.extend(self._add_object(position={"x": x, "y": 0, "z": z},
-                                                 rotation={"x": 0, "y": random.uniform(-179, 179), "z": z},
-                                                 scale={"x": 0.5, "y": 0.5, "z": 0.5},
-                                                 audio=self._audio_values[container_name],
-                                                 model_name=container_name)[1])
-            self.communicate(commands)
+        self.communicate(self._get_scene_init_commands(scene=scene, layout=layout))
 
         # Create the avatar.
         self._init_avatar()
@@ -1429,7 +1406,75 @@ class StickyMittenAvatarController(FloorplanController):
         """
 
         if scene is not None and layout is not None:
-            return self.get_scene_init_commands(scene=scene, layout=layout, audio=True)
+            commands = self.get_scene_init_commands(scene=scene, layout=layout, audio=True)
+
+            self.occupancy_map = np.load(
+                str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
+            self._scene_bounds = loads(SCENE_BOUNDS_PATH.read_text())[scene[0]]
+
+            # Procedurally add containers and target objects.
+            if scene is not None and layout is not None:
+                room_map = np.load(str(ROOM_MAP_DIRECTORY.joinpath(f"{scene[0]}.npy").resolve()))
+                ys_map = np.load(str(YS_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
+
+                # Get all "placeable" positions in the room.
+                rooms: Dict[int, List[Tuple[int, int]]] = dict()
+                for i in range(0, np.amax(room_map)):
+                    # Get all free positions in the room.
+                    placeable_positions: List[Tuple[int, int]] = list()
+                    for ix, iy in np.ndindex(room_map):
+                        if room_map[ix][iy] == i:
+                            # If this is the floor or a low-lying surface, add the position.
+                            if 0 <= ys_map[ix][iy] < 0.3:
+                                placeable_positions.append((ix, iy))
+                    rooms[i] = placeable_positions
+
+                # Add 0-1 containers per room.
+                for i in range(len(rooms)):
+                    # Maybe don't add a container in this room.
+                    if random.random() < 0.5:
+                        continue
+
+                    # Get a random position in the room.
+                    ix, iy = random.choice(rooms[i])
+
+                    # Get the (x, z) coordinates for this position.
+                    # The y coordinate is in `ys_map`.
+                    free, x, z = self.get_occupancy_position(ix, iy)
+                    container_name = random.choice(StaticObjectInfo.CONTAINERS)
+                    commands.extend(self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
+                                                     rotation={"x": 0, "y": random.uniform(-179, 179), "z": z},
+                                                     scale={"x": 0.5, "y": 0.5, "z": 0.5},
+                                                     audio=self._audio_values[container_name],
+                                                     model_name=container_name)[1])
+                # Pick a room to add target objects.
+                target_objects: Dict[str, float] = dict()
+                with open(str(TARGET_OBJECTS_PATH.resolve())) as csvfile:
+                    reader = DictReader(csvfile)
+                    for row in reader:
+                        target_objects[row["name"]] = float(row["scale"])
+                target_object_names = list(target_objects.keys())
+
+                # Get all positions in the room and shuffle the order.
+                target_room_positions = rooms[random.randint(0, len(rooms))][:]
+                random.shuffle(target_room_positions)
+                # Add the objects.
+                for i in range(random.randint(8, 12)):
+                    ix, iy = random.choice(target_room_positions)
+                    # Get the (x, z) coordinates for this position.
+                    # The y coordinate is in `ys_map`.
+                    free, x, z = self.get_occupancy_position(ix, iy)
+                    target_object_name = random.choice(target_object_names)
+                    scale = target_objects[target_object_name]
+                    object_id, object_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
+                                                                  rotation={"x": 0, "y": random.uniform(-179, 179),
+                                                                            "z": z},
+                                                                  scale={"x": scale, "y": scale, "z": scale},
+                                                                  audio=self._audio_values[target_object_name],
+                                                                  model_name=target_object_name)
+                    self.target_objects.append(object_id)
+                    commands.extend(object_commands)
+            return commands
 
         return [{"$type": "load_scene",
                  "scene_name": "ProcGenScene"},

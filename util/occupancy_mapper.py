@@ -3,7 +3,7 @@ import numpy as np
 from json import dumps
 from tdw.floorplan_controller import FloorplanController
 from tdw.output_data import Raycast
-from sticky_mitten_avatar.util import OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, OCCUPANCY_CELL_SIZE
+from sticky_mitten_avatar.util import OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, OCCUPANCY_CELL_SIZE, YS_MAP_DIRECTORY
 from sticky_mitten_avatar.environments import Environments
 
 
@@ -23,6 +23,7 @@ if __name__ == "__main__":
     for scene in ["1", "2", "4", "5"]:
         for layout in [0, 1, 2]:
             positions: List[List[int]] = list()
+            y_values: List[List[float]] = list()
             # Load the scene and layout.
             commands = c.get_scene_init_commands(scene=scene + "a", layout=layout, audio=False)
             # Get the locations and sizes of each room.
@@ -43,7 +44,8 @@ if __name__ == "__main__":
             x = env.x_min
             while x < env.x_max:
                 z = env.z_min
-                row: List[int] = list()
+                pos_row: List[int] = list()
+                ys_row: List[float] = list()
                 while z < env.z_max:
                     # Spherecast at the "cell".
                     resp = c.communicate({"$type": "send_spherecast",
@@ -60,6 +62,7 @@ if __name__ == "__main__":
                     # This position is outside the environment.
                     if len(ys) == 0 or len(hits) == 0 or len([h for h in hits if h]) == 0:
                         occupied = 2
+                        y = -1
                     else:
                         y = max(ys)
                         # This space is occupied if:
@@ -72,13 +75,16 @@ if __name__ == "__main__":
                             occupied = 1
                             c.communicate({"$type": "add_position_marker",
                                            "position": {"x": x, "y": 0, "z": z}})
-                    row.append(occupied)
+                    pos_row.append(occupied)
+                    ys_row.append(y)
                     z += OCCUPANCY_CELL_SIZE
-                positions.append(row)
+                positions.append(pos_row)
+                y_values.append(ys_row)
                 x += OCCUPANCY_CELL_SIZE
             # Save the numpy data.
-            np.save(str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene}_{layout}").resolve()),
-                    np.array(positions))
+            save_filename = f"{scene}_{layout}"
+            np.save(str(OCCUPANCY_MAP_DIRECTORY.joinpath(save_filename).resolve()), np.array(positions))
+            np.save(str(YS_MAP_DIRECTORY.joinpath(f"{scene}_{layout}").resolve()), np.array(y_values))
             print(scene, layout)
     c.communicate({"$type": "terminate"})
     SCENE_BOUNDS_PATH.write_text(dumps(bounds, indent=2, sort_keys=True))
