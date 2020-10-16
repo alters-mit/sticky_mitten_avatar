@@ -125,7 +125,7 @@ print(c.goal_positions[0]) # [-10.25364399   0.49080563  -1.42542076]
 
 #### init_scene
 
-**`def init_scene(self, scene: str = None, layout: int = None, room: int = 0) -> None`**
+**`def init_scene(self, scene: str = None, layout: int = None, room: int = -1) -> None`**
 
 Initialize a scene, populate it with objects, add the avatar, and set rendering options.
 The controller by default will load a simple empty room:
@@ -153,7 +153,7 @@ Valid scenes, layouts, and rooms:
 | --- | --- |
 | scene | The name of an interior floorplan scene. If None, the controller will load a simple empty room. |
 | layout | The furniture layout of the floorplan. If None, the controller will load a simple empty room. |
-| room | The index of the room that the avatar will spawn in the center of. If `scene` or `layout` is None, the avatar will spawn in at (0, 0, 0). |
+| room | The index of the room that the avatar will spawn in the center of. If `scene` or `layout` is None, the avatar will spawn in at (0, 0, 0). If `room == -1` the room will be chosen randomly. |
 
 ***
 
