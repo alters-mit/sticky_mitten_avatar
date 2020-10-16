@@ -2,8 +2,9 @@ from typing import List, Dict
 import numpy as np
 from json import dumps
 from tdw.floorplan_controller import FloorplanController
-from tdw.output_data import Raycast
-from sticky_mitten_avatar.util import OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, OCCUPANCY_CELL_SIZE, YS_MAP_DIRECTORY
+from tdw.output_data import Raycast, Version
+from sticky_mitten_avatar.util import OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, OCCUPANCY_CELL_SIZE,\
+    Y_MAP_DIRECTORY, get_data
 from sticky_mitten_avatar.environments import Environments
 
 
@@ -30,9 +31,11 @@ if __name__ == "__main__":
             commands.extend([{"$type": "set_floorplan_roof",
                               "show": False},
                              {"$type": "remove_position_markers"},
-                             {"$type": "send_environments"}])
+                             {"$type": "send_environments"},
+                             {"$type": "send_version"}])
             resp = c.communicate(commands)
             env = Environments(resp=resp)
+            is_standalone = get_data(resp=resp, d_type=Version).get_standalone()
 
             # Cache the environment data.
             if scene not in bounds:
@@ -73,8 +76,9 @@ if __name__ == "__main__":
                         # The position is free.
                         else:
                             occupied = 1
-                            c.communicate({"$type": "add_position_marker",
-                                           "position": {"x": x, "y": 0, "z": z}})
+                            if not is_standalone:
+                                c.communicate({"$type": "add_position_marker",
+                                               "position": {"x": x, "y": 0, "z": z}})
                     pos_row.append(occupied)
                     ys_row.append(y)
                     z += OCCUPANCY_CELL_SIZE
@@ -84,7 +88,7 @@ if __name__ == "__main__":
             # Save the numpy data.
             save_filename = f"{scene}_{layout}"
             np.save(str(OCCUPANCY_MAP_DIRECTORY.joinpath(save_filename).resolve()), np.array(positions))
-            np.save(str(YS_MAP_DIRECTORY.joinpath(f"{scene}_{layout}").resolve()), np.array(y_values))
+            np.save(str(Y_MAP_DIRECTORY.joinpath(f"{scene}_{layout}").resolve()), np.array(y_values))
             print(scene, layout)
     c.communicate({"$type": "terminate"})
     SCENE_BOUNDS_PATH.write_text(dumps(bounds, indent=2, sort_keys=True))

@@ -9,7 +9,7 @@ from pkg_resources import resource_filename
 SCENE_DATA_DIRECTORY = Path(resource_filename(__name__, "scene_data"))
 # The directory of the occupancy_maps map files.
 OCCUPANCY_MAP_DIRECTORY = SCENE_DATA_DIRECTORY.joinpath("occupancy_maps")
-YS_MAP_DIRECTORY = SCENE_DATA_DIRECTORY.joinpath("ys_maps")
+Y_MAP_DIRECTORY = SCENE_DATA_DIRECTORY.joinpath("y_maps")
 # The map of positions per room per scene.
 ROOM_MAP_DIRECTORY = SCENE_DATA_DIRECTORY.joinpath("room_maps")
 # The path to the scene bounds data.
