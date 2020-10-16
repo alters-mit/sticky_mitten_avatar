@@ -3,8 +3,8 @@ import numpy as np
 from json import dumps
 from tdw.floorplan_controller import FloorplanController
 from tdw.output_data import Raycast, Version
-from sticky_mitten_avatar.util import OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, OCCUPANCY_CELL_SIZE,\
-    Y_MAP_DIRECTORY, get_data
+from sticky_mitten_avatar.util import OCCUPANCY_CELL_SIZE, get_data
+from sticky_mitten_avatar.paths import OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, Y_MAP_DIRECTORY
 from sticky_mitten_avatar.environments import Environments
 
 

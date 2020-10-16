@@ -14,9 +14,10 @@ from tdw.object_init_data import AudioInitData
 from tdw.release.pypi import PyPi
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
-from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, \
-    FORWARD, SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, \
-    TARGET_OBJECTS_PATH, OCCUPANCY_CELL_SIZE, COMPOSITE_OBJECT_AUDIO_PATH
+from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD, \
+    OCCUPANCY_CELL_SIZE
+from sticky_mitten_avatar.paths import SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, \
+    ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, TARGET_OBJECTS_PATH, COMPOSITE_OBJECT_AUDIO_PATH
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus

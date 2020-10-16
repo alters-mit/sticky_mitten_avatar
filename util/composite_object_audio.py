@@ -2,7 +2,8 @@ import json
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
 from tdw.output_data import CompositeObjects, SegmentationColors
-from sticky_mitten_avatar.util import get_data, COMPOSITE_OBJECT_AUDIO_PATH
+from sticky_mitten_avatar.util import get_data
+from sticky_mitten_avatar.paths import COMPOSITE_OBJECT_AUDIO_PATH
 
 """
 Get default audio data for each sub-object of a composite object.

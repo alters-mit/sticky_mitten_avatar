@@ -1,6 +1,7 @@
 import numpy as np
 from tdw.controller import Controller
-from sticky_mitten_avatar.util import ROOM_MAP_DIRECTORY, OCCUPANCY_MAP_DIRECTORY, OCCUPANCY_CELL_SIZE
+from sticky_mitten_avatar.util import OCCUPANCY_CELL_SIZE
+from sticky_mitten_avatar.paths import ROOM_MAP_DIRECTORY, OCCUPANCY_MAP_DIRECTORY
 from sticky_mitten_avatar.environments import Environments
 
 

@@ -4,7 +4,7 @@ from json import loads
 from tdw.output_data import SegmentationColors, Rigidbodies, Bounds
 from tdw.py_impact import ObjectInfo
 from tdw.object_init_data import TransformInitData
-from sticky_mitten_avatar.util import COMPOSITE_OBJECT_AUDIO_PATH
+from sticky_mitten_avatar.paths import COMPOSITE_OBJECT_AUDIO_PATH
 
 
 class StaticObjectInfo:

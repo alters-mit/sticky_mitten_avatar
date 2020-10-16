@@ -3,8 +3,8 @@ import numpy as np
 from tdw.controller import Controller
 from tdw.output_data import Environments
 from tdw.tdw_utils import TDWUtils
-from sticky_mitten_avatar.util import get_data, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH, OCCUPANCY_CELL_SIZE, \
-    OCCUPANCY_MAP_DIRECTORY
+from sticky_mitten_avatar.util import get_data, OCCUPANCY_CELL_SIZE
+from sticky_mitten_avatar.paths import SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY
 
 """
 Calculate avatar spawn positions per scene per layout.
