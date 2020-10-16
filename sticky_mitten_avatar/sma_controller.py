@@ -1422,21 +1422,22 @@ class StickyMittenAvatarController(FloorplanController):
                 for i in range(0, np.amax(room_map)):
                     # Get all free positions in the room.
                     placeable_positions: List[Tuple[int, int]] = list()
-                    for ix, iy in np.ndindex(room_map):
+                    for ix, iy in np.ndindex(room_map.shape):
                         if room_map[ix][iy] == i:
                             # If this is the floor or a low-lying surface, add the position.
                             if 0 <= ys_map[ix][iy] < 0.3:
                                 placeable_positions.append((ix, iy))
-                    rooms[i] = placeable_positions
+                    if len(placeable_positions) > 0:
+                        rooms[i] = placeable_positions
 
                 # Add 0-1 containers per room.
-                for i in range(len(rooms)):
+                for room in list(rooms.keys()):
                     # Maybe don't add a container in this room.
-                    if random.random() < 0.5:
+                    if random.random() < 0.25:
                         continue
 
                     # Get a random position in the room.
-                    ix, iy = random.choice(rooms[i])
+                    ix, iy = random.choice(rooms[room])
 
                     # Get the (x, z) coordinates for this position.
                     # The y coordinate is in `ys_map`.
@@ -1445,7 +1446,7 @@ class StickyMittenAvatarController(FloorplanController):
                     commands.extend(self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
                                                      rotation={"x": 0, "y": random.uniform(-179, 179), "z": z},
                                                      scale={"x": 0.5, "y": 0.5, "z": 0.5},
-                                                     audio=self._audio_values[container_name],
+                                                     audio=self._default_audio_values[container_name],
                                                      model_name=container_name)[1])
                 # Pick a room to add target objects.
                 target_objects: Dict[str, float] = dict()
@@ -1456,7 +1457,7 @@ class StickyMittenAvatarController(FloorplanController):
                 target_object_names = list(target_objects.keys())
 
                 # Get all positions in the room and shuffle the order.
-                target_room_positions = rooms[random.randint(0, len(rooms))][:]
+                target_room_positions = random.choice(list(rooms.values()))
                 random.shuffle(target_room_positions)
                 # Add the objects.
                 for i in range(random.randint(8, 12)):
@@ -1465,12 +1466,15 @@ class StickyMittenAvatarController(FloorplanController):
                     # The y coordinate is in `ys_map`.
                     free, x, z = self.get_occupancy_position(ix, iy)
                     target_object_name = random.choice(target_object_names)
+                    # Set custom object info for the target objects.
+                    audio = ObjectInfo(name=target_object_name, mass=0.1, material=AudioMaterial.ceramic, resonance=0.6,
+                                       amp=0.01, library="models_core.json", bounciness=0.5)
                     scale = target_objects[target_object_name]
                     object_id, object_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
                                                                   rotation={"x": 0, "y": random.uniform(-179, 179),
                                                                             "z": z},
                                                                   scale={"x": scale, "y": scale, "z": scale},
-                                                                  audio=self._audio_values[target_object_name],
+                                                                  audio=audio,
                                                                   model_name=target_object_name)
                     self.target_objects.append(object_id)
                     commands.extend(object_commands)
