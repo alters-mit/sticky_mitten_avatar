@@ -16,7 +16,7 @@ from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, \
     FORWARD, SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, \
-    TARGET_OBJECTS_PATH
+    TARGET_OBJECTS_PATH, OCCUPANCY_CELL_SIZE
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -113,6 +113,15 @@ class StickyMittenAvatarController(FloorplanController):
     print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.42542076110839844)
     ```
 
+    - `goal_positions` Target positions for the avatar to move objects to as a numpy array. Shape: `(-1, 3)` (x, y, z)
+      These positions are all on surfaces above floor-level.
+
+    ```python
+    c.init_scene(scene="2a", layout=1)
+
+    print(c.goal_positions[0]) # [-10.25364399   0.49080563  -1.42542076]
+    ```
+
     ## Functions
 
     """
@@ -143,6 +152,7 @@ class StickyMittenAvatarController(FloorplanController):
         # Create an empty occupancy map.
         self.occupancy_map: Optional[np.array] = None
         self._scene_bounds: Optional[dict] = None
+        self.goal_positions: Optional[np.array] = None
         # The IDs of each target object.
         self._target_object_ids: List[int] = list()
 
@@ -1336,13 +1346,14 @@ class StickyMittenAvatarController(FloorplanController):
 
         :param i: The i coordinate in the occupancy map.
         :param j: The j coordinate in the occupancy map.
+
         :return: Tuple: True if the position is in the occupancy map; x coordinate; z coordinate.
         """
 
         if self.occupancy_map is None or self._scene_bounds is None:
             return False, 0, 0,
-        x = self._scene_bounds["x_min"] + (i * 0.25)
-        z = self._scene_bounds["z_min"] + (j * 0.25)
+        x = self._scene_bounds["x_min"] + (i * OCCUPANCY_CELL_SIZE)
+        z = self._scene_bounds["z_min"] + (j * OCCUPANCY_CELL_SIZE)
         return True, x, z
 
     def _get_raycast_point(self, object_id: int, origin: np.array, forward: float = 0.2) -> (bool, np.array):
@@ -1477,6 +1488,15 @@ class StickyMittenAvatarController(FloorplanController):
                                                                   model_name=target_object_name)
                     self._target_object_ids.append(object_id)
                     commands.extend(object_commands)
+
+                # Set the goal positions.
+                goals: List[float] = list()
+                for ix, iy in np.ndindex(ys_map.shape):
+                    if 0.03 <= ys_map[ix][iy] <= 0.5:
+                        free, x, z = self.get_occupancy_position(ix, iy)
+                        goals.extend([x, ys_map[ix][iy], z])
+                self.goal_positions = np.array(goals).reshape(-1, 3)
+
             return commands
 
         return [{"$type": "load_scene",
