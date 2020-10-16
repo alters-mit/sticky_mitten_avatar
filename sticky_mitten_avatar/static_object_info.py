@@ -1,11 +1,10 @@
 from typing import Optional
 import numpy as np
 from json import loads
-from pathlib import Path
-from pkg_resources import resource_filename
 from tdw.output_data import SegmentationColors, Rigidbodies, Bounds
 from tdw.py_impact import ObjectInfo
 from tdw.object_init_data import TransformInitData
+from sticky_mitten_avatar.util import COMPOSITE_OBJECT_AUDIO_PATH
 
 
 class StaticObjectInfo:
@@ -59,8 +58,7 @@ class StaticObjectInfo:
                   'cabinet_full_height_white_wood', 'cabinet_full_height_wood_beach_honey', 'carpet_rug',
                   'elf_painting', 'flat_woven_rug', 'framed_painting', 'fruit_basket', 'its_about_time_painting',
                   'purple_woven_rug', 'silver_frame_painting']
-    _COMPOSITE_OBJECTS = loads(Path(resource_filename(__name__, "composite_object_audio.json")).read_text(
-        encoding="utf-8"))
+    _COMPOSITE_OBJECTS = loads(COMPOSITE_OBJECT_AUDIO_PATH.read_text(encoding="utf-8"))
 
     def __init__(self, object_id: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors,
                  bounds: Bounds, audio: ObjectInfo, target_object: bool = False):

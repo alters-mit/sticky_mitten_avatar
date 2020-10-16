@@ -20,6 +20,8 @@ SPAWN_POSITIONS_PATH = SCENE_DATA_DIRECTORY.joinpath("spawn_positions.json")
 OBJECT_DATA_DIRECTORY = Path(resource_filename(__name__, "object_data"))
 # The path to the target objects data.
 TARGET_OBJECTS_PATH = OBJECT_DATA_DIRECTORY.joinpath("target_objects.csv")
+# The path to composite object audio data.
+COMPOSITE_OBJECT_AUDIO_PATH = OBJECT_DATA_DIRECTORY.joinpath("composite_object_audio.json")
 # The size of each occupancy grid cell.
 OCCUPANCY_CELL_SIZE = 0.25
 

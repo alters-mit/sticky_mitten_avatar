@@ -16,7 +16,7 @@ from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, \
     FORWARD, SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, \
-    TARGET_OBJECTS_PATH, OCCUPANCY_CELL_SIZE
+    TARGET_OBJECTS_PATH, OCCUPANCY_CELL_SIZE, COMPOSITE_OBJECT_AUDIO_PATH
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -144,7 +144,7 @@ class StickyMittenAvatarController(FloorplanController):
         self._id_pass = id_pass
         self._audio = audio
 
-        self._container_shapes = loads(Path(resource_filename(__name__, "metadata_libraries/container_shapes.json")).
+        self._container_shapes = loads(Path(resource_filename(__name__, "object_datacontainer_shapes.json")).
                                        read_text(encoding="utf-8"))
         # Cache the entities.
         self._avatar: Optional[Avatar] = None
@@ -286,8 +286,7 @@ class StickyMittenAvatarController(FloorplanController):
         composite_objects = get_data(resp=resp, d_type=CompositeObjects)
         composite_object_audio: Dict[int, ObjectInfo] = dict()
         # Get the audio values per sub object.
-        composite_object_json = loads(Path(resource_filename(__name__, "composite_object_audio.json")).read_text(
-            encoding="utf-8"))
+        composite_object_json = loads(COMPOSITE_OBJECT_AUDIO_PATH.read_text( encoding="utf-8"))
         for i in range(composite_objects.get_num()):
             composite_object_id = composite_objects.get_object_id(i)
             composite_object_data = composite_object_json[object_names[composite_object_id]]

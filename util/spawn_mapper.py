@@ -1,10 +1,10 @@
-from pathlib import Path
 import json
 import numpy as np
 from tdw.controller import Controller
 from tdw.output_data import Environments
 from tdw.tdw_utils import TDWUtils
-from sticky_mitten_avatar.util import get_data, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH, OCCUPANCY_CELL_SIZE
+from sticky_mitten_avatar.util import get_data, SCENE_BOUNDS_PATH, SPAWN_POSITIONS_PATH, OCCUPANCY_CELL_SIZE, \
+    OCCUPANCY_MAP_DIRECTORY
 
 """
 Calculate avatar spawn positions per scene per layout.
@@ -15,7 +15,6 @@ Rooms are determined with Environments output data.
 
 
 if __name__ == "__main__":
-    p = Path("../sticky_mitten_avatar/occupancy_maps")
     sbd = json.loads(SCENE_BOUNDS_PATH.read_text())
 
     c = Controller()
@@ -43,7 +42,7 @@ if __name__ == "__main__":
             spawn_positions[scene][layout] = list()
             for center in centers:
                 # Load the occupancy map.
-                occ = np.load(str(p.joinpath(f"{scene}_{layout}.npy").resolve()))
+                occ = np.load(str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene}_{layout}.npy").resolve()))
 
                 # Get the free position on the map closest to the center of the room.
                 min_distance = 1000
