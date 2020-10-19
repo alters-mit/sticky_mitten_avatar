@@ -1,10 +1,17 @@
 # Changelog
 
+## 0.6.3
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Fixed: `grasp_object()` often stops with a `success` status before the object is grasped.
+
 ## 0.6.2
 
 ### Frontend
 
-- `StickyMittenAvatar`:
+- `StickyMittenAvatarController`:
   - Added *target objects* which are procedurally placed in a room in the scene.
   - Containers are now procedurally placed throughout the scene.
   - Added: `goal_positions` The positions of possible goal positions in the scene for the avatar to place objects.
