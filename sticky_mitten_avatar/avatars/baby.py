@@ -111,5 +111,12 @@ class Baby(Avatar):
                 "wrist_roll": {"mass": 1.5, "damper": 0, "force": 250, "angular_drag": 10},
                 "wrist_pitch": {"mass": 1.5, "damper": 0, "force": 225, "angular_drag": 10}}
 
+    def _get_roll_wrist_sticky_mitten_profile(self) -> dict:
+        profile = self._get_default_sticky_mitten_profile()
+        profile["wrist_roll"]["damper"] = 10
+        profile["wrist_roll"]["angular_drag"] = 10
+        profile["wrist_roll"]["force"] = 900
+        return profile
+
     def _get_mass(self) -> float:
         return 80

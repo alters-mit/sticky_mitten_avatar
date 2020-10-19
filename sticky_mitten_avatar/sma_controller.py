@@ -194,10 +194,8 @@ class StickyMittenAvatarController(FloorplanController):
                     {"$type": "send_version"}]
         # Set the frame rate and timestep for audio.
         if self._demo:
-            commands.extend([{"$type": "set_target_framerate",
-                             "framerate": 30},
-                             {"$type": "set_time_step",
-                              "time_step": 0.02}])
+            commands.append({"$type": "set_target_framerate",
+                             "framerate": 60})
         resp = self.communicate(commands)
 
         # Make sure that the build is the correct version.
@@ -1063,49 +1061,34 @@ class StickyMittenAvatarController(FloorplanController):
             if status != TaskStatus.success:
                 self._end_task()
                 return status
+        container_arm = Arm.left if arm == Arm.right else Arm.right
         # Lift the container.
-        self.reach_for_target(target={"x": 0.05 if arm == Arm.right else -0.05, "y": 0.15, "z": 0.32},
-                              arm=Arm.left if arm == Arm.right else Arm.right,
+        self.reach_for_target(target={"x": 0.05 if arm == Arm.right else -0.05, "y": 0.1, "z": 0.32},
+                              arm=container_arm,
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
+        # Twist the wrist.
+        # self._roll_wrist(arm=container_arm, angle=60)
         # Lift up the object.
-        self.reach_for_target(target={"x": 0.2 if arm == Arm.right else -0.2, "y": 0.45, "z": 0.2},
+        self.reach_for_target(target={"x": 0.25 if arm == Arm.right else -0.25, "y": 0.6, "z": 0.3},
                               arm=arm,
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
 
-        # Get the up directional vector.
-        up = np.array(QuaternionUtils.get_up_direction(q=tuple(self.frame.object_transforms[container_id].rotation)))
-        # Get the height of the container.
-        height = self.static_object_info[container_id].size[1]
-        # Get a position above the base of the container.
-        pos = self.frame.object_transforms[container_id].position
-
-        target = pos + (up * height)
-        reachable_target = self._avatar.get_rotated_target(target=target)
-
-        # Raise the target towards the mitten until the avatar can reach it.
-        direction_to_mitten = self.frame.avatar_body_part_transforms[self._avatar.mitten_ids[arm]].position - pos
-        direction_to_mitten /= np.linalg.norm(direction_to_mitten)
-        d = 0
-        delta_d = 0.025
-        status = self._avatar.can_reach_target(target=reachable_target, arm=arm)
-        while status != TaskStatus.success and d < 0.5 and target[1] < 0.5:
-            status = self._avatar.can_reach_target(target=reachable_target, arm=arm)
-            d += delta_d
-            target += direction_to_mitten * delta_d
-            reachable_target = self._avatar.get_rotated_target(target=target)
-        if status != TaskStatus.success:
-            self._end_task()
-            return status
         # Reach for the target.
-        self.reach_for_target(target=TDWUtils.array_to_vector3(reachable_target),
+        self.reach_for_target(target={"x": -0.024 if arm == Arm.right else 0.024, "y": 0.45, "z": 0.28},
                               arm=arm,
                               stop_on_mitten_collision=False,
                               check_if_possible=False)
 
         # Drop the object.
         self.drop(arm=arm, reset_arm=False, do_motion=False)
+
+        # Lift the arm away.
+        self.reach_for_target(target={"x": 0.25 if arm == Arm.right else -0.25, "y": 0.6, "z": 0.3},
+                              arm=arm,
+                              check_if_possible=False,
+                              stop_on_mitten_collision=False)
 
         # Loop until the object hits something.
         self.communicate({"$type": "send_rigidbodies",
@@ -1164,45 +1147,11 @@ class StickyMittenAvatarController(FloorplanController):
             self._end_task()
             return TaskStatus.empty_container
 
-        # Twist the mitten.
-        joint = f"wrist_{arm.name}"
-        axis = "roll"
-        self.communicate([{"$type": "set_joint_angular_drag",
-                           "joint": joint,
-                           "axis": axis,
-                           "angular_drag": 10,
-                           "avatar_id": self._avatar.id},
-                          {"$type": "set_joint_damper",
-                           "joint": joint,
-                           "axis": axis,
-                           "damper": 10,
-                           "avatar_id": self._avatar.id},
-                          {"$type": "set_joint_force",
-                           "joint": joint,
-                           "axis": axis,
-                           "force": 1000,
-                           "avatar_id": self._avatar.id},
-                          {"$type": "bend_arm_joint_to",
-                           "angle": 90,
-                           "joint": joint,
-                           "axis": axis,
-                           "avatar_id": self._avatar.id}])
-        # Wait for the motion to finish.
-        a0 = self._avatar.frame.get_angles_left()[-2] if arm == Arm.left else \
-            self._avatar.frame.get_angles_right()[-2]
-        done_twisting_wrist = False
-        while not done_twisting_wrist:
-            self.communicate([])
-            # Get the angle of the wrist.
-            a1 = self._avatar.frame.get_angles_left()[-2] if arm == Arm.left else \
-                self._avatar.frame.get_angles_right()[-2]
-            done_twisting_wrist = np.abs(a1 - a0) < 0.01
-            a0 = a1
+        self._roll_wrist(arm=arm, angle=90)
         # Lift the arm to tilt the container.
-        self.reach_for_target(arm=arm, target={"x": -0.3 if arm == Arm.left else 0.3, "y": 0.5, "z": 0.25},
+        self.reach_for_target(arm=arm, target={"x": -0.3 if arm == Arm.left else 0.3, "y": 0.6, "z": 0.35},
                               check_if_possible=False, stop_on_mitten_collision=False)
-        self.reach_for_target(arm=arm, target={"x": -0.1 if arm == Arm.left else 0.1, "y": 0.5, "z": 0.5},
-                              check_if_possible=False, stop_on_mitten_collision=False)
+
         # Wait for the objects to stop moving.
         resp = self.communicate({"$type": "send_rigidbodies",
                                  "frequency": "always",
@@ -1489,6 +1438,26 @@ class StickyMittenAvatarController(FloorplanController):
         point = np.array(raycast.get_point())
         return raycast.get_hit() and raycast.get_object_id() is not None and raycast.get_object_id() == object_id, point
 
+    def _roll_wrist(self, arm: Arm, angle: float) -> None:
+        # Begin rotation.
+        self.communicate([self._avatar.get_roll_wrist_sticky_mitten_profile(arm=arm),
+                          {"$type": "bend_arm_joint_to",
+                           "angle": angle,
+                           "joint": f"wrist_{arm.name}",
+                           "axis": "roll",
+                           "avatar_id": self._avatar.id}])
+        # Wait for the motion to finish.
+        a0 = self._avatar.frame.get_angles_left()[-2] if arm == Arm.left else \
+            self._avatar.frame.get_angles_right()[-2]
+        done_twisting_wrist = False
+        while not done_twisting_wrist:
+            self.communicate([])
+            # Get the angle of the wrist.
+            a1 = self._avatar.frame.get_angles_left()[-2] if arm == Arm.left else \
+                self._avatar.frame.get_angles_right()[-2]
+            done_twisting_wrist = np.abs(a1 - a0) < 0.02
+            a0 = a1
+
     def _get_audio_commands(self) -> List[dict]:
         """
         :return: A list of audio commands generated from `self.frame_data`
@@ -1559,12 +1528,22 @@ class StickyMittenAvatarController(FloorplanController):
                     # Get the (x, z) coordinates for this position.
                     # The y coordinate is in `ys_map`.
                     free, x, z = self.get_occupancy_position(ix, iy)
+
+                    # Add the container.
                     container_name = random.choice(StaticObjectInfo.CONTAINERS)
-                    commands.extend(self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
-                                                     rotation={"x": 0, "y": random.uniform(-179, 179), "z": z},
-                                                     scale={"x": 0.5, "y": 0.5, "z": 0.5},
-                                                     audio=self._default_audio_values[container_name],
-                                                     model_name=container_name)[1])
+                    container_id, container_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
+                                                                        rotation={"x": 0,
+                                                                                  "y": random.uniform(-179, 179),
+                                                                                  "z": z},
+                                                                        scale={"x": 0.5, "y": 0.5, "z": 0.5},
+                                                                        audio=self._default_audio_values[
+                                                                            container_name],
+                                                                        model_name=container_name)
+                    commands.extend(container_commands)
+                    # Make the container much lighter.
+                    commands.append({"$type": "set_mass",
+                                     "id": container_id,
+                                     "mass": 1})
                 # Pick a room to add target objects.
                 target_objects: Dict[str, float] = dict()
                 with open(str(TARGET_OBJECTS_PATH.resolve())) as csvfile:

@@ -16,6 +16,9 @@ class PutInHeldContainer(StickyMittenAvatarController):
                                                                  position={"x": -0.215, "y": 0, "z": 0.216})
         # Place a container and a jug directly in front of the avatar.
         commands.extend(container_commands)
+        commands.append({"$type": "set_mass",
+                         "id": self.container_id,
+                         "mass": 1})
         self.object_id, object_commands = self._add_object("jug05",
                                                            position={"x": 0.215, "y": 0, "z": 0.116},
                                                            scale={"x": 0.3, "y": 0.3, "z": 0.3})
@@ -37,6 +40,9 @@ if __name__ == "__main__":
     # Put the object in the container.
     c.put_in_container(object_id=c.object_id, container_id=c.container_id, arm=Arm.right)
     c.reset_arm(arm=Arm.right)
+
+    c.turn_by(-45)
+    c.move_forward_by(0.8)
 
     # Pour out the object.
     c.pour_out(arm=Arm.left)
