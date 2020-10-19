@@ -1201,6 +1201,8 @@ class StickyMittenAvatarController(FloorplanController):
         # Lift the arm to tilt the container.
         self.reach_for_target(arm=arm, target={"x": -0.3 if arm == Arm.left else 0.3, "y": 0.5, "z": 0.25},
                               check_if_possible=False, stop_on_mitten_collision=False)
+        self.reach_for_target(arm=arm, target={"x": -0.1 if arm == Arm.left else 0.1, "y": 0.5, "z": 0.5},
+                              check_if_possible=False, stop_on_mitten_collision=False)
         # Wait for the objects to stop moving.
         resp = self.communicate({"$type": "send_rigidbodies",
                                  "frequency": "always",
