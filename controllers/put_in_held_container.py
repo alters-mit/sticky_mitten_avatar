@@ -5,7 +5,7 @@ from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 class PutInHeldContainer(StickyMittenAvatarController):
     def __init__(self, port: int = 1071):
         # Set demo=False for an actual simulation.
-        super().__init__(port=port, launch_build=False, id_pass=False, demo=False)
+        super().__init__(port=port, launch_build=False, id_pass=False, demo=True)
         self.container_id = 0
         self.object_id = 1
 

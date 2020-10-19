@@ -7,6 +7,7 @@
 - `StickyMittenAvatarController`:
   - Added: `pour_out()` Pour out the contents of a container.
   - Fixed: `grasp_object()` often stops with a `success` status before the object is grasped.
+- Added a `pour_out()` command to the example `put_in_held_container()` controller.
 
 ## 0.6.2
 
