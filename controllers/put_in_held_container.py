@@ -5,7 +5,7 @@ from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 class PutInHeldContainer(StickyMittenAvatarController):
     def __init__(self, port: int = 1071):
         # Set demo=False for an actual simulation.
-        super().__init__(port=port, launch_build=False, id_pass=False, demo=True)
+        super().__init__(port=port, launch_build=False, id_pass=False, demo=False)
         self.container_id = 0
         self.object_id = 1
 
@@ -37,4 +37,8 @@ if __name__ == "__main__":
     # Put the object in the container.
     c.put_in_container(object_id=c.object_id, container_id=c.container_id, arm=Arm.right)
     c.reset_arm(arm=Arm.right)
+
+    # Pour out the object.
+    c.pour_out(arm=Arm.left)
+    c.reset_arm(arm=Arm.left)
     c.end()

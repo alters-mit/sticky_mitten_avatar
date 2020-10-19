@@ -39,3 +39,5 @@ class TaskStatus(Enum):
     not_in_container = 16  # The avatar tried to drop an object in a container but the object isn't in the container.
     bad_joint = 17  # This joint doesn't exist.
     not_a_container = 18  # The avatar didn't try to put one object into another because the other object isn't a container.
+    empty_container = 19  # The avatar didn't try to pour a container because the container was empty.
+    still_in_container = 20  # The avatar tried to pour objects out of the container but there are still objects in it.

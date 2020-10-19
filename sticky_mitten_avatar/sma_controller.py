@@ -333,7 +333,8 @@ class StickyMittenAvatarController(FloorplanController):
         End the task and update the frame data.
         """
 
-        commands = []
+        commands = [self._avatar.get_default_sticky_mitten_profile()]
+
         if not self._demo:
             commands.append({"$type": "toggle_image_sensor",
                              "sensor_name": "SensorContainer",
@@ -1119,58 +1120,106 @@ class StickyMittenAvatarController(FloorplanController):
                 if rigidbodies.get_id(i) == object_id:
                     sleeping = rigidbodies.get_sleeping(i) or np.linalg.norm(rigidbodies.get_velocity(i)) < 0.01
                     break
-        # Get the current position of the container.
-        resp = self.communicate([{"$type": "send_rigidbodies",
-                                  "frequency": "never"},
-                                 {"$type": "send_transforms",
-                                  "frequency": "once"}])
-        tr = get_data(resp=resp, d_type=Transforms)
-        rot: Optional[np.array] = None
-        pos: Optional[np.array] = None
-        for i in range(tr.get_num()):
-            if tr.get_id(i) == container_id:
-                rot = np.array(tr.get_rotation(i))
-                pos = np.array(tr.get_position(i))
-
-        # If the container is upside-down, then the object is not in the container.
-        up = QuaternionUtils.get_up_direction(rot)
-        if up[1] < 0:
-            self._end_task()
-            return TaskStatus.not_in_container
-
-        # Get the shape of the container.
-        name = self.static_object_info[container_id].model_name
-        shape = self._container_shapes[name]
-
-        # Check the overlap of the container to see if the object is in that space. If so, it is in the container.
-        size = self.static_object_info[container_id].size
-        # Set the position to be in the center of the rotated object.
-        center = TDWUtils.array_to_vector3(pos + (up * size[1] / 2))
-        pos = TDWUtils.array_to_vector3(pos)
-        # Decide which overlap shape to use depending on the container shape.
-        if shape == "box":
-            resp = self.communicate({"$type": "send_overlap_box",
-                                     "position": center,
-                                     "rotation": TDWUtils.array_to_vector4(rot),
-                                     "half_extents": TDWUtils.array_to_vector3(size / 2)})
-        elif shape == "sphere":
-            resp = self.communicate({"$type": "send_overlap_sphere",
-                                     "position": center,
-                                     "radius": min(size)})
-        elif shape == "capsule":
-            resp = self.communicate({"$type": "send_overlap_capsule",
-                                     "position": pos,
-                                     "end": center,
-                                     "radius": min(size)})
-        else:
-            raise Exception(f"Bad shape for {name}: {shape}")
-        overlap = get_data(resp=resp, d_type=Overlap)
-        overlap_ids = overlap.get_object_ids()
+        overlap_ids = self._get_objects_in_container(container_id=container_id)
         if container_id not in overlap_ids or object_id not in overlap_ids:
             self._end_task()
             return TaskStatus.not_in_container
+        else:
+            self._end_task()
+            return TaskStatus.success
+
+    def pour_out(self, arm: Arm) -> TaskStatus:
+        """
+        Pour out the contents of a container held by the arm.
+        Assuming that the arm is holding a container, its wrist will twist and the arm will lift.
+        This action continues until the arm and the objects in the container have stopped moving.
+
+        Possible [return values](task_status.md):
+
+        - `success` (The container held by the arm is now empty.)
+        - `not_a_container`
+        - `empty_container`
+        - `still_in_container`
+
+        :param arm: The arm holding the container.
+
+        :return: A `TaskStatus` indicating whether the avatar poured all objects out of the container and if not, why.
+        """
+
+        # Make sure that this arm is holding a container.
+        held = self._avatar.frame.get_held_left() if arm == Arm.left else self._avatar.frame.get_held_right()
+        container_id: Optional[int] = None
+        for o_id in held:
+            if self.static_object_info[o_id].container:
+                container_id = o_id
+                break
+        if container_id is None:
+            return TaskStatus.not_a_container
+
+        self._start_task()
+
+        # Don't try to pour out an empty container.
+        overlap_ids = self._get_objects_in_container(container_id=container_id)
+        if len(overlap_ids) == 0:
+            self._end_task()
+            return TaskStatus.empty_container
+
+        # Twist the mitten.
+        joint = f"wrist_{arm.name}"
+        axis = "roll"
+        self.communicate([{"$type": "set_joint_angular_drag",
+                           "joint": joint,
+                           "axis": axis,
+                           "angular_drag": 10,
+                           "avatar_id": self._avatar.id},
+                          {"$type": "set_joint_damper",
+                           "joint": joint,
+                           "axis": axis,
+                           "damper": 10,
+                           "avatar_id": self._avatar.id},
+                          {"$type": "set_joint_force",
+                           "joint": joint,
+                           "axis": axis,
+                           "force": 1000,
+                           "avatar_id": self._avatar.id},
+                          {"$type": "bend_arm_joint_to",
+                           "angle": 90,
+                           "joint": joint,
+                           "axis": axis,
+                           "avatar_id": self._avatar.id}])
+        # Wait for the motion to finish.
+        a0 = self._avatar.frame.get_angles_left()[-2] if arm == Arm.left else \
+            self._avatar.frame.get_angles_right()[-2]
+        done_twisting_wrist = False
+        while not done_twisting_wrist:
+            self.communicate([])
+            # Get the angle of the wrist.
+            a1 = self._avatar.frame.get_angles_left()[-2] if arm == Arm.left else \
+                self._avatar.frame.get_angles_right()[-2]
+            done_twisting_wrist = np.abs(a1 - a0) < 0.01
+            a0 = a1
+        # Lift the arm to tilt the container.
+        self.reach_for_target(arm=arm, target={"x": -0.3 if arm == Arm.left else 0.3, "y": 0.5, "z": 0.25},
+                              check_if_possible=False, stop_on_mitten_collision=False)
+        # Wait for the objects to stop moving.
+        resp = self.communicate({"$type": "send_rigidbodies",
+                                 "frequency": "always",
+                                 "ids": [int(o_id) for o_id in overlap_ids if int(o_id) != container_id]})
+        moving = True
+        while moving:
+            rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
+            moving = False
+            for i in range(rigidbodies.get_num()):
+                if not rigidbodies.get_sleeping(i):
+                    moving = True
+                    break
+            resp = self.communicate([])
+
+        # Get all of the objects in the container. If there aren't any, this task succeeded.
+        overlap_ids = self._get_objects_in_container(container_id=container_id)
         self._end_task()
-        return TaskStatus.success
+
+        return TaskStatus.success if len(overlap_ids) == 0 else TaskStatus.still_in_container
 
     def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None:
         """
@@ -1256,6 +1305,60 @@ class StickyMittenAvatarController(FloorplanController):
             commands.append({"$type": "send_images",
                              "frequency": "always"})
         self.communicate(commands)
+
+    def _get_objects_in_container(self, container_id: int) -> np.array:
+        """
+        :param container_id: The ID of the container.
+
+        :return: A numpy array of the IDs of all objects in the container.
+        """
+
+        # Get the current position of the container.
+        resp = self.communicate([{"$type": "send_rigidbodies",
+                                  "frequency": "never"},
+                                 {"$type": "send_transforms",
+                                  "frequency": "once"}])
+        tr = get_data(resp=resp, d_type=Transforms)
+        rot: Optional[np.array] = None
+        pos: Optional[np.array] = None
+        for i in range(tr.get_num()):
+            if tr.get_id(i) == container_id:
+                rot = np.array(tr.get_rotation(i))
+                pos = np.array(tr.get_position(i))
+
+        # If the container is upside-down, then the object is not in the container.
+        up = QuaternionUtils.get_up_direction(rot)
+        if up[1] < 0:
+            return np.array([])
+
+        # Get the shape of the container.
+        name = self.static_object_info[container_id].model_name
+        shape = self._container_shapes[name]
+
+        # Check the overlap of the container to see if the object is in that space. If so, it is in the container.
+        size = self.static_object_info[container_id].size
+        # Set the position to be in the center of the rotated object.
+        center = TDWUtils.array_to_vector3(pos + (up * size[1] / 2))
+        pos = TDWUtils.array_to_vector3(pos)
+        # Decide which overlap shape to use depending on the container shape.
+        if shape == "box":
+            resp = self.communicate({"$type": "send_overlap_box",
+                                     "position": center,
+                                     "rotation": TDWUtils.array_to_vector4(rot),
+                                     "half_extents": TDWUtils.array_to_vector3(size / 2)})
+        elif shape == "sphere":
+            resp = self.communicate({"$type": "send_overlap_sphere",
+                                     "position": center,
+                                     "radius": min(size)})
+        elif shape == "capsule":
+            resp = self.communicate({"$type": "send_overlap_capsule",
+                                     "position": pos,
+                                     "end": center,
+                                     "radius": min(size)})
+        else:
+            raise Exception(f"Bad shape for {name}: {shape}")
+        overlap = get_data(resp=resp, d_type=Overlap)
+        return overlap.get_object_ids()
 
     def _destroy_avatar(self, avatar_id: str) -> None:
         """
