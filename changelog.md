@@ -5,6 +5,7 @@
 ### Frontend
 
 - `StickyMittenAvatarController`:
+  - Added: `pour_out()` Pour out the contents of a container.
   - Fixed: `grasp_object()` often stops with a `success` status before the object is grasped.
 
 ## 0.6.2
