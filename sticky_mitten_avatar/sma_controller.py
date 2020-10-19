@@ -609,7 +609,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         # Return whether the avatar picked up the object.
         self._avatar.status = TaskStatus.idle
-        if self._avatar.is_holding(object_id=object_id):
+        if self._avatar.is_holding(object_id=object_id)[0]:
             self._end_task()
             return TaskStatus.success
         else:

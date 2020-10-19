@@ -372,44 +372,46 @@ class Avatar(ABC):
                     mitten_position = np.array(frame.get_mitten_center_left_position())
                 else:
                     mitten_position = np.array(frame.get_mitten_center_right_position())
-                # If we're at the position, stop.
-                d = np.linalg.norm(mitten_position - self._ik_goals[arm].target)
-                if d < 0.05:
-                    if self._debug:
-                        print(f"{arm.name} mitten is at target position {self._ik_goals[arm].target}. Stopping.")
-                    commands.extend(self._stop_arm(arm=arm))
-                    temp_goals[arm] = None
-                    self.status = TaskStatus.success
-                else:
-                    # Are we trying to pick up an object?
-                    if self._ik_goals[arm].pick_up_id is not None:
-                        # Did we pick up the object in the previous frame?
-                        if self._ik_goals[arm].pick_up_id in frame.get_held_left() or self._ik_goals[arm]. \
-                                pick_up_id in frame.get_held_right():
-                            if self._debug:
-                                print(f"{arm.name} mitten picked up {self._ik_goals[arm].pick_up_id}. Stopping.")
-                            commands.extend(self._stop_arm(arm=arm))
-                            temp_goals[arm] = None
-                            self.status = TaskStatus.success
-                        # Keep bending the arm and trying to pick up the object.
-                        else:
-                            commands.extend([{"$type": "pick_up_proximity",
-                                              "distance": 0.05,
-                                              "radius": 0.1,
-                                              "grip": 1000,
-                                              "is_left": arm == Arm.left,
-                                              "avatar_id": self.id,
-                                              "object_ids": [self._ik_goals[arm].pick_up_id]},
-                                             {"$type": "pick_up",
-                                              "grip": 1000,
-                                              "is_left": arm == Arm.left,
-                                              "object_ids": [self._ik_goals[arm].pick_up_id],
-                                              "avatar_id": self.id}])
-                            temp_goals[arm] = self._ik_goals[arm]
+
+                # If we're not trying to pick something up, check if we are at the target position.
+                if self._ik_goals[arm].pick_up_id is None:
+                    # If we're at the position, stop.
+                    d = np.linalg.norm(mitten_position - self._ik_goals[arm].target)
+                    if d < 0.05:
+                        if self._debug:
+                            print(f"{arm.name} mitten is at target position {self._ik_goals[arm].target}. Stopping.")
+                        commands.extend(self._stop_arm(arm=arm))
+                        temp_goals[arm] = None
+                        self.status = TaskStatus.success
                     # Keep bending the arm.
                     else:
                         temp_goals[arm] = self._ik_goals[arm]
                         self._ik_goals[arm].previous_distance = d
+                # If we're trying to pick something, check if it was picked up on the previous frame.
+                else:
+                    if self._ik_goals[arm].pick_up_id in frame.get_held_left() or self._ik_goals[arm]. \
+                            pick_up_id in frame.get_held_right():
+                        if self._debug:
+                            print(f"{arm.name} mitten picked up {self._ik_goals[arm].pick_up_id}. Stopping.")
+                        commands.extend(self._stop_arm(arm=arm))
+                        temp_goals[arm] = None
+                        self.status = TaskStatus.success
+                    # Keep bending the arm and trying to pick up the object.
+                    else:
+                        commands.extend([{"$type": "pick_up_proximity",
+                                          "distance": 0.05,
+                                          "radius": 0.1,
+                                          "grip": 1000,
+                                          "is_left": arm == Arm.left,
+                                          "avatar_id": self.id,
+                                          "object_ids": [self._ik_goals[arm].pick_up_id]},
+                                         {"$type": "pick_up",
+                                          "grip": 1000,
+                                          "is_left": arm == Arm.left,
+                                          "object_ids": [self._ik_goals[arm].pick_up_id],
+                                          "avatar_id": self.id}])
+                        temp_goals[arm] = self._ik_goals[arm]
+
         self._ik_goals = temp_goals
 
         # Check if the arms are still moving.
