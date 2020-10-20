@@ -1,9 +1,19 @@
 from typing import List
 from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 from sticky_mitten_avatar.task_status import TaskStatus
+from sticky_mitten_avatar.util import CONTAINER_MASS, TARGET_OBJECT_MASS, CONTAINER_SCALE
 
 
-class PutInMany(StickyMittenAvatarController):
+class FillAndPour(StickyMittenAvatarController):
+    """
+    Fill a container with objects and pour objects out when the container is full.
+    This controller includes a very basic system for aligning the avatar with an object such it can be picked up.
+
+    1. Create a scene with an avatar, a container, and several objects.
+    2. Go to each object and put the object in the container.
+    3. If the container is full, pour out the contents and then try again to put the object in the container.
+    """
+
     def __init__(self, port: int = 1071):
         # `demo=True` only because this is a demo controller.
         # In an actual simulation, set it to `False`.
@@ -11,9 +21,11 @@ class PutInMany(StickyMittenAvatarController):
         self.container_id = 0
 
     def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
+        # Don't include this function in an actual simulation.
+        # Use `init_scene()` with `scene` and `layout` parameters instead.
         commands = super()._get_scene_init_commands()
         self.container_id, container_commands = self._add_object("basket_18inx18inx12iin",
-                                                                 scale={"x": 0.7, "y": 0.4, "z": 0.7},
+                                                                 scale=CONTAINER_SCALE,
                                                                  position={"x": -0.215, "y": 0, "z": 0.341})
         commands.extend(container_commands)
 
@@ -22,7 +34,7 @@ class PutInMany(StickyMittenAvatarController):
         # If the `scene` and `layout` parameters are set, the mass is handled automatically.
         commands.append({"$type": "set_mass",
                          "id": self.container_id,
-                         "mass": 1})
+                         "mass": CONTAINER_MASS})
         x = 0.215
         z = 0.116
         for i in range(3):
@@ -34,18 +46,28 @@ class PutInMany(StickyMittenAvatarController):
             # See comments above regarding mass.
             commands.append({"$type": "set_mass",
                              "id": o_id,
-                             "mass": 0.25})
+                             "mass": TARGET_OBJECT_MASS})
         return commands
 
 
 if __name__ == "__main__":
-    c = PutInMany()
+    c = FillAndPour()
     c.init_scene()
     # This will make the simulation run slower and should only be added for demoing or debugging.
     c.add_overhead_camera({"x": -0.99, "y": 1.25, "z": 1.41}, target_object="a", images="cam")
 
+    # This is a very basic algorithm for aligning the avatar with an object:
+    #
+    # 1. Try to grasp the object.
+    # 2. If the avatar's arm can't reach for the object, turn the avatar and try again.
+    #
+    # This might be too simple for your controller! You can try the following:
+    #
+    # - Adjust `d_theta` depending on which mitten is initially closer to the object.
+    # - Try moving forwards or backing away.
+    # - Try checking if there is an obstacle in the way. If so, move it out of the way and try again.
+    # - Something else!
     d_theta = -15
-    # Try to pick up each object.
     for object_id in c.static_object_info:
         # Don't try to pick up a container.
         if c.static_object_info[object_id].container:
@@ -65,6 +87,9 @@ if __name__ == "__main__":
         # Turn until you can grasp the object.
         theta = 0
         grasped = False
+
+        # Try turning 45 degrees before giving up.
+        # You can try adjusting this maximum.
         while theta < 45 and not grasped:
             # Try to grasp the object.
             status = c.grasp_object(object_id=object_id, arm=Arm.right)

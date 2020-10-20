@@ -8,14 +8,14 @@ from typing import Dict, List, Union, Optional, Tuple
 from tdw.floorplan_controller import FloorplanController
 from tdw.tdw_utils import TDWUtils, QuaternionUtils
 from tdw.output_data import Bounds, Rigidbodies, SegmentationColors, Raycast, CompositeObjects, Overlap, Transforms,\
-    Version, OutputData
+    Version
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from tdw.object_init_data import AudioInitData
 from tdw.release.pypi import PyPi
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD, \
-    OCCUPANCY_CELL_SIZE
+    OCCUPANCY_CELL_SIZE, TARGET_OBJECT_MASS, CONTAINER_MASS, CONTAINER_SCALE
 from sticky_mitten_avatar.paths import SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, \
     ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, TARGET_OBJECTS_PATH, COMPOSITE_OBJECT_AUDIO_PATH
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
@@ -1567,7 +1567,7 @@ class StickyMittenAvatarController(FloorplanController):
                                                                         rotation={"x": 0,
                                                                                   "y": random.uniform(-179, 179),
                                                                                   "z": z},
-                                                                        scale={"x": 0.5, "y": 0.5, "z": 0.5},
+                                                                        scale=CONTAINER_SCALE,
                                                                         audio=self._default_audio_values[
                                                                             container_name],
                                                                         model_name=container_name)
@@ -1575,7 +1575,7 @@ class StickyMittenAvatarController(FloorplanController):
                     # Make the container much lighter.
                     commands.append({"$type": "set_mass",
                                      "id": container_id,
-                                     "mass": 1})
+                                     "mass": CONTAINER_MASS})
                 # Pick a room to add target objects.
                 target_objects: Dict[str, float] = dict()
                 with open(str(TARGET_OBJECTS_PATH.resolve())) as csvfile:
@@ -1595,8 +1595,8 @@ class StickyMittenAvatarController(FloorplanController):
                     free, x, z = self.get_occupancy_position(ix, iy)
                     target_object_name = random.choice(target_object_names)
                     # Set custom object info for the target objects.
-                    audio = ObjectInfo(name=target_object_name, mass=0.1, material=AudioMaterial.ceramic, resonance=0.6,
-                                       amp=0.01, library="models_core.json", bounciness=0.5)
+                    audio = ObjectInfo(name=target_object_name, mass=TARGET_OBJECT_MASS, material=AudioMaterial.ceramic,
+                                       resonance=0.6, amp=0.01, library="models_core.json", bounciness=0.5)
                     scale = target_objects[target_object_name]
                     object_id, object_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
                                                                   rotation={"x": 0, "y": random.uniform(-179, 179),
