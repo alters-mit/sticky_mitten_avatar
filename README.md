@@ -80,6 +80,7 @@ All example controllers can be found in: `controllers/`
 | `put_object_in_container.py` | Put an object in a container.                                |
 | `put_in_held_container.py`   | Put an object held with one mitten into a container held by another mitten. |
 | `shake_demo.py`              | An avatar shakes two different containers with different audio properties. |
+| `social_image.py`            | Generate the social image for the GitHub preview card.       |
 
 ## Tests
 
