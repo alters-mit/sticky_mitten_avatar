@@ -5,9 +5,21 @@
 ### Frontend
 
 - `StickyMittenAvatarController`:
-  - Added: `pour_out()` Pour out the contents of a container.
+  - Added: `pour_out_container()` Pour out the contents of a container.
   - Fixed: `grasp_object()` often stops with a `success` status before the object is grasped.
-- Added a `pour_out()` command to the example `put_in_held_container()` controller.
+  - Fixed: The timestep is different if `demo == True` resulting in different simulation behavior.
+  - Fixed: Arm forces don't always reset at the end of an action, which means that the avatar doesn't hold a pose that it should.
+  - Fixed: `grasp_object()` will try to grasp an object that is already held. Now, if the object is held, it automatically returns `success`.
+  - Fixed: Physics glitches due to there being too many objects in a held container. The avatar will try to fill a container with up to 2 objects and no more. `put_in_container()` will return `full_container` if the container is "full".
+  - Fixed: the aiming of `put_in_container()` is inaccurate. The avatar will now make multiple attempts to position an object over the container.
+  - Adjusted the scale of all containers, the mass of all containers, and the mass of all target objects.
+- Removed: `put_in_held_container.py`
+- Added: `fill_and_pour.py` example controller. Fill a container and pour the contents out.
+
+### Backend
+
+- Added backend functionality to roll the wrist (which makes it easy for the avatar to put objects in a container).
+- The scale of all containers, the mass of all containers, and the mass of all target objects are all constants in `util.py` so that the demo controllers can use them too.
 
 ## 0.6.2
 

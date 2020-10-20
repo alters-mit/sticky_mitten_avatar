@@ -1024,14 +1024,14 @@ class StickyMittenAvatarController(FloorplanController):
         self._end_task()
         return TaskStatus.success
 
-    def put_in_container(self, object_id: int, container_id: int, arm: Arm) -> TaskStatus:
+    def put_in_container(self, object_id: int, container_id: int, arm: Arm, num_attempts: int = 10) -> TaskStatus:
         """
         Try to put an object in a container.
-        Combines the following functions:
 
-        1. `grasp_object(object_id, arm`) if the avatar isn't already grasping the object.
-        2. `reach_for_target(position, arm)` where `position` is a point above the container.
-        3. `drop(arm)`
+        1. The avatar will grasp the object and a container via `grasp_object()` if it isn't holding them already.
+        2. The avatar will lift the object up and then over the container via `reach_for_target()`
+        3. The avatar will make multiple attempts to position the object over the container via `reach_for_target()` plus some backend-only logic.
+        4. The avatar will `drop()` the object into the container.
 
         Possible [return values](task_status.md):
 
@@ -1050,6 +1050,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param object_id: The ID of the object that the avatar will try to put in the container.
         :param container_id: The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container')(static_object_info.md).
         :param arm: The arm that will try to pick up the object.
+        :param num_attempts: Make this many attempts to re-position the object above the container.
 
         :return: A `TaskStatus` indicating whether the avatar put the object in the container and if not, why.
         """
@@ -1059,6 +1060,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         self._start_task()
 
+        # A "full" container has 2 or more objects. After that, the physics glitches too much.
         overlap_ids = self._get_objects_in_container(container_id=container_id)
         if len(overlap_ids) > 2:
             self._end_task()
@@ -1076,23 +1078,28 @@ class StickyMittenAvatarController(FloorplanController):
                               arm=container_arm,
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
-        # Lift up the object.
+
+        # These values will be used to initially lift the object and then to re-aim it until it's over the container.
         arm_x = 0.35 if arm == Arm.right else -0.35
         d_arm_x = -0.1 if arm == Arm.right else 0.1
         arm_z = 0.36
         d_arm_z = 0.05
         arm_y = 0.6
+        # Lift up the object.
         self.reach_for_target(target={"x": arm_x, "y": arm_y, "z": arm_z},
                               arm=arm,
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
-        # Twist the wrist.
+        # Twist the wrist of the arm holding the container.
         self._roll_wrist(arm=container_arm, angle=60)
 
+        # Continuously try to position the object over the container.
         hit = False
         attempts = 0
-        while not hit and attempts < 100:
+        while not hit and attempts < num_attempts:
+            # Call `_end_task()` to update the FrameData.
             self._end_task()
+            # Raycast from the object directly downward to see if it's directly above the container.
             object_position = TDWUtils.array_to_vector3(self.frame.object_transforms[object_id].position)
             resp = self.communicate({"$type": "send_raycast",
                                      "origin": object_position,
@@ -1112,6 +1119,7 @@ class StickyMittenAvatarController(FloorplanController):
                 arm_z += d_arm_z
                 self.reach_for_target(target={"x": arm_x, "y": arm_y, "z": arm_z}, arm=arm)
             attempts += 1
+        # Roll the wrist of the arm holding the object so that the mitten isn't in the way.
         self._roll_wrist(arm=arm, angle=0)
         # Drop the object.
         self.drop(arm=arm, reset_arm=False, do_motion=False)
@@ -1122,7 +1130,7 @@ class StickyMittenAvatarController(FloorplanController):
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
 
-        # Loop until the object hits something.
+        # Wait for the object to stop moving.
         self.communicate({"$type": "send_rigidbodies",
                           "frequency": "always"})
         sleeping = False

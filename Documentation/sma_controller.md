@@ -372,13 +372,13 @@ _Returns:_  A `TaskStatus` indicating whether the avatar shook the joint and if 
 
 #### put_in_container
 
-**`def put_in_container(self, object_id: int, container_id: int, arm: Arm) -> TaskStatus`**
+**`def put_in_container(self, object_id: int, container_id: int, arm: Arm, num_attempts: int = 10) -> TaskStatus`**
 
 Try to put an object in a container.
-Combines the following functions:
-1. `grasp_object(object_id, arm`) if the avatar isn't already grasping the object.
-2. `reach_for_target(position, arm)` where `position` is a point above the container.
-3. `drop(arm)`
+1. The avatar will grasp the object and a container via `grasp_object()` if it isn't holding them already.
+2. The avatar will lift the object up and then over the container via `reach_for_target()`
+3. The avatar will make multiple attempts to position the object over the container via `reach_for_target()` plus some backend-only logic.
+4. The avatar will `drop()` the object into the container.
 Possible [return values](task_status.md):
 - `success` (The avatar put the object in the container.)
 - `too_close_to_reach` (Either the object or the container is too close.)
@@ -390,20 +390,22 @@ Possible [return values](task_status.md):
 - `mitten_collision` (Only while trying to grasp the object.)
 - `not_in_container`
 - `not_a_container`
+- `full_container`
 
 | Parameter | Description |
 | --- | --- |
 | object_id | The ID of the object that the avatar will try to put in the container. |
 | container_id | The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container')(static_object_info.md). |
 | arm | The arm that will try to pick up the object. |
+| num_attempts | Make this many attempts to re-position the object above the container. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar put the object in the container and if not, why.
 
 ***
 
-#### pour_out
+#### pour_out_container
 
-**`def pour_out(self, arm: Arm) -> TaskStatus`**
+**`def pour_out_container(self, arm: Arm) -> TaskStatus`**
 
 Pour out the contents of a container held by the arm.
 Assuming that the arm is holding a container, its wrist will twist and the arm will lift.
