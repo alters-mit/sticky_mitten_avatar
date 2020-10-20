@@ -20,6 +20,8 @@
   - Fixed: missing parameters in audio code.
 - `StaticObjectInfo`:
   - Added: `target_object` If True, this is a small object that the avatar can place in a container.
+- Added: `controllers/social_image.py` Generate the social image.
+  - Added: `social.jpg`
 
 ### Backend
 
@@ -458,3 +460,4 @@
 - Fixed: `util.rotate_point_around()` often returns incorrect values.
 - Fixed: `def` headers in documentation sometimes don't contain all parameters.
 - Added: `videos/shake_demo.mp4`
+
