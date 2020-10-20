@@ -399,7 +399,7 @@ class Avatar(ABC):
                     # Keep bending the arm and trying to pick up the object.
                     else:
                         commands.extend([{"$type": "pick_up_proximity",
-                                          "distance": 0.05,
+                                          "distance": 0.02,
                                           "radius": 0.1,
                                           "grip": 1000,
                                           "is_left": arm == Arm.left,

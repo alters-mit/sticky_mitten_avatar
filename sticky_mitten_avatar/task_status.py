@@ -41,3 +41,4 @@ class TaskStatus(Enum):
     not_a_container = 18  # The avatar didn't try to put one object into another because the other object isn't a container.
     empty_container = 19  # The avatar didn't try to pour a container because the container was empty.
     still_in_container = 20  # The avatar tried to pour objects out of the container but there are still objects in it.
+    full_container = 21  # The container has too many objects. Adding more would result in physics glitches.

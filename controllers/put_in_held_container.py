@@ -45,6 +45,6 @@ if __name__ == "__main__":
     c.move_forward_by(0.8)
 
     # Pour out the object.
-    c.pour_out(arm=Arm.left)
+    c.pour_out_container(arm=Arm.left)
     c.reset_arm(arm=Arm.left)
     c.end()

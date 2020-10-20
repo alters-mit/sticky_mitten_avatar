@@ -8,7 +8,7 @@ from typing import Dict, List, Union, Optional, Tuple
 from tdw.floorplan_controller import FloorplanController
 from tdw.tdw_utils import TDWUtils, QuaternionUtils
 from tdw.output_data import Bounds, Rigidbodies, SegmentationColors, Raycast, CompositeObjects, Overlap, Transforms,\
-    Version
+    Version, OutputData
 from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from tdw.object_init_data import AudioInitData
 from tdw.release.pypi import PyPi
@@ -573,6 +573,9 @@ class StickyMittenAvatarController(FloorplanController):
         :return: A `TaskStatus` indicating whether the avatar picked up the object and if not, why.
         """
 
+        if self._avatar.is_holding(object_id)[0]:
+            return TaskStatus.success
+
         self._start_task()
 
         # Get the mitten's position.
@@ -1042,6 +1045,7 @@ class StickyMittenAvatarController(FloorplanController):
         - `mitten_collision` (Only while trying to grasp the object.)
         - `not_in_container`
         - `not_a_container`
+        - `full_container`
 
         :param object_id: The ID of the object that the avatar will try to put in the container.
         :param container_id: The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container')(static_object_info.md).
@@ -1055,6 +1059,11 @@ class StickyMittenAvatarController(FloorplanController):
 
         self._start_task()
 
+        overlap_ids = self._get_objects_in_container(container_id=container_id)
+        if len(overlap_ids) > 2:
+            self._end_task()
+            return TaskStatus.full_container
+
         # Grasp the object.
         if object_id not in self.frame.held_objects[arm]:
             status = self.grasp_object(object_id=object_id, arm=arm)
@@ -1063,24 +1072,47 @@ class StickyMittenAvatarController(FloorplanController):
                 return status
         container_arm = Arm.left if arm == Arm.right else Arm.right
         # Lift the container.
-        self.reach_for_target(target={"x": 0.05 if arm == Arm.right else -0.05, "y": 0.1, "z": 0.32},
+        self.reach_for_target(target={"x": 0.05 if arm == Arm.right else -0.05, "y": 0.05, "z": 0.32},
                               arm=container_arm,
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
-        # Twist the wrist.
-        # self._roll_wrist(arm=container_arm, angle=60)
         # Lift up the object.
-        self.reach_for_target(target={"x": 0.25 if arm == Arm.right else -0.25, "y": 0.6, "z": 0.3},
+        arm_x = 0.35 if arm == Arm.right else -0.35
+        d_arm_x = -0.1 if arm == Arm.right else 0.1
+        arm_z = 0.36
+        d_arm_z = 0.05
+        arm_y = 0.6
+        self.reach_for_target(target={"x": arm_x, "y": arm_y, "z": arm_z},
                               arm=arm,
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
+        # Twist the wrist.
+        self._roll_wrist(arm=container_arm, angle=60)
 
-        # Reach for the target.
-        self.reach_for_target(target={"x": -0.024 if arm == Arm.right else 0.024, "y": 0.45, "z": 0.28},
-                              arm=arm,
-                              stop_on_mitten_collision=False,
-                              check_if_possible=False)
+        hit = False
+        attempts = 0
+        while not hit and attempts < 100:
+            self._end_task()
+            object_position = TDWUtils.array_to_vector3(self.frame.object_transforms[object_id].position)
+            resp = self.communicate({"$type": "send_raycast",
+                                     "origin": object_position,
+                                     "destination": {"x": object_position["x"], "y": 0, "z": object_position["z"]}})
+            raycast = get_data(resp=resp, d_type=Raycast)
+            hit = raycast.get_hit_object()
+            # Move the arm slightly until there's a hit.
+            if not hit:
+                arm_x += d_arm_x
+                arm_z += d_arm_z
 
+                status = self.reach_for_target(target={"x": arm_x, "y": arm_y, "z": arm_z}, arm=arm)
+                if status == TaskStatus.too_close_to_reach or status == TaskStatus.too_far_to_reach:
+                    d_arm_z *= -1
+                    d_arm_x *= -1
+                arm_x += d_arm_x
+                arm_z += d_arm_z
+                self.reach_for_target(target={"x": arm_x, "y": arm_y, "z": arm_z}, arm=arm)
+            attempts += 1
+        self._roll_wrist(arm=arm, angle=0)
         # Drop the object.
         self.drop(arm=arm, reset_arm=False, do_motion=False)
 
@@ -1111,7 +1143,7 @@ class StickyMittenAvatarController(FloorplanController):
             self._end_task()
             return TaskStatus.success
 
-    def pour_out(self, arm: Arm) -> TaskStatus:
+    def pour_out_container(self, arm: Arm) -> TaskStatus:
         """
         Pour out the contents of a container held by the arm.
         Assuming that the arm is holding a container, its wrist will twist and the arm will lift.
