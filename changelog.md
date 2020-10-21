@@ -14,7 +14,10 @@
   - Fixed: Physics glitches due to there being too many objects in a held container. The avatar will try to fill a container with up to 2 objects and no more. `put_in_container()` will return `full_container` if the container is "full".
   - Fixed: the aiming of `put_in_container()` is inaccurate. The avatar will now make multiple attempts to position an object over the container.
   - Adjusted the scale of all containers, the mass of all containers, and the mass of all target objects.
-- Removed: `put_in_held_container.py`
+- Removed example controllers that are obsolete or aren't good examples of how to code a controller that is actually usable (as opposed to being a demo):
+  -  `put_in_held_container.py`
+  - `put_object_in_container.py`
+  - `shake_demo.py` (and all of the files it uses)
 - Added: `fill_and_pour.py` example controller. Fill a container and pour the contents out.
 
 ### Backend
