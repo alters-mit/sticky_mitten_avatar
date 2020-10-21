@@ -37,7 +37,7 @@ class FillAndPour(StickyMittenAvatarController):
                          "mass": CONTAINER_MASS})
         x = 0.215
         z = 0.116
-        for i in range(3):
+        for i in range(4):
             o_id, object_commands = self._add_object("jug05",
                                                      position={"x": x, "y": 0, "z": z + i * 0.5},
                                                      scale={"x": 0.5, "y": 0.5, "z": 0.5})

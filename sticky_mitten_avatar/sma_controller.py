@@ -1063,8 +1063,9 @@ class StickyMittenAvatarController(FloorplanController):
 
         self._start_task()
 
-        # A "full" container has 2 or more objects. After that, the physics glitches too much.
+        # A "full" container has too many objects such that physics might glitch.
         overlap_ids = self._get_objects_in_container(container_id=container_id)
+        overlap_ids = [overlap_id for overlap_id in overlap_ids if overlap_id != container_id]
         if len(overlap_ids) > 2:
             self._end_task()
             return TaskStatus.full_container
@@ -1096,7 +1097,6 @@ class StickyMittenAvatarController(FloorplanController):
         self._roll_wrist(arm=container_arm, angle=60)
 
         self._end_task()
-        object_position = self.frame.object_transforms[object_id].position
         container_position = self.frame.object_transforms[container_id].position
 
         # Continuously try to position the object over the container.
