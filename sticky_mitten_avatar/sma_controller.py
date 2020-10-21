@@ -1200,7 +1200,7 @@ class StickyMittenAvatarController(FloorplanController):
         self._roll_wrist(arm=arm, angle=90)
         # Lift the arm to tilt the container.
         self.reach_for_target(arm=arm, target={"x": -0.3 if arm == Arm.left else 0.3, "y": 0.6, "z": 0.35},
-                              check_if_possible=False, stop_on_mitten_collision=False)
+                              check_if_possible=False, stop_on_mitten_collision=False, precision=0.2)
 
         # Wait for the objects to stop moving.
         resp = self.communicate({"$type": "send_rigidbodies",
@@ -1211,13 +1211,15 @@ class StickyMittenAvatarController(FloorplanController):
             rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
             moving = False
             for i in range(rigidbodies.get_num()):
-                if not rigidbodies.get_sleeping(i):
+                sleeping = rigidbodies.get_sleeping(i) or np.linalg.norm(rigidbodies.get_velocity(i)) < 0.1
+                if not sleeping:
                     moving = True
                     break
             resp = self.communicate([])
 
         # Get all of the objects in the container. If there aren't any, this task succeeded.
         overlap_ids = self._get_objects_in_container(container_id=container_id)
+        overlap_ids = [overlap_id for overlap_id in overlap_ids if overlap_id != container_id]
         self._end_task()
 
         return TaskStatus.success if len(overlap_ids) == 0 else TaskStatus.still_in_container
