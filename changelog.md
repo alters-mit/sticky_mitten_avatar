@@ -1,10 +1,21 @@
 # Changelog
 
+## 0.6.3
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Added optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
+
+### Backend
+
+- Added: `precision_test.py` Test how precision affects arm articulation.
+
 ## 0.6.2
 
 ### Frontend
 
-- `StickyMittenAvatar`:
+- `StickyMittenAvatarController`:
   - Added *target objects* which are procedurally placed in a room in the scene.
   - Containers are now procedurally placed throughout the scene.
   - Added: `goal_positions` The positions of possible goal positions in the scene for the avatar to place objects.

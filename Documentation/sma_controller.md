@@ -176,7 +176,7 @@ _Returns:_  The response from the build.
 
 #### reach_for_target
 
-**`def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, check_if_possible: bool = True, stop_on_mitten_collision: bool = True) -> TaskStatus`**
+**`def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05) -> TaskStatus`**
 
 Bend an arm joints of an avatar to reach for a target position.
 Possible [return values](task_status.md):
@@ -194,6 +194,7 @@ Possible [return values](task_status.md):
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
 | stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object other than the target object. |
 | check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
+| precision | The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
 
