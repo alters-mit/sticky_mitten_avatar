@@ -1066,7 +1066,7 @@ class StickyMittenAvatarController(FloorplanController):
         # A "full" container has too many objects such that physics might glitch.
         overlap_ids = self._get_objects_in_container(container_id=container_id)
         overlap_ids = [overlap_id for overlap_id in overlap_ids if overlap_id != container_id]
-        if len(overlap_ids) > 2:
+        if len(overlap_ids) > 4:
             self._end_task()
             return TaskStatus.full_container
 
@@ -1339,7 +1339,7 @@ class StickyMittenAvatarController(FloorplanController):
         # Check the overlap of the container to see if the object is in that space. If so, it is in the container.
         size = self.static_object_info[container_id].size
         # Set the position to be in the center of the rotated object.
-        center = TDWUtils.array_to_vector3(pos + (up * size[1] / 2))
+        center = TDWUtils.array_to_vector3(pos + (up * size[1] * 0.75))
         pos = TDWUtils.array_to_vector3(pos)
         # Decide which overlap shape to use depending on the container shape.
         if shape == "box":

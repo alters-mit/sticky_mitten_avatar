@@ -36,7 +36,7 @@ class FillAndPour(StickyMittenAvatarController):
                          "id": self.container_id,
                          "mass": CONTAINER_MASS})
         x = 0.215
-        z = 0.116
+        z = 0.516
         for i in range(4):
             o_id, object_commands = self._add_object("jug05",
                                                      position={"x": x, "y": 0, "z": z + i * 0.5},
@@ -67,6 +67,7 @@ if __name__ == "__main__":
     # - Try moving forwards or backing away.
     # - Try checking if there is an obstacle in the way. If so, move it out of the way and try again.
     # - Something else!
+    lift_container_target = {"x": -0.2, "y": 0.2, "z": 0.32}
     d_theta = -15
     for object_id in c.static_object_info:
         # Don't try to pick up a container.
@@ -77,7 +78,7 @@ if __name__ == "__main__":
         status = c.grasp_object(object_id=c.container_id, arm=Arm.left, stop_on_mitten_collision=False)
         assert status == TaskStatus.success, status
         # Lift the container.
-        c.reach_for_target(target={"x": -0.2, "y": 0.2, "z": 0.32},
+        c.reach_for_target(target=lift_container_target,
                            arm=Arm.left,
                            check_if_possible=False,
                            stop_on_mitten_collision=False)
@@ -104,19 +105,20 @@ if __name__ == "__main__":
 
         # Put the object in the container.
         status = c.put_in_container(object_id=object_id, container_id=c.container_id, arm=Arm.right)
-        # This container is full. Pour some stuff out.
-        if status == TaskStatus.full_container:
-            c.pour_out_container(arm=Arm.left)
-            status = c.put_in_container(object_id=object_id, container_id=c.container_id, arm=Arm.right)
-        # If the container isn't full, verify that the object is in the container.
-        else:
-            if status != TaskStatus.success:
-                while True:
-                    c.communicate([])
-            assert status == TaskStatus.success, status
+        assert status == TaskStatus.success, status
 
-        # Move the arms away.
-        c.reach_for_target(target={"x": -0.2, "y": 0.15, "z": 0.32}, arm=Arm.left)
+        # Move the arms away and reset their positions.
+        c.reach_for_target(target=lift_container_target, arm=Arm.left)
         c.reset_arm(arm=Arm.right)
+        c.reset_arm(arm=Arm.left)
+    # Move forward a little more.
+    c.reach_for_target(target=lift_container_target,
+                       arm=Arm.left,
+                       check_if_possible=False,
+                       stop_on_mitten_collision=False)
+    c.move_forward_by(0.8)
+    # Pour the contents out.
+    status = c.pour_out_container(arm=Arm.left)
+    assert status == TaskStatus.success, status
     # End the simulation.
     c.end()

@@ -15,6 +15,7 @@
   - Fixed: The "sleep threshold" of the simulation is too high, causing objects to sometimes float in midair.
   - Fixed: the aiming of `put_in_container()` is inaccurate. The avatar will now make multiple attempts to position an object over the container.
   - Fixed: `grasp_object()` often stops with a `success` status before the object is grasped.
+  - Fixed: objects that are stacked on top of one another in a container are sometimes not counted as being in the container.
 - `BodyPartStatic`:
   - Renamed `color` to `segmentation_color`.
 - Removed example controllers that are obsolete or aren't good examples of how to code a controller that is actually usable (as opposed to being a demo):
