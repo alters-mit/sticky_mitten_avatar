@@ -57,17 +57,18 @@ class _IKGoal:
     """
 
     def __init__(self, target: Union[np.array, list, None], pick_up_id: int = None,
-                 stop_on_mitten_collision: bool = False,
-                 rotations: Dict[str, float] = None):
+                 stop_on_mitten_collision: bool = False, rotations: Dict[str, float] = None, precision: float = 0.05):
         """
         :param pick_up_id: If not None, the ID of the object to pick up.
         :param target: The target position of the mitten.
         :param stop_on_mitten_collision: If True, stop moving if the mitten collides with anything.
         :param rotations: The target rotations.
+        :param precision: The distance threshold to the target position.
         """
 
         self.stop_on_mitten_collision = stop_on_mitten_collision
         self.rotations = rotations
+        self.precision = precision
 
         self.moving_joints = Avatar.ANGLE_ORDER[:]
 
@@ -216,7 +217,7 @@ class Avatar(ABC):
         return TaskStatus.success
 
     def reach_for_target(self, arm: Arm, target: np.array, stop_on_mitten_collision: bool,
-                         target_orientation: np.array = None) -> List[dict]:
+                         target_orientation: np.array = None, precision: float = 0.05) -> List[dict]:
         """
         Get an IK solution to move a mitten to a target position.
 
@@ -224,6 +225,7 @@ class Avatar(ABC):
         :param target: The target position for the mitten.
         :param target_orientation: Target IK orientation. Usually you should leave this as None (the default).
         :param stop_on_mitten_collision: If true, stop moving when the mitten collides with something.
+        :param precision: The distance threshold to the target position.
 
         :return: A list of commands to begin bending the arm.
         """
@@ -239,7 +241,7 @@ class Avatar(ABC):
             rotation_targets[c.name] = r
 
         self._ik_goals[arm] = _IKGoal(target=target, stop_on_mitten_collision=stop_on_mitten_collision,
-                                      rotations=rotation_targets)
+                                      rotations=rotation_targets, precision=precision)
 
         commands = [self.get_start_bend_sticky_mitten_profile(arm=arm)]
 
@@ -377,7 +379,7 @@ class Avatar(ABC):
                 if self._ik_goals[arm].pick_up_id is None:
                     # If we're at the position, stop.
                     d = np.linalg.norm(mitten_position - self._ik_goals[arm].target)
-                    if d < 0.05:
+                    if d < self._ik_goals[arm].precision:
                         if self._debug:
                             print(f"{arm.name} mitten is at target position {self._ik_goals[arm].target}. Stopping.")
                         commands.extend(self._stop_arm(arm=arm))

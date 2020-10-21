@@ -5,8 +5,9 @@
 ### Frontend
 
 - `StickyMittenAvatarController`:
-  - Added: `pour_out_container()` Pour out the contents of a container.
+- Added: `pour_out_container()` Pour out the contents of a container.
   - Fixed: `grasp_object()` often stops with a `success` status before the object is grasped.
+  -  Added optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
   - Fixed: The timestep is different if `demo == True` resulting in different simulation behavior.
   - Fixed: Arm forces don't always reset at the end of an action, which means that the avatar doesn't hold a pose that it should.
   - Fixed: `grasp_object()` will try to grasp an object that is already held. Now, if the object is held, it automatically returns `success`.
@@ -20,6 +21,7 @@
 
 - Added backend functionality to roll the wrist (which makes it easy for the avatar to put objects in a container).
 - The scale of all containers, the mass of all containers, and the mass of all target objects are all constants in `util.py` so that the demo controllers can use them too.
+- Added: `precision_test.py` Test how precision affects arm articulation.
 
 ## 0.6.2
 

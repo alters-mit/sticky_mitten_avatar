@@ -504,7 +504,8 @@ class StickyMittenAvatarController(FloorplanController):
         return object_id, commands
 
     def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True,
-                         check_if_possible: bool = True, stop_on_mitten_collision: bool = True) -> TaskStatus:
+                         check_if_possible: bool = True, stop_on_mitten_collision: bool = True,
+                         precision: float = 0.05) -> TaskStatus:
         """
         Bend an arm joints of an avatar to reach for a target position.
 
@@ -522,6 +523,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         :param stop_on_mitten_collision: If true, the arm will stop bending if the mitten collides with an object other than the target object.
         :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
+        :param precision: The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`.
 
         :return: A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
         """
@@ -539,7 +541,8 @@ class StickyMittenAvatarController(FloorplanController):
 
         self._avatar_commands.extend(self._avatar.reach_for_target(arm=arm,
                                                                    target=target,
-                                                                   stop_on_mitten_collision=stop_on_mitten_collision))
+                                                                   stop_on_mitten_collision=stop_on_mitten_collision,
+                                                                   precision=precision))
         self._avatar.status = TaskStatus.ongoing
         if do_motion:
             self._do_joint_motion()
