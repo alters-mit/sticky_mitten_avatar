@@ -7,6 +7,7 @@
 - `StickyMittenAvatarController`:
   - Added: `pour_out_container()` Pour out the contents of a container.
   -  Added: optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
+  -  Added: optional parameter `num_attempts` to `put_in_container()` to adjust the number of attempts it makes before dropping the object.
   -  Adjusted the scale of all containers, the mass of all containers, and the mass of all target objects.
   - Fixed: The timestep is different if `demo == True` resulting in different simulation behavior.
   - Fixed: Arm forces don't always reset at the end of an action, which means that the avatar doesn't hold a pose that it should.
@@ -16,6 +17,7 @@
   - Fixed: the aiming of `put_in_container()` is inaccurate. The avatar will now make multiple attempts to position an object over the container.
   - Fixed: `grasp_object()` often stops with a `success` status before the object is grasped.
   - Fixed: objects that are stacked on top of one another in a container are sometimes not counted as being in the container.
+  - Fixed: `reset_arm()` allows the arms to be too floppy.
 - `BodyPartStatic`:
   - Renamed `color` to `segmentation_color`.
 - Removed example controllers that are obsolete or aren't good examples of how to code a controller that is actually usable (as opposed to being a demo):
