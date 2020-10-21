@@ -23,6 +23,8 @@
   - `put_object_in_container.py`
   - `shake_demo.py` (and all of the files it uses)
 - Added: `fill_and_pour.py` example controller. Fill a container and pour the contents out.
+- Added: `initialize_scene.py` example controller. Basic scene initialization.
+- Added: `videos/fill_and_pour.mp4`
 
 ### Backend
 
