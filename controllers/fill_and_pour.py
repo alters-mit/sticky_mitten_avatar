@@ -110,6 +110,9 @@ if __name__ == "__main__":
             status = c.put_in_container(object_id=object_id, container_id=c.container_id, arm=Arm.right)
         # If the container isn't full, verify that the object is in the container.
         else:
+            if status != TaskStatus.success:
+                while True:
+                    c.communicate([])
             assert status == TaskStatus.success, status
 
         # Move the arms away.

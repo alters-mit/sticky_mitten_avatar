@@ -187,7 +187,7 @@ class StickyMittenAvatarController(FloorplanController):
                     {"$type": "set_shadow_strength",
                      "strength": 1.0},
                     {"$type": "set_sleep_threshold",
-                     "sleep_threshold": 0.1},
+                     "sleep_threshold": 0.01},
                     {"$type": "set_screen_size",
                      "width": screen_width,
                      "height": screen_height},
@@ -1076,54 +1076,61 @@ class StickyMittenAvatarController(FloorplanController):
                 self._end_task()
                 return status
         container_arm = Arm.left if arm == Arm.right else Arm.right
+
+        # These values will be used to initially lift the object and then to re-aim it until it's over the container.
+        d_arm_z = -0.1
+        target_y = 0.6
+
+        # Lift up the object.
+        self.reach_for_target(target={"x": 0.35 if arm == Arm.right else -0.35, "y": target_y, "z": 0.36},
+                              arm=arm,
+                              check_if_possible=False,
+                              stop_on_mitten_collision=False,
+                              precision=0.2)
         # Lift the container.
         self.reach_for_target(target={"x": 0.05 if arm == Arm.right else -0.05, "y": 0.05, "z": 0.32},
                               arm=container_arm,
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
-
-        # These values will be used to initially lift the object and then to re-aim it until it's over the container.
-        arm_x = 0.35 if arm == Arm.right else -0.35
-        d_arm_x = -0.1 if arm == Arm.right else 0.1
-        arm_z = 0.36
-        d_arm_z = 0.05
-        arm_y = 0.6
-        # Lift up the object.
-        self.reach_for_target(target={"x": arm_x, "y": arm_y, "z": arm_z},
-                              arm=arm,
-                              check_if_possible=False,
-                              stop_on_mitten_collision=False)
         # Twist the wrist of the arm holding the container.
         self._roll_wrist(arm=container_arm, angle=60)
+
+        self._end_task()
+        object_position = self.frame.object_transforms[object_id].position
+        container_position = self.frame.object_transforms[container_id].position
 
         # Continuously try to position the object over the container.
         hit = False
         attempts = 0
+        target_position = self._avatar.get_rotated_target(target=container_position)
+        target_x = target_position[0]
+        target_z = target_position[2]
         while not hit and attempts < num_attempts:
             # Call `_end_task()` to update the FrameData.
             self._end_task()
+
+            # Get the new distance.
+            container_position = self.frame.object_transforms[container_id].position
+
             # Raycast from the object directly downward to see if it's directly above the container.
             object_position = TDWUtils.array_to_vector3(self.frame.object_transforms[object_id].position)
+
             resp = self.communicate({"$type": "send_raycast",
                                      "origin": object_position,
                                      "destination": {"x": object_position["x"], "y": 0, "z": object_position["z"]}})
             raycast = get_data(resp=resp, d_type=Raycast)
             hit = raycast.get_hit_object()
-            # Move the arm slightly until there's a hit.
-            if not hit:
-                arm_x += d_arm_x
-                arm_z += d_arm_z
-
-                status = self.reach_for_target(target={"x": arm_x, "y": arm_y, "z": arm_z}, arm=arm)
-                if status == TaskStatus.too_close_to_reach or status == TaskStatus.too_far_to_reach:
-                    d_arm_z *= -1
-                    d_arm_x *= -1
-                arm_x += d_arm_x
-                arm_z += d_arm_z
-                self.reach_for_target(target={"x": arm_x, "y": arm_y, "z": arm_z}, arm=arm)
+            hit_point = raycast.get_point()
+            distance_to_container = np.linalg.norm(container_position - hit_point)
+            # Move the arm slightly until there's a hit that is close to the center of the container.
+            if not hit or distance_to_container > 0.2:
+                target_z += d_arm_z
+                self.reach_for_target(target={"x": target_x, "y": target_y, "z": target_z}, arm=arm,
+                                      precision=0.2, check_if_possible=False)
+                # Roll the wrist of the arm holding the object so that the mitten isn't in the way.
+                self._roll_wrist(arm=arm, angle=0, precision=0.05)
             attempts += 1
-        # Roll the wrist of the arm holding the object so that the mitten isn't in the way.
-        self._roll_wrist(arm=arm, angle=0)
+
         # Drop the object.
         self.drop(arm=arm, reset_arm=False, do_motion=False)
 
@@ -1144,7 +1151,7 @@ class StickyMittenAvatarController(FloorplanController):
             # Check if the object stopped moving.
             for i in range(rigidbodies.get_num()):
                 if rigidbodies.get_id(i) == object_id:
-                    sleeping = rigidbodies.get_sleeping(i) or np.linalg.norm(rigidbodies.get_velocity(i)) < 0.01
+                    sleeping = rigidbodies.get_sleeping(i) or np.linalg.norm(rigidbodies.get_velocity(i)) < 0.1
                     break
         overlap_ids = self._get_objects_in_container(container_id=container_id)
         if container_id not in overlap_ids or object_id not in overlap_ids:
@@ -1481,7 +1488,15 @@ class StickyMittenAvatarController(FloorplanController):
         point = np.array(raycast.get_point())
         return raycast.get_hit() and raycast.get_object_id() is not None and raycast.get_object_id() == object_id, point
 
-    def _roll_wrist(self, arm: Arm, angle: float) -> None:
+    def _roll_wrist(self, arm: Arm, angle: float, precision: float = 0.02) -> None:
+        """
+        Roll the wrist to a target angle.
+
+        :param arm: The arm.
+        :param angle: The target angle.
+        :param precision: Precision of the movement (the threshold at which the angle is considered equal).
+        """
+
         # Begin rotation.
         self.communicate([self._avatar.get_roll_wrist_sticky_mitten_profile(arm=arm),
                           {"$type": "bend_arm_joint_to",
@@ -1498,7 +1513,7 @@ class StickyMittenAvatarController(FloorplanController):
             # Get the angle of the wrist.
             a1 = self._avatar.frame.get_angles_left()[-2] if arm == Arm.left else \
                 self._avatar.frame.get_angles_right()[-2]
-            done_twisting_wrist = np.abs(a1 - a0) < 0.02
+            done_twisting_wrist = np.abs(a1 - a0) < precision
             a0 = a1
 
     def _get_audio_commands(self) -> List[dict]:

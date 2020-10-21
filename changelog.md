@@ -6,14 +6,15 @@
 
 - `StickyMittenAvatarController`:
   - Added: `pour_out_container()` Pour out the contents of a container.
-  - Fixed: `grasp_object()` often stops with a `success` status before the object is grasped.
-  -  Added optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
+  -  Added: optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
+  -  Adjusted the scale of all containers, the mass of all containers, and the mass of all target objects.
   - Fixed: The timestep is different if `demo == True` resulting in different simulation behavior.
   - Fixed: Arm forces don't always reset at the end of an action, which means that the avatar doesn't hold a pose that it should.
   - Fixed: `grasp_object()` will try to grasp an object that is already held. Now, if the object is held, it automatically returns `success`.
   - Fixed: Physics glitches due to there being too many objects in a held container. The avatar will try to fill a container with up to 2 objects and no more. `put_in_container()` will return `full_container` if the container is "full".
+  - Fixed: The "sleep threshold" of the simulation is too high, causing objects to sometimes float in midair.
   - Fixed: the aiming of `put_in_container()` is inaccurate. The avatar will now make multiple attempts to position an object over the container.
-  - Adjusted the scale of all containers, the mass of all containers, and the mass of all target objects.
+  - Fixed: `grasp_object()` often stops with a `success` status before the object is grasped.
 - `BodyPartStatic`:
   - Renamed `color` to `segmentation_color`.
 - Removed example controllers that are obsolete or aren't good examples of how to code a controller that is actually usable (as opposed to being a demo):
