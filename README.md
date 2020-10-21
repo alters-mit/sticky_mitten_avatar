@@ -75,12 +75,11 @@ To do something per-frame, regardless of whether the avatar is in the middle of 
 
 All example controllers can be found in: `controllers/`
 
-| Controller                   | Description                                                  |
-| ---------------------------- | ------------------------------------------------------------ |
-| `put_object_in_container.py` | Put an object in a container.                                |
-| `fill_and_pour.py`           | Fill a container with objects and then pour them out.        |
-| `shake_demo.py`              | An avatar shakes two different containers with different audio properties. |
-| `social_image.py`            | Generate the social image for the GitHub preview card.       |
+| Controller            | Description                                            |
+| --------------------- | ------------------------------------------------------ |
+| `fill_and_pour.py`    | Fill a container with objects and then pour them out.  |
+| `social_image.py`     | Generate the social image for the GitHub preview card. |
+| `initialize_scene.py` | Initialize a floorplan populated with objects.         |
 
 ## Tests
 

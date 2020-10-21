@@ -158,7 +158,7 @@ class Avatar(ABC):
             elif name == "mitten_right":
                 self.mitten_ids[Arm.right] = body_part_id
             bps = BodyPartStatic(object_id=body_part_id,
-                                 color=smsc.get_body_part_segmentation_color(i),
+                                 segmentation_color=smsc.get_body_part_segmentation_color(i),
                                  name=name,
                                  mass=mass)
             self.body_parts_static[body_part_id] = bps

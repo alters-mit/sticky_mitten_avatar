@@ -5,7 +5,7 @@
 ### Frontend
 
 - `StickyMittenAvatarController`:
-- Added: `pour_out_container()` Pour out the contents of a container.
+  - Added: `pour_out_container()` Pour out the contents of a container.
   - Fixed: `grasp_object()` often stops with a `success` status before the object is grasped.
   -  Added optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
   - Fixed: The timestep is different if `demo == True` resulting in different simulation behavior.
@@ -14,6 +14,8 @@
   - Fixed: Physics glitches due to there being too many objects in a held container. The avatar will try to fill a container with up to 2 objects and no more. `put_in_container()` will return `full_container` if the container is "full".
   - Fixed: the aiming of `put_in_container()` is inaccurate. The avatar will now make multiple attempts to position an object over the container.
   - Adjusted the scale of all containers, the mass of all containers, and the mass of all target objects.
+- `BodyPartStatic`:
+  - Renamed `color` to `segmentation_color`.
 - Removed example controllers that are obsolete or aren't good examples of how to code a controller that is actually usable (as opposed to being a demo):
   -  `put_in_held_container.py`
   - `put_object_in_container.py`
