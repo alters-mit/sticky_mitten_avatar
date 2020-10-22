@@ -9,6 +9,7 @@
   - Fixed: Occupancy maps are inaccurate.
   - Fixed: Containers and target objects are sometimes initially positioned in mid-air.
   - Fixed: Containers and target objects are sometimes initially positioned where the avatar can't reach them.
+  - Reduced the list of possible target objects.
 
 ### Backend
 
