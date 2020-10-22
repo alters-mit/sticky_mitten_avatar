@@ -1153,7 +1153,7 @@ class StickyMittenAvatarController(FloorplanController):
                     sleeping = rigidbodies.get_sleeping(i) or np.linalg.norm(rigidbodies.get_velocity(i)) < 0.1
                     break
         overlap_ids = self._get_objects_in_container(container_id=container_id)
-        if container_id not in overlap_ids or object_id not in overlap_ids:
+        if object_id not in overlap_ids:
             self._end_task()
             return TaskStatus.not_in_container
         else:
@@ -1200,6 +1200,7 @@ class StickyMittenAvatarController(FloorplanController):
         # Lift the arm to tilt the container.
         self.reach_for_target(arm=arm, target={"x": -0.3 if arm == Arm.left else 0.3, "y": 0.6, "z": 0.35},
                               check_if_possible=False, stop_on_mitten_collision=False, precision=0.2)
+        self._roll_wrist(arm=arm, angle=90)
 
         # Wait for the objects to stop moving.
         resp = self.communicate({"$type": "send_rigidbodies",

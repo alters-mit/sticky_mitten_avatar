@@ -18,6 +18,7 @@
   - Fixed: `grasp_object()` often stops with a `success` status before the object is grasped.
   - Fixed: objects that are stacked on top of one another in a container are sometimes not counted as being in the container.
   - Fixed: `reset_arm()` allows the arms to be too floppy.
+  - Fixed: The avatar's grip is looser than it should be.
 - `BodyPartStatic`:
   - Renamed `color` to `segmentation_color`.
 - Removed example controllers that are obsolete or aren't good examples of how to code a controller that is actually usable (as opposed to being a demo):
@@ -33,6 +34,7 @@
 - Added backend functionality to roll the wrist (which makes it easy for the avatar to put objects in a container).
 - The scale of all containers, the mass of all containers, and the mass of all target objects are all constants in `util.py` so that the demo controllers can use them too.
 - Added: `precision_test.py` Test how precision affects arm articulation.
+- Removed: `in_box_test.py`
 
 ## 0.6.2
 

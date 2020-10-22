@@ -107,6 +107,8 @@ class Avatar(ABC):
 
     ANGLE_ORDER = ["shoulder_pitch", "shoulder_yaw", "shoulder_roll", "elbow_pitch", "wrist_roll", "wrist_pitch"]
 
+    _GRIP = 10000
+
     def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False):
         """
         :param resp: The response from the build after creating the avatar.
@@ -403,12 +405,12 @@ class Avatar(ABC):
                         commands.extend([{"$type": "pick_up_proximity",
                                           "distance": 0.02,
                                           "radius": 0.1,
-                                          "grip": 1000,
+                                          "grip": 10000,
                                           "is_left": arm == Arm.left,
                                           "avatar_id": self.id,
                                           "object_ids": [self._ik_goals[arm].pick_up_id]},
                                          {"$type": "pick_up",
-                                          "grip": 1000,
+                                          "grip": 10000,
                                           "is_left": arm == Arm.left,
                                           "object_ids": [self._ik_goals[arm].pick_up_id],
                                           "avatar_id": self.id}])
