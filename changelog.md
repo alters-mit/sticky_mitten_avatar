@@ -14,6 +14,7 @@
 ### Backend
 
 - Added: `precision_test.py` Test how precision affects arm articulation.
+- Added: `proc_gen_spawn_test.py` Test whether target objects and containers tend to stay in their initial positions.
 - Added: `reachable_surface_maps/` which includes arrays of booleans. If True, the position is a floor or low-lying surface.
 - Recalculated all arrays in `y_maps/`
 - `occupancy_mapper.py` generates more accurate maps and can create reachable surface maps (see above).

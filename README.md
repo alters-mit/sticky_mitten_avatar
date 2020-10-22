@@ -93,6 +93,7 @@ All example controllers can be found in: `controllers/`
 | `mitten_collision_test.py` | Test mitten collision detection.                             |
 | `in_box_test.py`           | Test the algorithm for checking whether an object is in a container. |
 | `precision_test.py`        | Test how the `precision` parameter affects arm articulation. |
+| `proc_gen_spawn_test.py`   | Test whether target objects and containers tend to stay in their initial positions. |
 
 ## Utility Scripts
 
