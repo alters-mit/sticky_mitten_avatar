@@ -6,6 +6,7 @@
 
 - `StickyMittenAvatarController`:
   - Added optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
+  - Reduced the list of possible target objects.
 
 ### Backend
 
