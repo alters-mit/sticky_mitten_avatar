@@ -181,7 +181,7 @@ class StickyMittenAvatarController(FloorplanController):
                     {"$type": "set_render_quality",
                      "render_quality": 5},
                     {"$type": "set_physics_solver_iterations",
-                     "iterations": 32},
+                     "iterations": 16},
                     {"$type": "set_vignette",
                      "enabled": False},
                     {"$type": "set_shadow_strength",
