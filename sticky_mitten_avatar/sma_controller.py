@@ -1065,7 +1065,6 @@ class StickyMittenAvatarController(FloorplanController):
 
         # A "full" container has too many objects such that physics might glitch.
         overlap_ids = self._get_objects_in_container(container_id=container_id)
-        overlap_ids = [overlap_id for overlap_id in overlap_ids if overlap_id != container_id]
         if len(overlap_ids) > 4:
             self._end_task()
             return TaskStatus.full_container
@@ -1205,7 +1204,7 @@ class StickyMittenAvatarController(FloorplanController):
         # Wait for the objects to stop moving.
         resp = self.communicate({"$type": "send_rigidbodies",
                                  "frequency": "always",
-                                 "ids": [int(o_id) for o_id in overlap_ids if int(o_id) != container_id]})
+                                 "ids": overlap_ids})
         moving = True
         while moving:
             rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
@@ -1219,7 +1218,6 @@ class StickyMittenAvatarController(FloorplanController):
 
         # Get all of the objects in the container. If there aren't any, this task succeeded.
         overlap_ids = self._get_objects_in_container(container_id=container_id)
-        overlap_ids = [overlap_id for overlap_id in overlap_ids if overlap_id != container_id]
         self._end_task()
 
         return TaskStatus.success if len(overlap_ids) == 0 else TaskStatus.still_in_container
@@ -1361,7 +1359,8 @@ class StickyMittenAvatarController(FloorplanController):
         else:
             raise Exception(f"Bad shape for {name}: {shape}")
         overlap = get_data(resp=resp, d_type=Overlap)
-        return overlap.get_object_ids()
+        return [int(o_id) for o_id in overlap.get_object_ids() if int(o_id) != container_id and int(o_id) in
+                self.static_object_info.keys()]
 
     def _destroy_avatar(self, avatar_id: str) -> None:
         """
