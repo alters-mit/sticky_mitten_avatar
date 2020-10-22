@@ -17,7 +17,7 @@ from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD, \
     OCCUPANCY_CELL_SIZE
 from sticky_mitten_avatar.paths import SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, \
-    ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, TARGET_OBJECTS_PATH, COMPOSITE_OBJECT_AUDIO_PATH
+    ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, TARGET_OBJECTS_PATH, COMPOSITE_OBJECT_AUDIO_PATH, SURFACE_MAP_DIRECTORY
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -1431,6 +1431,7 @@ class StickyMittenAvatarController(FloorplanController):
             if scene is not None and layout is not None:
                 room_map = np.load(str(ROOM_MAP_DIRECTORY.joinpath(f"{scene[0]}.npy").resolve()))
                 ys_map = np.load(str(Y_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
+                surface_map = np.load(str(SURFACE_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
 
                 # Get all "placeable" positions in the room.
                 rooms: Dict[int, List[Tuple[int, int]]] = dict()
@@ -1440,7 +1441,7 @@ class StickyMittenAvatarController(FloorplanController):
                     for ix, iy in np.ndindex(room_map.shape):
                         if room_map[ix][iy] == i:
                             # If this is the floor or a low-lying surface, add the position.
-                            if 0 <= ys_map[ix][iy] <= 0.5:
+                            if surface_map[ix][iy]:
                                 placeable_positions.append((ix, iy))
                     if len(placeable_positions) > 0:
                         rooms[i] = placeable_positions
@@ -1497,7 +1498,7 @@ class StickyMittenAvatarController(FloorplanController):
                 # Set the goal positions.
                 goals: List[float] = list()
                 for ix, iy in np.ndindex(ys_map.shape):
-                    if 0.03 <= ys_map[ix][iy] <= 0.5:
+                    if surface_map[ix][iy] and 0.05 <= ys_map[ix][iy] <= 0.5:
                         free, x, z = self.get_occupancy_position(ix, iy)
                         goals.extend([x, ys_map[ix][iy], z])
                 self.goal_positions = np.array(goals).reshape(-1, 3)
