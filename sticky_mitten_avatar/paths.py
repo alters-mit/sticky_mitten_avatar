@@ -11,6 +11,7 @@ SCENE_DATA_DIRECTORY = Path(resource_filename(__name__, "scene_data"))
 OCCUPANCY_MAP_DIRECTORY = SCENE_DATA_DIRECTORY.joinpath("occupancy_maps")
 # The directory of maps of y values per floorplan.
 Y_MAP_DIRECTORY = SCENE_DATA_DIRECTORY.joinpath("y_maps")
+SURFACE_MAP_DIRECTORY = SCENE_DATA_DIRECTORY.joinpath("reachable_surface_maps")
 # The map of positions per room per scene.
 ROOM_MAP_DIRECTORY = SCENE_DATA_DIRECTORY.joinpath("room_maps")
 # The path to the scene bounds data.
