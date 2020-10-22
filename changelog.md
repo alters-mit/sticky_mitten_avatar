@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.6.3
+## 0.7.0
 
 ### Frontend
 
@@ -22,7 +22,7 @@
 - `BodyPartStatic`:
   - Renamed `color` to `segmentation_color`.
 - Removed example controllers that are obsolete or aren't good examples of how to code a controller that is actually usable (as opposed to being a demo):
-  -  `put_in_held_container.py`
+  - `put_in_held_container.py`
   - `put_object_in_container.py`
   - `shake_demo.py` (and all of the files it uses)
 - Added: `fill_and_pour.py` example controller. Fill a container and pour the contents out.
@@ -31,10 +31,21 @@
 
 ### Backend
 
+- Removed: `in_box_test.py`
 - Added backend functionality to roll the wrist (which makes it easy for the avatar to put objects in a container).
 - The scale of all containers, the mass of all containers, and the mass of all target objects are all constants in `util.py` so that the demo controllers can use them too.
+
+## 0.6.3
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Added optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
+  - Reduced the list of possible target objects.
+
+### Backend
+
 - Added: `precision_test.py` Test how precision affects arm articulation.
-- Removed: `in_box_test.py`
 
 ## 0.6.2
 
