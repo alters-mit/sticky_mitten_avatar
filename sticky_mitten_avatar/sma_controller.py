@@ -1341,10 +1341,7 @@ class StickyMittenAvatarController(FloorplanController):
                 rot = np.array(tr.get_rotation(i))
                 pos = np.array(tr.get_position(i))
 
-        # If the container is upside-down, then the object is not in the container.
         up = QuaternionUtils.get_up_direction(rot)
-        if up[1] < 0:
-            return np.array([])
 
         # Get the shape of the container.
         name = self.static_object_info[container_id].model_name
