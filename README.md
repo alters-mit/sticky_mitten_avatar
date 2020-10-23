@@ -91,6 +91,7 @@ All example controllers can be found in: `controllers/`
 | `composite_object_test.py` | Test if the avatar can grasp a sub-object of a composite object. |
 | `mitten_collision_test.py` | Test mitten collision detection.                             |
 | `precision_test.py`        | Test how the `precision` parameter affects arm articulation. |
+| `proc_gen_spawn_test.py`   | Test whether target objects and containers tend to stay in their initial positions. |
 
 ## Utility Scripts
 
