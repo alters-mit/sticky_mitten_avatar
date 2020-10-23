@@ -248,6 +248,14 @@ class StickyMittenAvatarController(FloorplanController):
         :param room: The index of the room that the avatar will spawn in the center of. If `scene` or `layout` is None, the avatar will spawn in at (0, 0, 0). If `room == -1` the room will be chosen randomly.
         """
 
+        # Clear all static info.
+        self._target_object_ids: List[int] = list()
+        self._avatar_commands: List[dict] = []
+        self._audio_values: Dict[int, ObjectInfo] = dict()
+        self.static_object_info: Dict[int, StaticObjectInfo] = dict()
+        self.static_avatar_info: Dict[int, BodyPartStatic] = dict()
+        self._cam_commands: Optional[list] = None
+
         # Initialize the scene.
         self.communicate(self._get_scene_init_commands(scene=scene, layout=layout))
 

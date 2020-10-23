@@ -45,6 +45,7 @@
   - Fixed: Occupancy maps are inaccurate.
   - Fixed: Containers and target objects are sometimes initially positioned in mid-air.
   - Fixed: Containers and target objects are sometimes initially positioned where the avatar can't reach them.
+  - Fixed: Static data is not reset when the scene is reset.
   - Reduced the list of possible target objects.
   - `goal_positions` is now a dictionary of room indices, model names, and positions.
 
