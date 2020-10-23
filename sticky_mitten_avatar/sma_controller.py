@@ -215,7 +215,10 @@ class StickyMittenAvatarController(FloorplanController):
 
     def init_scene(self, scene: str = None, layout: int = None, room: int = -1) -> None:
         """
-        Initialize a scene, populate it with objects, add the avatar, and set rendering options.
+        Initialize a scene, populate it with objects, and add the avatar.
+
+        **Always call this function before any other API calls.**
+
         The controller by default will load a simple empty room:
 
         ```python
@@ -243,6 +246,8 @@ class StickyMittenAvatarController(FloorplanController):
         | 2a, 2b, or 2c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7, 8 |
         | 4a, 4b, or 4c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7 |
         | 5a, 5b, or 5c | 0, 1, or 2 | 0, 1, 2, 3 |
+
+        You can safely call `init_scene()` more than once to reset the simulation.
 
         :param scene: The name of an interior floorplan scene. If None, the controller will load a simple empty room.
         :param layout: The furniture layout of the floorplan. If None, the controller will load a simple empty room.
@@ -1342,10 +1347,7 @@ class StickyMittenAvatarController(FloorplanController):
                 rot = np.array(tr.get_rotation(i))
                 pos = np.array(tr.get_position(i))
 
-        # If the container is upside-down, then the object is not in the container.
         up = QuaternionUtils.get_up_direction(rot)
-        if up[1] < 0:
-            return np.array([])
 
         # Get the shape of the container.
         name = self.static_object_info[container_id].model_name
