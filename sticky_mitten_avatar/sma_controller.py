@@ -114,8 +114,8 @@ class StickyMittenAvatarController(FloorplanController):
     print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.42542076110839844)
     ```
 
-    - `goal_positions` Target positions for the avatar to move objects to as a numpy array. Shape: `(-1, 3)` (x, y, z)
-      These positions are all on surfaces above floor-level.
+    - `goal_positions` A dictionary of possible goal positions.
+      Format: `{room_index: "model_name": [pos0, pos1, pos2]}`
 
     ```python
     c.init_scene(scene="2a", layout=1)
@@ -153,7 +153,7 @@ class StickyMittenAvatarController(FloorplanController):
         # Create an empty occupancy map.
         self.occupancy_map: Optional[np.array] = None
         self._scene_bounds: Optional[dict] = None
-        self.goal_positions: Optional[np.array] = None
+        self.goal_positions: Optional[dict] = None
         # The IDs of each target object.
         self._target_object_ids: List[int] = list()
 
@@ -1431,7 +1431,6 @@ class StickyMittenAvatarController(FloorplanController):
             if scene is not None and layout is not None:
                 room_map = np.load(str(ROOM_MAP_DIRECTORY.joinpath(f"{scene[0]}.npy").resolve()))
                 ys_map = np.load(str(Y_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
-                surface_map = np.load(str(SURFACE_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
 
                 # Get all "placeable" positions in the room.
                 rooms: Dict[int, List[Tuple[int, int]]] = dict()
@@ -1440,8 +1439,8 @@ class StickyMittenAvatarController(FloorplanController):
                     placeable_positions: List[Tuple[int, int]] = list()
                     for ix, iy in np.ndindex(room_map.shape):
                         if room_map[ix][iy] == i:
-                            # If this is the floor or a low-lying surface, add the position.
-                            if surface_map[ix][iy]:
+                            # If this is the floor, add the position.
+                            if self.occupancy_map[ix][iy] == 1:
                                 placeable_positions.append((ix, iy))
                     if len(placeable_positions) > 0:
                         rooms[i] = placeable_positions
@@ -1464,6 +1463,9 @@ class StickyMittenAvatarController(FloorplanController):
                                                      scale={"x": 0.5, "y": 0.5, "z": 0.5},
                                                      audio=self._default_audio_values[container_name],
                                                      model_name=container_name)[1])
+                    # Mark this space as occupied.
+                    self.occupancy_map[ix][iy] = 0
+
                 # Pick a room to add target objects.
                 target_objects: Dict[str, float] = dict()
                 with open(str(TARGET_OBJECTS_PATH.resolve())) as csvfile:
@@ -1495,13 +1497,14 @@ class StickyMittenAvatarController(FloorplanController):
                     self._target_object_ids.append(object_id)
                     commands.extend(object_commands)
 
+                    # Mark this space as occupied.
+                    self.occupancy_map[ix][iy] = 0
+
                 # Set the goal positions.
-                goals: List[float] = list()
-                for ix, iy in np.ndindex(ys_map.shape):
-                    if surface_map[ix][iy] and 0.05 <= ys_map[ix][iy] <= 0.5:
-                        free, x, z = self.get_occupancy_position(ix, iy)
-                        goals.extend([x, ys_map[ix][iy], z])
-                self.goal_positions = np.array(goals).reshape(-1, 3)
+                goal_positions = loads(SURFACE_MAP_DIRECTORY.read_text(encoding="utf-8"))
+                self.goal_positions = dict()
+                for k in goal_positions:
+                    self.goal_positions[int(k)] = goal_positions[k]
 
             return commands
 

@@ -1,12 +1,12 @@
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import numpy as np
 from json import dumps
 from tdw.floorplan_controller import FloorplanController
-from tdw.output_data import Raycast, Version
+from tdw.output_data import Raycast, Version, SegmentationColors
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.util import OCCUPANCY_CELL_SIZE, get_data
 from sticky_mitten_avatar.paths import OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, Y_MAP_DIRECTORY, \
-    SURFACE_MAP_DIRECTORY
+    SURFACE_MAP_DIRECTORY, ROOM_MAP_DIRECTORY
 from sticky_mitten_avatar.environments import Environments
 
 
@@ -27,6 +27,7 @@ if __name__ == "__main__":
         for layout in [0, 1, 2]:
             positions = list()
             y_values = list()
+            object_ids = list()
             # Load the scene and layout.
             commands = c.get_scene_init_commands(scene=scene + "a", layout=layout, audio=False)
             # Get the locations and sizes of each room.
@@ -34,10 +35,17 @@ if __name__ == "__main__":
                               "show": False},
                              {"$type": "remove_position_markers"},
                              {"$type": "send_environments"},
-                             {"$type": "send_version"}])
+                             {"$type": "send_version"},
+                             {"$type": "send_segmentation_colors"}])
+            # noinspection DuplicatedCode
             resp = c.communicate(commands)
             env = Environments(resp=resp)
             is_standalone = get_data(resp=resp, d_type=Version).get_standalone()
+            # Cache the names of all objects.
+            segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
+            object_names: Dict[int, str] = dict()
+            for i in range(segmentation_colors.get_num()):
+                object_names[segmentation_colors.get_object_id(i)] = segmentation_colors.get_object_name(i)
 
             # Cache the environment data.
             if scene not in bounds:
@@ -51,8 +59,9 @@ if __name__ == "__main__":
                 z = env.z_min
                 pos_row: List[int] = list()
                 ys_row: List[float] = list()
+                ids_row: List[int] = list()
                 while z < env.z_max:
-                    surface = False
+                    object_id = None
                     origin = {"x": x, "y": 3.5, "z": z}
                     destination = {"x": x, "y": -1, "z": z}
                     # Spherecast at the "cell".
@@ -89,7 +98,10 @@ if __name__ == "__main__":
                                                   "destination": destination})
                             raycast = Raycast(resp[0])
                             y = raycast.get_point()[1]
-                            if raycast.get_hit_object() and 0.01 < y < 0.45 and not is_standalone:
+                            hit_object = raycast.get_hit_object()
+                            if hit_object:
+                                object_id = raycast.get_object_id()
+                            if hit_object and 0.03 < y < 0.45 and not is_standalone:
                                 c.communicate({"$type": "add_position_marker",
                                                "position": TDWUtils.array_to_vector3(raycast.get_point()),
                                                "color": {"r": 0, "g": 1, "b": 0, "a": 1},
@@ -103,34 +115,52 @@ if __name__ == "__main__":
                                                "position": {"x": x, "y": 0, "z": z}})
                     pos_row.append(occupied)
                     ys_row.append(y)
+                    ids_row.append(object_id)
                     z += OCCUPANCY_CELL_SIZE
                 positions.append(pos_row)
                 y_values.append(ys_row)
+                object_ids.append(ids_row)
                 x += OCCUPANCY_CELL_SIZE
 
             # Calculate reachable surfaces.
             positions = np.array(positions)
             y_values = np.array(y_values)
-            reachable_surfaces = np.zeros(positions.shape, dtype=bool)
+            object_ids = np.array(object_ids)
 
-            # Calculate reachable surfaces.
+            # Load the room map.
+            room_map = np.load(str(ROOM_MAP_DIRECTORY.joinpath(f"{scene[0]}.npy").resolve()))
+
+            surfaces: Dict[int, Dict[str, List[Tuple[int, int]]]] = dict()
+
+            # Calculate surfaces.
             for ix, iy in np.ndindex(positions.shape):
-                # Get something low-lying in the scene.
-                if positions[ix][iy] == 2 or y_values[ix][iy] > 0.45:
+                # Ignore positions that aren't objects, aren't in the scene, or too high.
+                if object_ids[ix][iy] is None or positions[ix][iy] == 2 or y_values[ix][iy] < 0.03 or\
+                        y_values[ix][iy] > 0.45:
                     continue
-                elif positions[ix][iy] == 1:
-                    reachable_surfaces[ix][iy] = True
-                    continue
+                # Check if the avatar can reach this position.
+                reachable = False
                 for jx, jy in np.ndindex(positions.shape):
-                    if positions[jx][jy] == 1 and np.linalg.norm(np.array([ix, iy]) - np.array([jx, jy])) <= 3:
-                        reachable_surfaces[ix][iy] = True
+                    if positions[jx][jy] == 1 and np.linalg.norm(np.array([ix, iy]) - np.array([jx, jy])) <= 1.5:
+                        reachable = True
                         break
-
+                if reachable:
+                    # Get the room that the position is in.
+                    room = int(room_map[ix][iy])
+                    if room not in surfaces:
+                        surfaces[room] = dict()
+                    # Add the position to the dictionary.
+                    object_name = object_names[object_ids[ix][iy]]
+                    if object_name not in surfaces[room]:
+                        surfaces[room][object_name] = list()
+                    surfaces[room][object_name].append((ix, iy))
             # Save the numpy data.
             save_filename = f"{scene}_{layout}"
             np.save(str(OCCUPANCY_MAP_DIRECTORY.joinpath(save_filename).resolve()), positions)
             np.save(str(Y_MAP_DIRECTORY.joinpath(save_filename).resolve()), y_values)
-            np.save(str(SURFACE_MAP_DIRECTORY.joinpath(save_filename).resolve()), reachable_surfaces)
+
+            # Save the surface data.
+            SURFACE_MAP_DIRECTORY.joinpath(save_filename).write_text(dumps(surfaces, sort_keys=True))
             print(scene, layout)
             if not is_standalone:
                 c.communicate({"$type": "pause_editor"})
