@@ -18,6 +18,7 @@
 - Added: `proc_gen_spawn_test.py` Test whether target objects and containers tend to stay in their initial positions.
 - Added: `surface_maps/` which includes arrays of booleans. If True, the position is a floor or low-lying surface.
 - `occupancy_mapper.py` generates more accurate maps and creates surface maps.
+- Added: `object_data/target_object_materials.txt` Valid materials for a target object.
 
 ## 0.6.2
 
