@@ -160,7 +160,7 @@ if __name__ == "__main__":
             np.save(str(Y_MAP_DIRECTORY.joinpath(save_filename).resolve()), y_values)
 
             # Save the surface data.
-            SURFACE_MAP_DIRECTORY.joinpath(save_filename).write_text(dumps(surfaces, sort_keys=True))
+            SURFACE_MAP_DIRECTORY.joinpath(save_filename + ".json").write_text(dumps(surfaces, sort_keys=True))
             print(scene, layout)
             if not is_standalone:
                 c.communicate({"$type": "pause_editor"})
