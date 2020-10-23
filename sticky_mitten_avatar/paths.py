@@ -25,3 +25,5 @@ OBJECT_DATA_DIRECTORY = Path(resource_filename(__name__, "object_data"))
 TARGET_OBJECTS_PATH = OBJECT_DATA_DIRECTORY.joinpath("target_objects.csv")
 # The path to composite object audio data.
 COMPOSITE_OBJECT_AUDIO_PATH = OBJECT_DATA_DIRECTORY.joinpath("composite_object_audio.json")
+# The path to the visual materials for target objects.
+TARGET_OBJECT_MATERIALS_PATH = OBJECT_DATA_DIRECTORY.joinpath("target_object_materials.txt")

@@ -9,6 +9,8 @@
   -  Added: optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
   -  Added: optional parameter `num_attempts` to `put_in_container()` to adjust the number of attempts it makes before dropping the object.
   -  Adjusted the scale of all containers, the mass of all containers, and the mass of all target objects.
+  -  Added two more target objects.
+  -  Target objects now have a random visual material.
   - Fixed: The timestep is different if `demo == True` resulting in different simulation behavior.
   - Fixed: Arm forces don't always reset at the end of an action, which means that the avatar doesn't hold a pose that it should.
   - Fixed: `grasp_object()` will try to grasp an object that is already held. Now, if the object is held, it automatically returns `success`.
@@ -33,6 +35,7 @@
 ### Backend
 
 - Removed: `in_box_test.py`
+- Added: `target_object_test.py`
 - Added backend functionality to roll the wrist (which makes it easy for the avatar to put objects in a container).
 - The scale of all containers, the mass of all containers, and the mass of all target objects are all constants in `util.py` so that the demo controllers can use them too.
 
