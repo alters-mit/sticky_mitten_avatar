@@ -4,6 +4,7 @@ from json import dumps
 from tdw.floorplan_controller import FloorplanController
 from tdw.output_data import Raycast, Version, SegmentationColors
 from tdw.tdw_utils import TDWUtils
+from tdw.librarian import ModelLibrarian
 from sticky_mitten_avatar.util import OCCUPANCY_CELL_SIZE, get_data
 from sticky_mitten_avatar.paths import OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, Y_MAP_DIRECTORY, \
     SURFACE_MAP_DIRECTORY, ROOM_MAP_DIRECTORY
@@ -17,6 +18,10 @@ Save the results to a file.
 
 
 if __name__ == "__main__":
+    # Valid categories of surface models.
+    surface_categories = ["coffee table", "cocktail table", "table", "bed", "sofa", "chair", "bench", "trunk"]
+    lib = ModelLibrarian()
+
     c = FloorplanController(launch_build=False)
     # This is the minimum size of a surface.
 
@@ -41,11 +46,19 @@ if __name__ == "__main__":
             resp = c.communicate(commands)
             env = Environments(resp=resp)
             is_standalone = get_data(resp=resp, d_type=Version).get_standalone()
-            # Cache the names of all objects.
+            # Cache the names of all objects and get all surface models.
             segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
             object_names: Dict[int, str] = dict()
+            surface_ids: List[int] = list()
             for i in range(segmentation_colors.get_num()):
-                object_names[segmentation_colors.get_object_id(i)] = segmentation_colors.get_object_name(i)
+                object_name = segmentation_colors.get_object_name(i).lower()
+                object_id = segmentation_colors.get_object_id(i)
+                object_names[object_id] = object_name
+                record = lib.get_record(object_name)
+                # Check if this is a surface.
+                # The record might be None if this is a composite object.
+                if record is not None and record.wcategory in surface_categories:
+                    surface_ids.append(object_id)
 
             # Cache the environment data.
             if scene not in bounds:
@@ -133,9 +146,9 @@ if __name__ == "__main__":
 
             # Calculate surfaces.
             for ix, iy in np.ndindex(positions.shape):
-                # Ignore positions that aren't objects, aren't in the scene, or too high.
+                # Ignore positions that aren't objects, aren't in the scene, or too high, or not a surface.
                 if object_ids[ix][iy] is None or positions[ix][iy] == 2 or y_values[ix][iy] < 0.03 or\
-                        y_values[ix][iy] > 0.45:
+                        y_values[ix][iy] > 0.45 or object_ids[ix][iy] not in surface_ids:
                     continue
                 # Get the room that the position is in.
                 room = int(room_map[ix][iy])

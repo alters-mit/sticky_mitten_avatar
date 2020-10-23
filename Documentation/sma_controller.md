@@ -132,7 +132,8 @@ for room in c.goal_positions:
 
 **`def init_scene(self, scene: str = None, layout: int = None, room: int = -1) -> None`**
 
-Initialize a scene, populate it with objects, add the avatar, and set rendering options.
+Initialize a scene, populate it with objects, and add the avatar.
+**Always call this function before any other API calls.**
 The controller by default will load a simple empty room:
 ```python
 from sticky_mitten_avatar import StickyMittenAvatarController
@@ -153,6 +154,7 @@ Valid scenes, layouts, and rooms:
 | 2a, 2b, or 2c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7, 8 |
 | 4a, 4b, or 4c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7 |
 | 5a, 5b, or 5c | 0, 1, or 2 | 0, 1, 2, 3 |
+You can safely call `init_scene()` more than once to reset the simulation.
 
 | Parameter | Description |
 | --- | --- |
