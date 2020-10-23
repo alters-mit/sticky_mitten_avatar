@@ -1501,7 +1501,8 @@ class StickyMittenAvatarController(FloorplanController):
                     self.occupancy_map[ix][iy] = 0
 
                 # Set the goal positions.
-                goal_positions = loads(SURFACE_MAP_DIRECTORY.read_text(encoding="utf-8"))
+                goal_positions = loads(SURFACE_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.json").
+                                       read_text(encoding="utf-8"))
                 self.goal_positions = dict()
                 for k in goal_positions:
                     self.goal_positions[int(k)] = goal_positions[k]
