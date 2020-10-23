@@ -6,11 +6,18 @@
 
 - `StickyMittenAvatarController`:
   - Added optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
+  - Fixed: Occupancy maps are inaccurate.
+  - Fixed: Containers and target objects are sometimes initially positioned in mid-air.
+  - Fixed: Containers and target objects are sometimes initially positioned where the avatar can't reach them.
   - Reduced the list of possible target objects.
+  - `goal_positions` is now a dictionary of room indices, model names, and positions.
 
 ### Backend
 
 - Added: `precision_test.py` Test how precision affects arm articulation.
+- Added: `proc_gen_spawn_test.py` Test whether target objects and containers tend to stay in their initial positions.
+- Added: `surface_maps/` which includes arrays of booleans. If True, the position is a floor or low-lying surface.
+- `occupancy_mapper.py` generates more accurate maps and creates surface maps.
 
 ## 0.6.2
 

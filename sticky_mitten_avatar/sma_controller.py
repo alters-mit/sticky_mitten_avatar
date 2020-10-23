@@ -17,7 +17,7 @@ from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD, \
     OCCUPANCY_CELL_SIZE
 from sticky_mitten_avatar.paths import SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, \
-    ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, TARGET_OBJECTS_PATH, COMPOSITE_OBJECT_AUDIO_PATH
+    ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, TARGET_OBJECTS_PATH, COMPOSITE_OBJECT_AUDIO_PATH, SURFACE_MAP_DIRECTORY
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -114,8 +114,8 @@ class StickyMittenAvatarController(FloorplanController):
     print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.42542076110839844)
     ```
 
-    - `goal_positions` Target positions for the avatar to move objects to as a numpy array. Shape: `(-1, 3)` (x, y, z)
-      These positions are all on surfaces above floor-level.
+    - `goal_positions` A dictionary of possible goal positions.
+      Format: `{room_index: "model_name": [pos0, pos1, pos2]}`
 
     ```python
     c.init_scene(scene="2a", layout=1)
@@ -153,7 +153,7 @@ class StickyMittenAvatarController(FloorplanController):
         # Create an empty occupancy map.
         self.occupancy_map: Optional[np.array] = None
         self._scene_bounds: Optional[dict] = None
-        self.goal_positions: Optional[np.array] = None
+        self.goal_positions: Optional[dict] = None
         # The IDs of each target object.
         self._target_object_ids: List[int] = list()
 
@@ -1439,8 +1439,8 @@ class StickyMittenAvatarController(FloorplanController):
                     placeable_positions: List[Tuple[int, int]] = list()
                     for ix, iy in np.ndindex(room_map.shape):
                         if room_map[ix][iy] == i:
-                            # If this is the floor or a low-lying surface, add the position.
-                            if 0 <= ys_map[ix][iy] <= 0.5:
+                            # If this is the floor, add the position.
+                            if self.occupancy_map[ix][iy] == 1:
                                 placeable_positions.append((ix, iy))
                     if len(placeable_positions) > 0:
                         rooms[i] = placeable_positions
@@ -1463,6 +1463,9 @@ class StickyMittenAvatarController(FloorplanController):
                                                      scale={"x": 0.5, "y": 0.5, "z": 0.5},
                                                      audio=self._default_audio_values[container_name],
                                                      model_name=container_name)[1])
+                    # Mark this space as occupied.
+                    self.occupancy_map[ix][iy] = 0
+
                 # Pick a room to add target objects.
                 target_objects: Dict[str, float] = dict()
                 with open(str(TARGET_OBJECTS_PATH.resolve())) as csvfile:
@@ -1494,13 +1497,15 @@ class StickyMittenAvatarController(FloorplanController):
                     self._target_object_ids.append(object_id)
                     commands.extend(object_commands)
 
+                    # Mark this space as occupied.
+                    self.occupancy_map[ix][iy] = 0
+
                 # Set the goal positions.
-                goals: List[float] = list()
-                for ix, iy in np.ndindex(ys_map.shape):
-                    if 0.03 <= ys_map[ix][iy] <= 0.5:
-                        free, x, z = self.get_occupancy_position(ix, iy)
-                        goals.extend([x, ys_map[ix][iy], z])
-                self.goal_positions = np.array(goals).reshape(-1, 3)
+                goal_positions = loads(SURFACE_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.json").
+                                       read_text(encoding="utf-8"))
+                self.goal_positions = dict()
+                for k in goal_positions:
+                    self.goal_positions[int(k)] = goal_positions[k]
 
             return commands
 
