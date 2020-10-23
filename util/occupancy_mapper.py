@@ -88,9 +88,8 @@ if __name__ == "__main__":
                     else:
                         # This space is occupied if:
                         # 1. The spherecast hit any objects.
-                        # 2. There is a high variance between y values (implying a non-flat surface).
-                        # 3. The surface is very low (implying a floor).
-                        if any(hit_objs) and np.var(np.array(ys)) > 0.1 or max(ys) > 0.01:
+                        # 2. The surface is higher than floor level (such that carpets are ignored).
+                        if any(hit_objs) and max(ys) > 0.01:
                             occupied = 0
                             # Raycast to get the y value.
                             resp = c.communicate({"$type": "send_raycast",
@@ -138,6 +137,11 @@ if __name__ == "__main__":
                 if object_ids[ix][iy] is None or positions[ix][iy] == 2 or y_values[ix][iy] < 0.03 or\
                         y_values[ix][iy] > 0.45:
                     continue
+                # Get the room that the position is in.
+                room = int(room_map[ix][iy])
+                # Ignore objects that aren't in a zone that has been demarcated as a room.
+                if room < 0:
+                    continue
                 # Check if the avatar can reach this position.
                 reachable = False
                 for jx, jy in np.ndindex(positions.shape):
@@ -145,8 +149,6 @@ if __name__ == "__main__":
                         reachable = True
                         break
                 if reachable:
-                    # Get the room that the position is in.
-                    room = int(room_map[ix][iy])
                     if room not in surfaces:
                         surfaces[room] = dict()
                     # Add the position to the dictionary.

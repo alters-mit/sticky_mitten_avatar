@@ -97,9 +97,14 @@ print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.4254207
   Format: `{room_index: "model_name": [pos0, pos1, pos2]}`
 
 ```python
-c.init_scene(scene="2a", layout=1)
+from sticky_mitten_avatar import StickyMittenAvatarController
 
-print(c.goal_positions[0]) # [-10.25364399   0.49080563  -1.42542076]
+c = StickyMittenAvatarController()
+c.init_scene(scene="2a", layout=1)
+for room in c.goal_positions:
+    print(f"Room {room}:") # Room 1:
+    for model_name in c.goal_positions[room]:
+        print(model_name, c.goal_positions[room][model_name]) # ligne_roset_armchair [[4, 10]]
 ```
 
 ## Functions
