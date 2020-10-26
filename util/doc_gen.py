@@ -28,9 +28,13 @@ class PyDocGen:
                 # Add the name of the class
                 class_name = re.search("class (.*):", lines[i]).group(1)
                 doc += f"## `{class_name}`\n\n"
-                # Add an example.
-                class_example = f"`from tdw.{filename[:-3].replace('/', '.')} import " + re.sub(r"(.*)\((.*)\)", r'\1',
-                                                                                                class_name) + "`"
+
+                import_name = re.sub(r"(.*)\((.*)\)", r'\1', class_name)
+                if import_name in ["StickyMittenAvatarController", "Arm"]:
+                    class_example = f"`from sticky_mitten_avatar import "
+                else:
+                    class_example = f"`from sticky_mitten_avatar.{filename[:-3].replace('/', '.')} import "
+                class_example += import_name + "`"
                 doc += class_example + "\n\n"
                 doc += PyDocGen.get_class_description(lines, i)
                 # Parse an enum.
