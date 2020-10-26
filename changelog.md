@@ -13,6 +13,7 @@
   - Fixed: Static data is not reset when the scene is reset.
   - Reduced the list of possible target objects.
   - `goal_positions` is now a dictionary of room indices, model names, and positions.
+- Fixed: Example import statements in documentation are incorrect.
 
 ### Backend
 

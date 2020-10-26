@@ -2,7 +2,7 @@
 
 ## `FrameData`
 
-`from tdw.sticky_mitten_avatar.frame_data import FrameData`
+`from sticky_mitten_avatar.sticky_mitten_avatar.frame_data import FrameData`
 
 Per-frame data that an avatar can use to decide what action to do next.
 

@@ -2,7 +2,7 @@
 
 ## `StickyMittenAvatarController(FloorplanController)`
 
-`from tdw.sticky_mitten_avatar.sma_controller import StickyMittenAvatarController`
+`from sticky_mitten_avatar import StickyMittenAvatarController`
 
 High-level API controller for sticky mitten avatars.
 
