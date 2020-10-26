@@ -9,6 +9,7 @@
   -  Added: optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
   -  Added: optional parameter `num_attempts` to `put_in_container()` to adjust the number of attempts it makes before dropping the object.
   -  Adjusted the scale of all containers, the mass of all containers, and the mass of all target objects.
+  -  `reset_arm()` will return `TaskStatus.no_longer_bending` if the arm isn't close to its original position.
   - Fixed: The timestep is different if `demo == True` resulting in different simulation behavior.
   - Fixed: Arm forces don't always reset at the end of an action, which means that the avatar doesn't hold a pose that it should.
   - Fixed: `grasp_object()` will try to grasp an object that is already held. Now, if the object is held, it automatically returns `success`.

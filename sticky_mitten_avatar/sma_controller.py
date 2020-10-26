@@ -666,7 +666,8 @@ class StickyMittenAvatarController(FloorplanController):
 
         Possible [return values](task_status.md):
 
-        - `success` (The avatar's arm reset.)
+        - `success` (The arm reset to very close to its initial position.)
+        - `no_longer_bending` (The arm stopped bending before it reset, possibly due to an obstacle in the way.)
 
         :param arm: The arm that will be reset.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
@@ -678,7 +679,7 @@ class StickyMittenAvatarController(FloorplanController):
         if do_motion:
             self._do_joint_motion()
         self._end_task()
-        return TaskStatus.success
+        return self._avatar.status
 
     def _do_joint_motion(self) -> None:
         """

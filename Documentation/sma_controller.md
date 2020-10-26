@@ -258,7 +258,8 @@ Possible [return values](task_status.md):
 
 Reset an avatar's arm to its neutral positions.
 Possible [return values](task_status.md):
-- `success` (The avatar's arm reset.)
+- `success` (The arm reset to very close to its initial position.)
+- `no_longer_bending` (The arm stopped bending before it reset, possibly due to an obstacle in the way.)
 
 | Parameter | Description |
 | --- | --- |
