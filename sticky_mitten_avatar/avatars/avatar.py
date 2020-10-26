@@ -56,7 +56,7 @@ class _IKGoal:
     The goal of an IK action.
     """
 
-    def __init__(self, target: Union[np.array, list, None], pick_up_id: int = None,
+    def __init__(self, target: Union[np.array, list] = None, pick_up_id: int = None,
                  stop_on_mitten_collision: bool = False, rotations: Dict[str, float] = None, precision: float = 0.05):
         """
         :param pick_up_id: If not None, the ID of the object to pick up.
@@ -121,6 +121,9 @@ class Avatar(ABC):
         # Set the arm chains.
         self._arms: Dict[Arm, Chain] = {Arm.left: self._get_left_arm(),
                                         Arm.right: self._get_right_arm()}
+
+        self._initial_mitten_positions = self._get_initial_mitten_positions()
+
         # Any current IK goals.
         self._ik_goals: Dict[Arm, Optional[_IKGoal]] = {Arm.left: None,
                                                         Arm.right: None}
@@ -312,6 +315,18 @@ class Avatar(ABC):
         :return: A list of commands to pick up, stop moving, etc.
         """
 
+        def _get_mitten_position(a: Arm) -> np.array:
+            """
+            :param a: The arm.
+
+            :return: The position of a mitten.
+            """
+
+            if a == Arm.left:
+                return np.array(frame.get_mitten_center_left_position())
+            else:
+                return np.array(frame.get_mitten_center_right_position())
+
         # Update dynamic data.
         frame = self._get_frame(resp=resp)
         # Update dynamic collision data.
@@ -372,11 +387,7 @@ class Avatar(ABC):
                 temp_goals[arm] = self._ik_goals[arm]
             else:
                 # Is the arm at the target?
-                if arm == Arm.left:
-                    mitten_position = np.array(frame.get_mitten_center_left_position())
-                else:
-                    mitten_position = np.array(frame.get_mitten_center_right_position())
-
+                mitten_position = _get_mitten_position(arm)
                 # If we're not trying to pick something up, check if we are at the target position.
                 if self._ik_goals[arm].pick_up_id is None:
                     # If we're at the position, stop.
@@ -479,9 +490,21 @@ class Avatar(ABC):
                     temp_goals[arm] = self._ik_goals[arm]
                 else:
                     if self._ik_goals[arm].rotations is not None:
-                        if self._debug:
-                            print(f"{arm.name} is no longer bending. Cancelling.")
-                        self.status = TaskStatus.no_longer_bending
+                        # This is a reset arm action.
+                        if self._ik_goals[arm].target is None:
+                            mitten_position = _get_mitten_position(arm) - frame.get_position()
+                            d = np.linalg.norm(self._initial_mitten_positions[arm] - mitten_position)
+                            # The reset arm action ended with the mitten very close to the initial position.
+                            if d < self._ik_goals[arm].precision:
+                                self.status = TaskStatus.success
+                            else:
+                                self.status = TaskStatus.no_longer_bending
+                        # This is a regular action.
+                        # It ended with the arm no longer moving but having never reached the target.
+                        else:
+                            if self._debug:
+                                print(f"{arm.name} is no longer bending. Cancelling.")
+                            self.status = TaskStatus.no_longer_bending
                         commands.extend(self._stop_arm(arm=arm))
                     temp_goals[arm] = None
         self._ik_goals = temp_goals
@@ -529,18 +552,13 @@ class Avatar(ABC):
                              "axis": j.axis,
                              "angle": 0,
                              "avatar_id": self.id})
-        # Add some dummy IK goals.
-        self.set_dummy_ik_goals()
+
+        rotations = dict()
+        for c in self._arms[arm].links[1:-1]:
+            rotations[c.name] = 0
+        # Set the IK goal.
+        self._ik_goals[arm] = _IKGoal(rotations=rotations, precision=0.1)
         return commands
-
-    def set_dummy_ik_goals(self) -> None:
-        """
-        Set "dummy" IK goals.
-        There's no target, so the avatar will just bend the arms until they stop moving.
-        """
-
-        for arm in self._ik_goals:
-            self._ik_goals[arm] = _IKGoal(target=None)
 
     def is_holding(self, object_id: int) -> (bool, Arm):
         """
@@ -760,3 +778,11 @@ class Avatar(ABC):
 
         return self._get_sticky_mitten_profile(left=move if arm == Arm.left else fixed,
                                                right=move if arm == Arm.right else fixed)
+
+    @abstractmethod
+    def _get_initial_mitten_positions(self) -> Dict[Arm, np.array]:
+        """
+        :return: The initial positions of each mitten relative to the avatar.
+        """
+
+        raise Exception()

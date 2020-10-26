@@ -2,7 +2,7 @@
 
 ## `StaticObjectInfo`
 
-`from tdw.sticky_mitten_avatar.static_object_info import StaticObjectInfo`
+`from sticky_mitten_avatar.sticky_mitten_avatar.static_object_info import StaticObjectInfo`
 
 Info for an object that doesn't change between frames.
 

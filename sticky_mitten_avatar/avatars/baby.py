@@ -1,7 +1,8 @@
 import numpy as np
+from typing import Dict
 from ikpy.chain import Chain
 from ikpy.link import URDFLink, OriginLink
-from sticky_mitten_avatar.avatars.avatar import Avatar
+from sticky_mitten_avatar.avatars.avatar import Avatar, Arm
 
 
 class Baby(Avatar):
@@ -120,3 +121,7 @@ class Baby(Avatar):
 
     def _get_mass(self) -> float:
         return 80
+
+    def _get_initial_mitten_positions(self) -> Dict[Arm, np.array]:
+        return {Arm.left: np.array([-0.235, 0.08899292, 0.07500012]),
+                Arm.right: np.array([0.235, 0.08899292, 0.07500012])}
