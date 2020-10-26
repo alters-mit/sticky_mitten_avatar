@@ -5,6 +5,7 @@
 ### Frontend
 
 - `StickyMittenAvatarController`:
+  - Added: `segmentation_color_to_id` A dictionary of hashed colors mapped to object IDs.
   - Added optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
   - Added optional parameter `num_attempts` to `go_to()`, `move_forward_by()`, `turn_to()`, and `turn_by()`.
   - `get_occupancy_position()` returns `(float, float)` instead of `(bool, float, float)`.
@@ -14,6 +15,7 @@
   - Fixed: Static data is not reset when the scene is reset.
   - Reduced the list of possible target objects.
   - `goal_positions` is now a dictionary of room indices, model names, and positions.
+- Fixed: Example import statements in documentation are incorrect.
 
 ### Backend
 
