@@ -17,7 +17,8 @@ from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
 from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD, \
     OCCUPANCY_CELL_SIZE, TARGET_OBJECT_MASS, CONTAINER_MASS, CONTAINER_SCALE
 from sticky_mitten_avatar.paths import SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, \
-    ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, TARGET_OBJECTS_PATH, COMPOSITE_OBJECT_AUDIO_PATH, SURFACE_MAP_DIRECTORY
+    ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, TARGET_OBJECTS_PATH, COMPOSITE_OBJECT_AUDIO_PATH, SURFACE_MAP_DIRECTORY, \
+    TARGET_OBJECT_MATERIALS_PATH
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -1636,6 +1637,9 @@ class StickyMittenAvatarController(FloorplanController):
                         target_objects[row["name"]] = float(row["scale"])
                 target_object_names = list(target_objects.keys())
 
+                # Load a list of visual materials for target objects.
+                target_object_materials = TARGET_OBJECT_MATERIALS_PATH.read_text(encoding="utf-8").split("\n")
+                
                 # Get all positions in the room and shuffle the order.
                 target_room_positions = random.choice(list(rooms.values()))
                 random.shuffle(target_room_positions)
@@ -1658,6 +1662,15 @@ class StickyMittenAvatarController(FloorplanController):
                                                                   model_name=target_object_name)
                     self._target_object_ids.append(object_id)
                     commands.extend(object_commands)
+
+                    # Set a random visual material for each target object.
+                    visual_material = random.choice(target_object_materials)
+                    substructure = AudioInitData.LIBRARIES["models_core.json"].get_record(target_object_name).\
+                        substructure
+                    commands.extend(TDWUtils.set_visual_material(substructure=substructure,
+                                                                 material=visual_material,
+                                                                 object_id=object_id,
+                                                                 c=self))
 
                     # Mark this space as occupied.
                     self.occupancy_map[ix][iy] = 0
