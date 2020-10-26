@@ -89,6 +89,16 @@ class StickyMittenAvatarController(FloorplanController):
     segmentation_color = c.static_object_info[object_id].segmentation_color
     ```
 
+    - `segmentation_color_to_id` A dictionary. Key = a hashable representation of the object's segmentation color.
+      Value = The object ID. See `static_object_info` for a dictionary mapped to object ID with additional data.
+
+    ```python
+    for hashable_color in c.segmentation_color_to_id:
+        object_id = c.segmentation_color_to_id[hashable_color]
+    ```
+    
+      To convert an RGB array to a hashable integer, see: [`TDWUtils.color_to_hashable()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/tdw_utils.md).
+
     - `static_avatar_data` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API. Key = body part ID.
 
     ```python
@@ -177,6 +187,8 @@ class StickyMittenAvatarController(FloorplanController):
         self._cam_commands: Optional[list] = None
         self.frame: Optional[FrameData] = None
 
+        self.segmentation_color_to_id: Dict[int, int] = dict()
+
         super().__init__(port=port, launch_build=launch_build)
 
         # Set image encoding to .jpg
@@ -256,6 +268,7 @@ class StickyMittenAvatarController(FloorplanController):
         self._audio_values: Dict[int, ObjectInfo] = dict()
         self.static_object_info: Dict[int, StaticObjectInfo] = dict()
         self.static_avatar_info: Dict[int, BodyPartStatic] = dict()
+        self.segmentation_color_to_id: Dict[int, int] = dict()
         self._cam_commands: Optional[list] = None
 
         # Initialize the scene.
@@ -339,6 +352,11 @@ class StickyMittenAvatarController(FloorplanController):
                                              bounds=bounds,
                                              target_object=object_id in self._target_object_ids)
             self.static_object_info[static_object.object_id] = static_object
+        # Fill the segmentation color dictionary.
+        for object_id in self.static_object_info:
+            hashable_color = TDWUtils.color_to_hashable(self.static_object_info[object_id].segmentation_color)
+            self.segmentation_color_to_id[hashable_color] = object_id
+
         self._end_task()
 
     def _end_task(self, toggle_sensor: bool = True) -> None:
