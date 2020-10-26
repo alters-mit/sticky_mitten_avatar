@@ -2,7 +2,7 @@
 
 ## `TaskStatus(Enum)`
 
-`from tdw.sticky_mitten_avatar.task_status import TaskStatus`
+`from sticky_mitten_avatar.sticky_mitten_avatar.task_status import TaskStatus`
 
 The current status of an avatar: whether it is doing a task, succeeded at a task, or failed a task (and if so, why).
 

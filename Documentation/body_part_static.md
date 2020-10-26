@@ -2,7 +2,7 @@
 
 ## `BodyPartStatic`
 
-`from tdw.sticky_mitten_avatar.body_part_static import BodyPartStatic`
+`from sticky_mitten_avatar.sticky_mitten_avatar.body_part_static import BodyPartStatic`
 
 Static data for a body part in an avatar.
 

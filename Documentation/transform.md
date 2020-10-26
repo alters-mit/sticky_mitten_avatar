@@ -2,7 +2,7 @@
 
 ## `Transform`
 
-`from tdw.sticky_mitten_avatar.transform import Transform`
+`from sticky_mitten_avatar.sticky_mitten_avatar.transform import Transform`
 
 Transform data for an object, avatar, body part, etc.
 
