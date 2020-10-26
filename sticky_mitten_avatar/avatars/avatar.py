@@ -415,13 +415,13 @@ class Avatar(ABC):
                     else:
                         commands.extend([{"$type": "pick_up_proximity",
                                           "distance": 0.02,
-                                          "radius": 0.1,
-                                          "grip": 10000,
+                                          "radius": 0.05,
+                                          "grip": 1000,
                                           "is_left": arm == Arm.left,
                                           "avatar_id": self.id,
                                           "object_ids": [self._ik_goals[arm].pick_up_id]},
                                          {"$type": "pick_up",
-                                          "grip": 10000,
+                                          "grip": 1000,
                                           "is_left": arm == Arm.left,
                                           "object_ids": [self._ik_goals[arm].pick_up_id],
                                           "avatar_id": self.id}])
