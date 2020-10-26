@@ -42,6 +42,7 @@
 
 - `StickyMittenAvatarController`:
   - Added optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
+  - Added optional parameter `num_attempts` to `go_to()`, `move_forward_by()`, `turn_to()`, and `turn_by()`.
   - Fixed: Occupancy maps are inaccurate.
   - Fixed: Containers and target objects are sometimes initially positioned in mid-air.
   - Fixed: Containers and target objects are sometimes initially positioned where the avatar can't reach them.

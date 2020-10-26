@@ -269,19 +269,19 @@ Possible [return values](task_status.md):
 
 #### turn_to
 
-**`def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15) -> TaskStatus`**
+**`def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200) -> TaskStatus`**
 
 Turn the avatar to face a target position or object.
 Possible [return values](task_status.md):
 - `success` (The avatar turned to face the target.)
-- `turned_360`
-- `too_long`
+- `too_long` (The avatar made more attempts to turn than `num_attempts`.)
 
 | Parameter | Description |
 | --- | --- |
 | target | Either the target position or the ID of the target object. |
 | force | The force at which the avatar will turn. More force = faster, but might overshoot the target. |
 | stopping_threshold | Stop when the avatar is within this many degrees of the target. |
+| num_attempts | The avatar will apply more angular force this many times to complete the turn before giving up. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
 
@@ -289,18 +289,19 @@ _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and
 
 #### turn_by
 
-**`def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15) -> TaskStatus`**
+**`def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200) -> TaskStatus`**
 
 Turn the avatar by an angle.
 Possible [return values](task_status.md):
 - `success` (The avatar turned by the angle.)
-- `too_long`
+- `too_long` (The avatar made more attempts to turn than `num_attempts`.)
 
 | Parameter | Description |
 | --- | --- |
 | angle | The angle to turn to in degrees. If > 0, turn clockwise; if < 0, turn counterclockwise. |
 | force | The force at which the avatar will turn. More force = faster, but might overshoot the target. |
 | stopping_threshold | Stop when the avatar is within this many degrees of the target. |
+| num_attempts | The avatar will apply more angular force this many times to complete the turn before giving up. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
 
@@ -308,12 +309,12 @@ _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and
 
 #### go_to
 
-**`def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80, turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35, stop_on_collision: bool = True, turn: bool = True) -> TaskStatus`**
+**`def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80, turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35, stop_on_collision: bool = True, turn: bool = True, num_attempts: int = 200) -> TaskStatus`**
 
 Move the avatar to a target position or object.
 Possible [return values](task_status.md):
 - `success` (The avatar arrived at the target.)
-- `too_long`
+- `too_long` (The avatar made more attempts to move or to turn than `num_attempts`.)
 - `overshot`
 - `collided_with_something_heavy` (if `stop_on_collision == True`)
 - `collided_with_environment` (if `stop_on_collision == True`)
@@ -327,6 +328,7 @@ Possible [return values](task_status.md):
 | move_stopping_threshold | Stop within this distance of the target. |
 | stop_on_collision | If True, stop moving when the object collides with a large object (mass > 90) or the environment (e.g. a wall). |
 | turn | If True, try turning to face the target before moving. |
+| num_attempts | The avatar will apply more force this many times to complete the turn before giving up. |
 
 _Returns:_   A `TaskStatus` indicating whether the avatar arrived at the target and if not, why.
 
@@ -334,12 +336,12 @@ _Returns:_   A `TaskStatus` indicating whether the avatar arrived at the target 
 
 #### move_forward_by
 
-**`def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35, stop_on_collision: bool = True) -> TaskStatus`**
+**`def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35, stop_on_collision: bool = True, num_attempts: int = 200) -> TaskStatus`**
 
 Move the avatar forward by a distance along the avatar's current forward directional vector.
 Possible [return values](task_status.md):
 - `success` (The avatar moved forward by the distance.)
-- `too_long`
+- `too_long` (The avatar made more attempts to move than `num_attempts`.)
 - `overshot`
 - `collided_with_something_heavy` (if `stop_on_collision == True`)
 - `collided_with_environment` (if `stop_on_collision == True`)
@@ -350,6 +352,7 @@ Possible [return values](task_status.md):
 | move_force | The force at which the avatar will move. More force = faster, but might overshoot the target. |
 | move_stopping_threshold | Stop within this distance of the target. |
 | stop_on_collision | If True, stop moving when the object collides with a large object (mass > 90) or the environment (e.g. a wall). |
+| num_attempts | The avatar will apply more force this many times to complete the turn before giving up. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar moved forward by the distance and if not, why.
 
