@@ -33,6 +33,7 @@ if __name__ == "__main__":
             commands.append({"$type": "add_position_marker",
                              "position": {"x": x, "y": 0, "z": z},
                              "scale": 0.3})
+    # Create an overhead camera and capture an image.
     commands.extend(TDWUtils.create_avatar(avatar_id="c",
                                            position={"x": 0, "y": 31, "z": 0},
                                            look_at=TDWUtils.VECTOR3_ZERO))
@@ -44,7 +45,7 @@ if __name__ == "__main__":
                      {"$type": "send_images",
                       "ids": ["c"]}])
     resp = c.communicate(commands)
-    print(resp)
+    # Show the image.
     images = get_data(resp=resp, d_type=Images)
     pil_image = TDWUtils.get_pil_image(images, 0)
     pil_image.show()
