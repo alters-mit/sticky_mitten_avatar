@@ -710,19 +710,19 @@ class StickyMittenAvatarController(FloorplanController):
         self._avatar.status = TaskStatus.idle
 
     def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000,
-                stopping_threshold: float = 0.15) -> TaskStatus:
+                stopping_threshold: float = 0.15, num_attempts: int = 200) -> TaskStatus:
         """
         Turn the avatar to face a target position or object.
 
         Possible [return values](task_status.md):
 
         - `success` (The avatar turned to face the target.)
-        - `turned_360`
-        - `too_long`
+        - `too_long` (The avatar made more attempts to turn than `num_attempts`.)
 
         :param target: Either the target position or the ID of the target object.
         :param force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param stopping_threshold: Stop when the avatar is within this many degrees of the target.
+        :param num_attempts: The avatar will apply more angular force this many times to complete the turn before giving up.
 
         :return: A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
         """
@@ -775,7 +775,7 @@ class StickyMittenAvatarController(FloorplanController):
         # Begin to turn.
         self.communicate(turn_command)
         i = 0
-        while i < 200:
+        while i < num_attempts:
             # Coast to a stop.
             coasting = True
             while coasting:
@@ -806,18 +806,20 @@ class StickyMittenAvatarController(FloorplanController):
         self._stop_avatar()
         return TaskStatus.too_long
 
-    def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15) -> TaskStatus:
+    def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200) -> \
+            TaskStatus:
         """
         Turn the avatar by an angle.
 
         Possible [return values](task_status.md):
 
         - `success` (The avatar turned by the angle.)
-        - `too_long`
+        - `too_long` (The avatar made more attempts to turn than `num_attempts`.)
 
         :param angle: The angle to turn to in degrees. If > 0, turn clockwise; if < 0, turn counterclockwise.
         :param force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param stopping_threshold: Stop when the avatar is within this many degrees of the target.
+        :param num_attempts: The avatar will apply more angular force this many times to complete the turn before giving up.
 
         :return: A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
         """
@@ -827,18 +829,19 @@ class StickyMittenAvatarController(FloorplanController):
         p1 = rotate_point_around(origin=np.array([0, 0, 0]), point=p0, angle=angle)
         # Get a point to look at.
         p1 = np.array(self._avatar.frame.get_position()) + (p1 * 1000)
-        return self.turn_to(target=TDWUtils.array_to_vector3(p1), force=force, stopping_threshold=stopping_threshold)
+        return self.turn_to(target=TDWUtils.array_to_vector3(p1), force=force, stopping_threshold=stopping_threshold,
+                            num_attempts=num_attempts)
 
     def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80,
               turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35,
-              stop_on_collision: bool = True, turn: bool = True) -> TaskStatus:
+              stop_on_collision: bool = True, turn: bool = True, num_attempts: int = 200) -> TaskStatus:
         """
         Move the avatar to a target position or object.
 
         Possible [return values](task_status.md):
 
         - `success` (The avatar arrived at the target.)
-        - `too_long`
+        - `too_long` (The avatar made more attempts to move or to turn than `num_attempts`.)
         - `overshot`
         - `collided_with_something_heavy` (if `stop_on_collision == True`)
         - `collided_with_environment` (if `stop_on_collision == True`)
@@ -850,6 +853,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param move_stopping_threshold: Stop within this distance of the target.
         :param stop_on_collision: If True, stop moving when the object collides with a large object (mass > 90) or the environment (e.g. a wall).
         :param turn: If True, try turning to face the target before moving.
+        :param num_attempts: The avatar will apply more force this many times to complete the turn before giving up.
 
         :return:  A `TaskStatus` indicating whether the avatar arrived at the target and if not, why.
         """
@@ -901,7 +905,7 @@ class StickyMittenAvatarController(FloorplanController):
         if turn:
             # Turn to the target.
             status = self.turn_to(target=TDWUtils.array_to_vector3(target), force=turn_force,
-                                  stopping_threshold=turn_stopping_threshold)
+                                  stopping_threshold=turn_stopping_threshold, num_attempts=num_attempts)
             if status != TaskStatus.success:
                 self._stop_avatar()
                 return status
@@ -914,7 +918,7 @@ class StickyMittenAvatarController(FloorplanController):
                           "angular_drag": 100,
                           "avatar_id": self._avatar.id})
         i = 0
-        while i < 200:
+        while i < num_attempts:
             # Start gliding.
             self.communicate({"$type": "move_avatar_forward_by",
                               "magnitude": move_force,
@@ -941,14 +945,14 @@ class StickyMittenAvatarController(FloorplanController):
         return TaskStatus.too_long
 
     def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35,
-                        stop_on_collision: bool = True) -> TaskStatus:
+                        stop_on_collision: bool = True, num_attempts: int = 200) -> TaskStatus:
         """
         Move the avatar forward by a distance along the avatar's current forward directional vector.
 
         Possible [return values](task_status.md):
 
         - `success` (The avatar moved forward by the distance.)
-        - `too_long`
+        - `too_long` (The avatar made more attempts to move than `num_attempts`.)
         - `overshot`
         - `collided_with_something_heavy` (if `stop_on_collision == True`)
         - `collided_with_environment` (if `stop_on_collision == True`)
@@ -957,6 +961,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param move_force: The force at which the avatar will move. More force = faster, but might overshoot the target.
         :param move_stopping_threshold: Stop within this distance of the target.
         :param stop_on_collision: If True, stop moving when the object collides with a large object (mass > 90) or the environment (e.g. a wall).
+        :param num_attempts: The avatar will apply more force this many times to complete the turn before giving up.
 
         :return: A `TaskStatus` indicating whether the avatar moved forward by the distance and if not, why.
         """
@@ -964,7 +969,7 @@ class StickyMittenAvatarController(FloorplanController):
         # The target is at `distance` away from the avatar's position along the avatar's forward directional vector.
         target = np.array(self._avatar.frame.get_position()) + (np.array(self._avatar.frame.get_forward()) * distance)
         return self.go_to(target=target, move_force=move_force, move_stopping_threshold=move_stopping_threshold,
-                          stop_on_collision=stop_on_collision, turn=False)
+                          stop_on_collision=stop_on_collision, turn=False, num_attempts=num_attempts)
 
     def shake(self, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30),
               num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> TaskStatus:
