@@ -5,6 +5,7 @@
 ### Frontend
 
 - `StickyMittenAvatarController`:
+  - Added: `segmentation_color_to_id` A dictionary of hashed colors mapped to object IDs.
   - Added optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
   - Added optional parameter `num_attempts` to `go_to()`, `move_forward_by()`, `turn_to()`, and `turn_by()`.
   - Fixed: Occupancy maps are inaccurate.
