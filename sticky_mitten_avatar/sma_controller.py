@@ -111,7 +111,7 @@ class StickyMittenAvatarController(FloorplanController):
     c.init_scene(scene="2a", layout=1)
 
     print(c.occupancy_map[37][16]) # 0 (occupied)
-    print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.42542076110839844)
+    print(c.get_occupancy_position(37, 16)) # (1.5036439895629883, -0.42542076110839844)
     ```
 
     - `goal_positions` A dictionary of possible goal positions.
@@ -1368,21 +1368,21 @@ class StickyMittenAvatarController(FloorplanController):
 
         self.communicate({"$type": "terminate"})
 
-    def get_occupancy_position(self, i: int, j: int) -> Tuple[bool, float, float]:
+    def get_occupancy_position(self, i: int, j: int) -> Tuple[float, float]:
         """
         Converts the position (i, j) in the occupancy map to (x, z) coordinates.
 
         :param i: The i coordinate in the occupancy map.
         :param j: The j coordinate in the occupancy map.
 
-        :return: Tuple: True if the position is in the occupancy map; x coordinate; z coordinate.
+        :return: Tuple: x coordinate; z coordinate.
         """
 
         if self.occupancy_map is None or self._scene_bounds is None:
-            return False, 0, 0,
+            raise Exception(f"Position {i}, {j} is not on the occupancy map.")
         x = self._scene_bounds["x_min"] + (i * OCCUPANCY_CELL_SIZE)
         z = self._scene_bounds["z_min"] + (j * OCCUPANCY_CELL_SIZE)
-        return True, x, z
+        return x, z
 
     def _get_raycast_point(self, object_id: int, origin: np.array, forward: float = 0.2) -> (bool, np.array):
         """
@@ -1479,7 +1479,7 @@ class StickyMittenAvatarController(FloorplanController):
 
                     # Get the (x, z) coordinates for this position.
                     # The y coordinate is in `ys_map`.
-                    free, x, z = self.get_occupancy_position(ix, iy)
+                    x, z = self.get_occupancy_position(ix, iy)
                     container_name = random.choice(StaticObjectInfo.CONTAINERS)
                     commands.extend(self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
                                                      rotation={"x": 0, "y": random.uniform(-179, 179), "z": z},
@@ -1505,7 +1505,7 @@ class StickyMittenAvatarController(FloorplanController):
                     ix, iy = random.choice(target_room_positions)
                     # Get the (x, z) coordinates for this position.
                     # The y coordinate is in `ys_map`.
-                    free, x, z = self.get_occupancy_position(ix, iy)
+                    x, z = self.get_occupancy_position(ix, iy)
                     target_object_name = random.choice(target_object_names)
                     # Set custom object info for the target objects.
                     audio = ObjectInfo(name=target_object_name, mass=0.1, material=AudioMaterial.ceramic, resonance=0.6,
