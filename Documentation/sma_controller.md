@@ -67,6 +67,16 @@ depth_pass = c.frame.depth_pass
 segmentation_color = c.static_object_info[object_id].segmentation_color
 ```
 
+- `segmentation_color_to_id` A dictionary. Key = a hashable representation of the object's segmentation color.
+  Value = The object ID. See `static_object_info` for a dictionary mapped to object ID with additional data.
+
+```python
+for hashable_color in c.segmentation_color_to_id:
+    object_id = c.segmentation_color_to_id[hashable_color]
+```
+
+  To convert an RGB array to a hashable integer, see: [`TDWUtils.color_to_hashable()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/tdw_utils.md).
+
 - `static_avatar_data` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API. Key = body part ID.
 
 ```python
