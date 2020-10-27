@@ -35,6 +35,8 @@
 
 ### Backend
 
+- Removed a lot of unused code from `StickyMittenAvatarController` and `FrameData`.
+- Refactored `StickyMittenAvatarControllerinit_scene()` so that it requires only 1 frame and 1 function.
 - Removed: `in_box_test.py`
 - Added: `target_object_test.py`
 - Added backend functionality to roll the wrist (which makes it easy for the avatar to put objects in a container).
