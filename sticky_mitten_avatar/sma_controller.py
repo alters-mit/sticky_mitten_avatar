@@ -1352,7 +1352,7 @@ class StickyMittenAvatarController(FloorplanController):
         elif images == "all":
             commands.append({"$type": "send_images",
                              "frequency": "always"})
-        self.communicate(commands)
+        self._avatar_commands.extend(commands)
 
     def _get_objects_in_container(self, container_id: int) -> np.array:
         """
