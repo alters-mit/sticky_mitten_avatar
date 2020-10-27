@@ -147,7 +147,7 @@ class StickyMittenAvatarController(FloorplanController):
     _STOP_DRAG = 1000
 
     def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True,
-                 audio: bool = False, screen_width: int = 256, screen_height: int = 256):
+                 audio: bool = False, screen_width: int = 256, screen_height: int = 256, debug: bool = False):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
@@ -156,8 +156,10 @@ class StickyMittenAvatarController(FloorplanController):
         :param audio: If True, include audio data in the FrameData.
         :param screen_width: The width of the screen in pixels.
         :param screen_height: The height of the screen in pixels.
+        :param debug: If True, debug mode will be enabled.
         """
 
+        self._debug = debug
         self._id_pass = id_pass
         self._audio = audio
 
@@ -272,39 +274,11 @@ class StickyMittenAvatarController(FloorplanController):
         self._cam_commands: Optional[list] = None
 
         # Initialize the scene.
-        self.communicate(self._get_scene_init_commands(scene=scene, layout=layout))
+        resp = self.communicate(self._get_scene_init_commands(scene=scene, layout=layout, room=room))
+        self._avatar = Baby(debug=self._debug, resp=resp)
+        # Cache the avatar.
+        self.static_avatar_info = self._avatar.body_parts_static
 
-        # Create the avatar.
-        self._init_avatar()
-
-        commands = [{"$type": "send_collisions",
-                     "enter": True,
-                     "stay": False,
-                     "exit": False,
-                     "collision_types": ["obj", "env"]},
-                    {"$type": "send_segmentation_colors",
-                     "frequency": "once"},
-                    {"$type": "send_composite_objects",
-                     "frequency": "once"},
-                    {"$type": "send_rigidbodies",
-                     "frequency": "once"},
-                    {"$type": "send_transforms",
-                     "frequency": "once"},
-                    {"$type": "send_bounds",
-                     "frequency": "once"}]
-
-        # Teleport the avatar to a room.
-        if scene is not None and layout is not None and room is not None:
-            rooms = loads(SPAWN_POSITIONS_PATH.read_text())[scene[0]][str(layout)]
-            if room == -1:
-                room = random.randint(0, len(rooms) - 1)
-            assert 0 <= room < len(rooms), f"Invalid room: {room}"
-            commands.append({"$type": "teleport_avatar_to",
-                             "avatar_id": "a",
-                             "position": rooms[room]})
-
-        # Request SegmentationColors and CompositeObjects for this frame only.
-        resp = self.communicate(commands)
         # Parse composite object audio data.
         segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
         # Get the name of each object.
@@ -387,94 +361,6 @@ class StickyMittenAvatarController(FloorplanController):
         resp = self.communicate(commands)
         # Update the frame data.
         self.frame = FrameData(resp=resp, objects=self.static_object_info, avatar=self._avatar, audio=self._audio)
-
-    def _create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None,
-                       rotation: float = 0, debug: bool = False) -> None:
-        """
-        Create an avatar. Set default values for the avatar. Cache its static data (segmentation colors, etc.)
-
-        :param avatar_type: The type of avatar. Options: "baby", "adult"
-        :param avatar_id: The unique ID of the avatar.
-        :param position: The initial position of the avatar.
-        :param rotation: The initial rotation of the avatar in degrees.
-        :param debug: If true, print debug messages when the avatar moves.
-        """
-
-        if avatar_type == "baby":
-            avatar_type = "A_StickyMitten_Baby"
-        elif avatar_type == "adult":
-            avatar_type = "A_StickyMitten_Adult"
-        else:
-            raise Exception(f'Avatar type not found: {avatar_type}\nOptions: "baby", "adult"')
-
-        if position is None:
-            position = {"x": 0, "y": 0, "z": 0}
-
-        commands = TDWUtils.create_avatar(avatar_type=avatar_type,
-                                          avatar_id=avatar_id,
-                                          position=position)[:]
-
-        if self._id_pass:
-            pass_masks = ["_img", "_id", "_depth"]
-        else:
-            pass_masks = ["_img", "_depth"]
-        # Rotate the avatar.
-        # Request segmentation colors, body part names, and dynamic avatar data.
-        # Turn off the follow camera.
-        # Set the palms to sticky.
-        # Enable image capture.
-        commands.extend([{"$type": "rotate_avatar_by",
-                          "angle": rotation,
-                          "axis": "yaw",
-                          "is_world": True,
-                          "avatar_id": avatar_id},
-                         {"$type": "send_avatar_segmentation_colors",
-                          "frequency": "once",
-                          "ids": [avatar_id]},
-                         {"$type": "send_avatars",
-                          "frequency": "always"},
-                         {"$type": "set_avatar_drag",
-                          "drag": self._STOP_DRAG,
-                          "angular_drag": self._STOP_DRAG,
-                          "avatar_id": avatar_id},
-                         {"$type": "set_pass_masks",
-                          "pass_masks": pass_masks,
-                          "avatar_id": avatar_id},
-                         {"$type": "toggle_image_sensor",
-                          "sensor_name": "FollowCamera",
-                          "avatar_id": avatar_id}])
-        if not self._demo:
-            commands.append({"$type": "toggle_image_sensor",
-                             "sensor_name": "SensorContainer",
-                             "avatar_id": avatar_id})
-        # Set all sides of both mittens to be sticky.
-        for sub_mitten in ["palm", "back", "side"]:
-            for is_left in [True, False]:
-                commands.append({"$type": "set_stickiness",
-                                 "sub_mitten": sub_mitten,
-                                 "sticky": True,
-                                 "is_left": is_left,
-                                 "avatar_id": avatar_id,
-                                 "show": False})
-
-        if self._demo:
-            commands.append({"$type": "add_audio_sensor",
-                             "avatar_id": avatar_id})
-
-        # Send the commands. Get a response.
-        resp = self.communicate(commands)
-        # Create the avatar.
-        if avatar_type == "A_StickyMitten_Baby":
-            avatar = Baby(avatar_id=avatar_id, debug=debug, resp=resp)
-        else:
-            raise Exception(f"Avatar not defined: {avatar_type}")
-        # Cache the avatar.
-        self._avatar = avatar
-
-        # Set the joint values profile.
-        commands.append(self._avatar.get_default_sticky_mitten_profile())
-
-        self.static_avatar_info = self._avatar.body_parts_static
 
     def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
         """
@@ -1586,17 +1472,23 @@ class StickyMittenAvatarController(FloorplanController):
                              "y_pos_offset": 0.1})
         return commands
 
-    def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
+    def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
         """
         Get commands to initialize the scene before adding avatars.
 
         :param scene: The name of the scene. Can be None.
         :param layout: The layout index. Can be None.
+        :param room: The room number. If -1, the room is chosen randomly.
 
         :return: A list of commands to initialize the scene. Override this function for a different "scene recipe".
         """
 
-        if scene is not None and layout is not None:
+        if scene is None or layout is None:
+            commands = [{"$type": "load_scene",
+                         "scene_name": "ProcGenScene"},
+                        TDWUtils.create_empty_room(12, 12)]
+            avatar_position = TDWUtils.VECTOR3_ZERO
+        else:
             commands = self.get_scene_init_commands(scene=scene, layout=layout, audio=True)
 
             # Make all non-kinematic objects NavMesh obstacles.
@@ -1613,118 +1505,172 @@ class StickyMittenAvatarController(FloorplanController):
                 str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
             self._scene_bounds = loads(SCENE_BOUNDS_PATH.read_text())[scene[0]]
 
-            # Procedurally add containers and target objects.
-            if scene is not None and layout is not None:
-                room_map = np.load(str(ROOM_MAP_DIRECTORY.joinpath(f"{scene[0]}.npy").resolve()))
-                ys_map = np.load(str(Y_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
+            room_map = np.load(str(ROOM_MAP_DIRECTORY.joinpath(f"{scene[0]}.npy").resolve()))
+            ys_map = np.load(str(Y_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
 
-                # Get all "placeable" positions in the room.
-                rooms: Dict[int, List[Tuple[int, int]]] = dict()
-                for i in range(0, np.amax(room_map)):
-                    # Get all free positions in the room.
-                    placeable_positions: List[Tuple[int, int]] = list()
-                    for ix, iy in np.ndindex(room_map.shape):
-                        if room_map[ix][iy] == i:
-                            # If this is the floor, add the position.
-                            if self.occupancy_map[ix][iy] == 1:
-                                placeable_positions.append((ix, iy))
-                    if len(placeable_positions) > 0:
-                        rooms[i] = placeable_positions
+            # Get all "placeable" positions in the room.
+            rooms: Dict[int, List[Tuple[int, int]]] = dict()
+            for i in range(0, np.amax(room_map)):
+                # Get all free positions in the room.
+                placeable_positions: List[Tuple[int, int]] = list()
+                for ix, iy in np.ndindex(room_map.shape):
+                    if room_map[ix][iy] == i:
+                        # If this is the floor, add the position.
+                        if self.occupancy_map[ix][iy] == 1:
+                            placeable_positions.append((ix, iy))
+                if len(placeable_positions) > 0:
+                    rooms[i] = placeable_positions
 
-                # Add 0-1 containers per room.
-                for room in list(rooms.keys()):
-                    # Maybe don't add a container in this room.
-                    if random.random() < 0.25:
-                        continue
+            # Add 0-1 containers per room.
+            for room in list(rooms.keys()):
+                # Maybe don't add a container in this room.
+                if random.random() < 0.25:
+                    continue
 
-                    # Get a random position in the room.
-                    ix, iy = random.choice(rooms[room])
+                proc_gen_positions = rooms[room][:]
+                random.shuffle(proc_gen_positions)
+                # Get a random position in the room.
+                ix, iy = random.choice(rooms[room])
 
-                    # Get the (x, z) coordinates for this position.
-                    # The y coordinate is in `ys_map`.
-                    x, z = self.get_occupancy_position(ix, iy)
-                    container_name = random.choice(StaticObjectInfo.CONTAINERS)
-                    container_id, container_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
-                                                                        rotation={"x": 0,
-                                                                                  "y": random.uniform(-179, 179),
-                                                                                  "z": z},
-                                                                        scale=CONTAINER_SCALE,
-                                                                        audio=self._default_audio_values[
-                                                                            container_name],
-                                                                        model_name=container_name)
-                    commands.extend(container_commands)
-                    # Make the container much lighter.
-                    commands.append({"$type": "set_mass",
-                                     "id": container_id,
-                                     "mass": CONTAINER_MASS})
-                    # Mark this space as occupied.
-                    self.occupancy_map[ix][iy] = 0
+                # Get the (x, z) coordinates for this position.
+                # The y coordinate is in `ys_map`.
+                x, z = self.get_occupancy_position(ix, iy)
+                container_name = random.choice(StaticObjectInfo.CONTAINERS)
+                container_id, container_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
+                                                                    rotation={"x": 0,
+                                                                              "y": random.uniform(-179, 179),
+                                                                              "z": z},
+                                                                    scale=CONTAINER_SCALE,
+                                                                    audio=self._default_audio_values[
+                                                                        container_name],
+                                                                    model_name=container_name)
+                commands.extend(container_commands)
+                # Make the container much lighter.
+                commands.append({"$type": "set_mass",
+                                 "id": container_id,
+                                 "mass": CONTAINER_MASS})
+                # Mark this space as occupied.
+                self.occupancy_map[ix][iy] = 0
 
-                # Pick a room to add target objects.
-                target_objects: Dict[str, float] = dict()
-                with open(str(TARGET_OBJECTS_PATH.resolve())) as csvfile:
-                    reader = DictReader(csvfile)
-                    for row in reader:
-                        target_objects[row["name"]] = float(row["scale"])
-                target_object_names = list(target_objects.keys())
+            # Pick a room to add target objects.
+            target_objects: Dict[str, float] = dict()
+            with open(str(TARGET_OBJECTS_PATH.resolve())) as csvfile:
+                reader = DictReader(csvfile)
+                for row in reader:
+                    target_objects[row["name"]] = float(row["scale"])
+            target_object_names = list(target_objects.keys())
 
-                # Load a list of visual materials for target objects.
-                target_object_materials = TARGET_OBJECT_MATERIALS_PATH.read_text(encoding="utf-8").split("\n")
-                
-                # Get all positions in the room and shuffle the order.
-                target_room_positions = random.choice(list(rooms.values()))
-                random.shuffle(target_room_positions)
-                # Add the objects.
-                for i in range(random.randint(8, 12)):
-                    ix, iy = random.choice(target_room_positions)
-                    # Get the (x, z) coordinates for this position.
-                    # The y coordinate is in `ys_map`.
-                    x, z = self.get_occupancy_position(ix, iy)
-                    target_object_name = random.choice(target_object_names)
-                    # Set custom object info for the target objects.
-                    audio = ObjectInfo(name=target_object_name, mass=TARGET_OBJECT_MASS, material=AudioMaterial.ceramic,
-                                       resonance=0.6, amp=0.01, library="models_core.json", bounciness=0.5)
-                    scale = target_objects[target_object_name]
-                    object_id, object_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
-                                                                  rotation={"x": 0, "y": random.uniform(-179, 179),
-                                                                            "z": z},
-                                                                  scale={"x": scale, "y": scale, "z": scale},
-                                                                  audio=audio,
-                                                                  model_name=target_object_name)
-                    self._target_object_ids.append(object_id)
-                    commands.extend(object_commands)
+            # Load a list of visual materials for target objects.
+            target_object_materials = TARGET_OBJECT_MATERIALS_PATH.read_text(encoding="utf-8").split("\n")
 
-                    # Set a random visual material for each target object.
-                    visual_material = random.choice(target_object_materials)
-                    substructure = AudioInitData.LIBRARIES["models_core.json"].get_record(target_object_name).\
-                        substructure
-                    commands.extend(TDWUtils.set_visual_material(substructure=substructure,
-                                                                 material=visual_material,
-                                                                 object_id=object_id,
-                                                                 c=self))
+            # Get all positions in the room and shuffle the order.
+            target_room_positions = random.choice(list(rooms.values()))
+            random.shuffle(target_room_positions)
+            # Add the objects.
+            for i in range(random.randint(8, 12)):
+                ix, iy = random.choice(target_room_positions)
+                # Get the (x, z) coordinates for this position.
+                # The y coordinate is in `ys_map`.
+                x, z = self.get_occupancy_position(ix, iy)
+                target_object_name = random.choice(target_object_names)
+                # Set custom object info for the target objects.
+                audio = ObjectInfo(name=target_object_name, mass=TARGET_OBJECT_MASS, material=AudioMaterial.ceramic,
+                                   resonance=0.6, amp=0.01, library="models_core.json", bounciness=0.5)
+                scale = target_objects[target_object_name]
+                object_id, object_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
+                                                              rotation={"x": 0, "y": random.uniform(-179, 179),
+                                                                        "z": z},
+                                                              scale={"x": scale, "y": scale, "z": scale},
+                                                              audio=audio,
+                                                              model_name=target_object_name)
+                self._target_object_ids.append(object_id)
+                commands.extend(object_commands)
 
-                    # Mark this space as occupied.
-                    self.occupancy_map[ix][iy] = 0
+                # Set a random visual material for each target object.
+                visual_material = random.choice(target_object_materials)
+                substructure = AudioInitData.LIBRARIES["models_core.json"].get_record(target_object_name). \
+                    substructure
+                commands.extend(TDWUtils.set_visual_material(substructure=substructure,
+                                                             material=visual_material,
+                                                             object_id=object_id,
+                                                             c=self))
 
-                # Set the goal positions.
-                goal_positions = loads(SURFACE_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.json").
-                                       read_text(encoding="utf-8"))
-                self.goal_positions = dict()
-                for k in goal_positions:
-                    self.goal_positions[int(k)] = goal_positions[k]
+                # Mark this space as occupied.
+                self.occupancy_map[ix][iy] = 0
 
-            return commands
+            # Set the goal positions.
+            goal_positions = loads(SURFACE_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.json").
+                                   read_text(encoding="utf-8"))
+            self.goal_positions = dict()
+            for k in goal_positions:
+                self.goal_positions[int(k)] = goal_positions[k]
 
-        return [{"$type": "load_scene",
-                 "scene_name": "ProcGenScene"},
-                TDWUtils.create_empty_room(12, 12)]
+            # Set the initial position of the avatar.
+            rooms = loads(SPAWN_POSITIONS_PATH.read_text())[scene[0]][str(layout)]
+            if room == -1:
+                room = random.randint(0, len(rooms) - 1)
+            assert 0 <= room < len(rooms), f"Invalid room: {room}"
+            avatar_position = rooms[room]
 
-    def _init_avatar(self) -> None:
-        """
-        Initialize the avatar.
-        """
+        # Create the avatar.
+        commands.extend(TDWUtils.create_avatar(avatar_type="A_StickyMitten_Baby", avatar_id="a"))
 
-        self._create_avatar(avatar_id="a")
+        if self._id_pass:
+            pass_masks = ["_img", "_id", "_depth"]
+        else:
+            pass_masks = ["_img", "_depth"]
+
+        # Request segmentation colors, body part names, and dynamic avatar data.
+        # Turn off the follow camera.
+        # Set the palms to sticky.
+        # Enable image capture.
+        # Teleport the avatar to its initial position.
+        # Set the initial joint values.
+        commands.extend([{"$type": "send_avatar_segmentation_colors"},
+                         {"$type": "send_avatars",
+                          "frequency": "always"},
+                         {"$type": "set_avatar_drag",
+                          "drag": self._STOP_DRAG,
+                          "angular_drag": self._STOP_DRAG},
+                         {"$type": "set_pass_masks",
+                          "pass_masks": pass_masks},
+                         {"$type": "toggle_image_sensor",
+                          "sensor_name": "FollowCamera"},
+                         {"$type": "teleport_avatar_to",
+                          "avatar_id": "a",
+                          "position": avatar_position},
+                         self._avatar.get_default_sticky_mitten_profile()])
+        if not self._demo:
+            commands.append({"$type": "toggle_image_sensor",
+                             "sensor_name": "SensorContainer"})
+        # Set all sides of both mittens to be sticky.
+        for sub_mitten in ["palm", "back", "side"]:
+            for is_left in [True, False]:
+                commands.append({"$type": "set_stickiness",
+                                 "sub_mitten": sub_mitten,
+                                 "sticky": True,
+                                 "is_left": is_left,
+                                 "show": False})
+
+        # Request initial output data.
+        commands.extend([{"$type": "send_collisions",
+                          "enter": True,
+                          "stay": False,
+                          "exit": False,
+                          "collision_types": ["obj", "env"]},
+                         {"$type": "send_segmentation_colors",
+                          "frequency": "once"},
+                         {"$type": "send_composite_objects",
+                          "frequency": "once"},
+                         {"$type": "send_rigidbodies",
+                          "frequency": "once"},
+                         {"$type": "send_transforms",
+                          "frequency": "once"},
+                         {"$type": "send_bounds",
+                          "frequency": "once"}])
+
+        return commands
+
 
     def _get_avatar_status(self) -> TaskStatus:
         """
