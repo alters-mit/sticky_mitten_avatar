@@ -60,7 +60,7 @@ depth_pass = c.frame.depth_pass
 # etc.
 ```
 
-- `static_object_data`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
+- `static_object_info`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
 
 ```python
 # Get the segmentation color of an object.
@@ -77,7 +77,7 @@ for hashable_color in c.segmentation_color_to_id:
 
   To convert an RGB array to a hashable integer, see: [`TDWUtils.color_to_hashable()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/tdw_utils.md).
 
-- `static_avatar_data` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API. Key = body part ID.
+- `static_avatar_info` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API. Key = body part ID.
 
 ```python
 for body_part_id in c.static_avatar_data:
@@ -123,18 +123,18 @@ for room in c.goal_positions:
 
 #### \_\_init\_\_
 
-**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True, audio: bool = False, screen_width: int = 256, screen_height: int = 256)`**
+**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True, screen_width: int = 256, screen_height: int = 256, debug: bool = False)`**
 
 
 | Parameter | Description |
 | --- | --- |
 | port | The port number. |
 | launch_build | If True, automatically launch the build. |
-| demo | If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step. |
+| demo | If True, this is a demo controller. All frames will be rendered. |
 | id_pass | If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run somewhat slower. |
-| audio | If True, include audio data in the FrameData. |
 | screen_width | The width of the screen in pixels. |
 | screen_height | The height of the screen in pixels. |
+| debug | If True, debug mode will be enabled. |
 
 ***
 

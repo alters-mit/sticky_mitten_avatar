@@ -2,10 +2,9 @@ from io import BytesIO
 from PIL import Image
 from pathlib import Path
 import numpy as np
-from typing import List, Dict, Optional, Tuple, Union
+from typing import List, Dict, Optional, Union
 from tdw.controller import Controller
 from tdw.output_data import OutputData, Rigidbodies, Images, Transforms, CameraMatrices
-from tdw.py_impact import AudioMaterial, Base64Sound
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.avatars.avatar import Avatar
 from sticky_mitten_avatar.util import get_data
