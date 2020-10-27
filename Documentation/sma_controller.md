@@ -100,7 +100,7 @@ for body_part_id in c.static_avatar_data:
 c.init_scene(scene="2a", layout=1)
 
 print(c.occupancy_map[37][16]) # 0 (occupied)
-print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.42542076110839844)
+print(c.get_occupancy_position(37, 16)) # (1.5036439895629883, -0.42542076110839844)
 ```
 
 - `goal_positions` A dictionary of possible goal positions.
@@ -499,7 +499,7 @@ End the simulation. Terminate the build process.
 
 #### get_occupancy_position
 
-**`def get_occupancy_position(self, i: int, j: int) -> Tuple[bool, float, float]`**
+**`def get_occupancy_position(self, i: int, j: int) -> Tuple[float, float]`**
 
 Converts the position (i, j) in the occupancy map to (x, z) coordinates.
 
@@ -508,7 +508,7 @@ Converts the position (i, j) in the occupancy map to (x, z) coordinates.
 | i | The i coordinate in the occupancy map. |
 | j | The j coordinate in the occupancy map. |
 
-_Returns:_  Tuple: True if the position is in the occupancy map; x coordinate; z coordinate.
+_Returns:_  Tuple: x coordinate; z coordinate.
 
 ***
 
