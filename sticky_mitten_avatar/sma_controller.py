@@ -210,10 +210,6 @@ class StickyMittenAvatarController(FloorplanController):
                      "width": screen_width,
                      "height": screen_height},
                     {"$type": "send_version"}]
-        # Set the frame rate and timestep for audio.
-        if self._demo:
-            commands.append({"$type": "set_target_framerate",
-                             "framerate": 60})
         resp = self.communicate(commands)
 
         # Make sure that the build is the correct version.
@@ -363,14 +359,16 @@ class StickyMittenAvatarController(FloorplanController):
 
         self._end_task()
 
-    def _end_task(self) -> None:
+    def _end_task(self, toggle_sensor: bool = True) -> None:
         """
         End the task and update the frame data.
+
+        :param toggle_sensor: If True, toggle the image sensor.
         """
 
         commands = [self._avatar.get_default_sticky_mitten_profile()]
 
-        if not self._demo:
+        if not self._demo and toggle_sensor:
             commands.append({"$type": "toggle_image_sensor",
                              "sensor_name": "SensorContainer",
                              "avatar_id": self._avatar.id})
@@ -890,7 +888,7 @@ class StickyMittenAvatarController(FloorplanController):
                         if collidee_mass >= 90:
                             return TaskStatus.collided_with_something_heavy
                 # If the avatar's body collided with the environment (e.g. a wall), stop movement.
-                for self._avatar.base_id in self._avatar.env_collisions:
+                if self._avatar.base_id in self._avatar.env_collisions:
                     return TaskStatus.collided_with_environment
 
             p = np.array(self._avatar.frame.get_position())
@@ -914,8 +912,6 @@ class StickyMittenAvatarController(FloorplanController):
         elif isinstance(target, dict):
             target = TDWUtils.vector3_to_array(target)
 
-        self._start_task()
-
         initial_position = self._avatar.frame.get_position()
 
         # Get the distance to the target.
@@ -928,7 +924,7 @@ class StickyMittenAvatarController(FloorplanController):
             if status != TaskStatus.success:
                 self._stop_avatar()
                 return status
-
+        self._start_task()
         self._avatar.status = TaskStatus.ongoing
 
         # Go to the target.
@@ -1130,7 +1126,7 @@ class StickyMittenAvatarController(FloorplanController):
         # Twist the wrist of the arm holding the container.
         self._roll_wrist(arm=container_arm, angle=60)
 
-        self._end_task()
+        self._end_task(toggle_sensor=False)
         container_position = self.frame.object_transforms[container_id].position
 
         # Continuously try to position the object over the container.
@@ -1141,7 +1137,7 @@ class StickyMittenAvatarController(FloorplanController):
         target_z = target_position[2]
         while not hit and attempts < num_attempts:
             # Call `_end_task()` to update the FrameData.
-            self._end_task()
+            self._end_task(toggle_sensor=False)
 
             # Get the new distance.
             container_position = self.frame.object_transforms[container_id].position
@@ -1356,7 +1352,7 @@ class StickyMittenAvatarController(FloorplanController):
         elif images == "all":
             commands.append({"$type": "send_images",
                              "frequency": "always"})
-        self.communicate(commands)
+        self._avatar_commands.extend(commands)
 
     def _get_objects_in_container(self, container_id: int) -> np.array:
         """
@@ -1737,6 +1733,6 @@ class StickyMittenAvatarController(FloorplanController):
         if self._demo or self._avatar is None:
             return
 
-        self.communicate({"$type": "toggle_image_sensor",
-                          "sensor_name": "SensorContainer",
-                          "avatar_id": self._avatar.id})
+        self._avatar_commands.append({"$type": "toggle_image_sensor",
+                                      "sensor_name": "SensorContainer",
+                                      "avatar_id": self._avatar.id})
