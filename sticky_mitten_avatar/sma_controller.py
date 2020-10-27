@@ -122,7 +122,7 @@ class StickyMittenAvatarController(FloorplanController):
     c.init_scene(scene="2a", layout=1)
 
     print(c.occupancy_map[37][16]) # 0 (occupied)
-    print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.42542076110839844)
+    print(c.get_occupancy_position(37, 16)) # (1.5036439895629883, -0.42542076110839844)
     ```
 
     - `goal_positions` A dictionary of possible goal positions.
@@ -1007,8 +1007,6 @@ class StickyMittenAvatarController(FloorplanController):
         :return: A `TaskStatus` indicating whether the avatar shook the joint and if not, why.
         """
 
-        self._start_task()
-
         # Check if the joint and axis are valid.
         joint: Optional[Joint] = None
         for j in Avatar.JOINTS:
@@ -1018,19 +1016,13 @@ class StickyMittenAvatarController(FloorplanController):
         if joint is None:
             return TaskStatus.bad_joint
 
+        self._start_task()
+
         force = random.uniform(force[0], force[1])
         damper = 200
         # Increase the force of the joint.
-        self.communicate([{"$type": "adjust_joint_force_by",
-                           "delta": force,
-                           "joint": joint.joint,
-                           "axis": joint.axis,
-                           "avatar_id": self._avatar.id},
-                          {"$type": "adjust_joint_damper_by",
-                           "delta": -damper,
-                           "joint": joint.joint,
-                           "axis": joint.axis,
-                           "avatar_id": self._avatar.id}])
+        self.communicate(self._avatar.get_start_bend_sticky_mitten_profile(
+            arm=Arm.left if "_left" in joint_name else Arm.right))
         # Do each iteration.
         for i in range(random.randint(num_shakes[0], num_shakes[1])):
             a = random.uniform(angle[0], angle[1])
@@ -1203,6 +1195,7 @@ class StickyMittenAvatarController(FloorplanController):
         """
         Pour out the contents of a container held by the arm.
         Assuming that the arm is holding a container, its wrist will twist and the arm will lift.
+        If after doing this there are still objects in the container, the avatar will shake the container.
         This action continues until the arm and the objects in the container have stopped moving.
 
         Possible [return values](task_status.md):
@@ -1216,6 +1209,26 @@ class StickyMittenAvatarController(FloorplanController):
 
         :return: A `TaskStatus` indicating whether the avatar poured all objects out of the container and if not, why.
         """
+
+        def _wait_until_objects_stop() -> None:
+            """
+            Wait until the objects in the container stop moving.
+            """
+
+            # Wait for the objects to stop moving.
+            resp = self.communicate({"$type": "send_rigidbodies",
+                                     "frequency": "always",
+                                     "ids": overlap_ids})
+            moving = True
+            while moving:
+                rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
+                moving = False
+                for i in range(rigidbodies.get_num()):
+                    sleeping = rigidbodies.get_sleeping(i) or np.linalg.norm(rigidbodies.get_velocity(i)) < 0.1
+                    if not sleeping:
+                        moving = True
+                        break
+                resp = self.communicate([])
 
         # Make sure that this arm is holding a container.
         held = self._avatar.frame.get_held_left() if arm == Arm.left else self._avatar.frame.get_held_right()
@@ -1241,26 +1254,20 @@ class StickyMittenAvatarController(FloorplanController):
                               check_if_possible=False, stop_on_mitten_collision=False, precision=0.2)
         self._roll_wrist(arm=arm, angle=90)
 
-        # Wait for the objects to stop moving.
-        resp = self.communicate({"$type": "send_rigidbodies",
-                                 "frequency": "always",
-                                 "ids": overlap_ids})
-        moving = True
-        while moving:
-            rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
-            moving = False
-            for i in range(rigidbodies.get_num()):
-                sleeping = rigidbodies.get_sleeping(i) or np.linalg.norm(rigidbodies.get_velocity(i)) < 0.1
-                if not sleeping:
-                    moving = True
-                    break
-            resp = self.communicate([])
+        _wait_until_objects_stop()
 
         # Get all of the objects in the container. If there aren't any, this task succeeded.
         overlap_ids = self._get_objects_in_container(container_id=container_id)
-        self._end_task()
-
-        return TaskStatus.success if len(overlap_ids) == 0 else TaskStatus.still_in_container
+        if len(overlap_ids) == 0:
+            self._end_task()
+            return TaskStatus.success
+        # Try to shake objects out of the container.
+        else:
+            self.shake(joint_name=f"elbow_{arm.name}", num_shakes=(2, 2))
+            _wait_until_objects_stop()
+            overlap_ids = self._get_objects_in_container(container_id=container_id)
+            self._end_task()
+            return TaskStatus.success if len(overlap_ids) == 0 else TaskStatus.still_in_container
 
     def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None:
         """
@@ -1484,21 +1491,21 @@ class StickyMittenAvatarController(FloorplanController):
 
         self.communicate({"$type": "terminate"})
 
-    def get_occupancy_position(self, i: int, j: int) -> Tuple[bool, float, float]:
+    def get_occupancy_position(self, i: int, j: int) -> Tuple[float, float]:
         """
         Converts the position (i, j) in the occupancy map to (x, z) coordinates.
 
         :param i: The i coordinate in the occupancy map.
         :param j: The j coordinate in the occupancy map.
 
-        :return: Tuple: True if the position is in the occupancy map; x coordinate; z coordinate.
+        :return: Tuple: x coordinate; z coordinate.
         """
 
         if self.occupancy_map is None or self._scene_bounds is None:
-            return False, 0, 0,
+            raise Exception(f"Position {i}, {j} is not on the occupancy map.")
         x = self._scene_bounds["x_min"] + (i * OCCUPANCY_CELL_SIZE)
         z = self._scene_bounds["z_min"] + (j * OCCUPANCY_CELL_SIZE)
-        return True, x, z
+        return x, z
 
     def _get_raycast_point(self, object_id: int, origin: np.array, forward: float = 0.2) -> (bool, np.array):
         """
@@ -1623,9 +1630,7 @@ class StickyMittenAvatarController(FloorplanController):
 
                     # Get the (x, z) coordinates for this position.
                     # The y coordinate is in `ys_map`.
-                    free, x, z = self.get_occupancy_position(ix, iy)
-
-                    # Add the container.
+                    x, z = self.get_occupancy_position(ix, iy)
                     container_name = random.choice(StaticObjectInfo.CONTAINERS)
                     container_id, container_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
                                                                         rotation={"x": 0,
@@ -1662,7 +1667,7 @@ class StickyMittenAvatarController(FloorplanController):
                     ix, iy = random.choice(target_room_positions)
                     # Get the (x, z) coordinates for this position.
                     # The y coordinate is in `ys_map`.
-                    free, x, z = self.get_occupancy_position(ix, iy)
+                    x, z = self.get_occupancy_position(ix, iy)
                     target_object_name = random.choice(target_object_names)
                     # Set custom object info for the target objects.
                     audio = ObjectInfo(name=target_object_name, mass=TARGET_OBJECT_MASS, material=AudioMaterial.ceramic,

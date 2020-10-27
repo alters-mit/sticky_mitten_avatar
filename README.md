@@ -93,6 +93,7 @@ All example controllers can be found in: `controllers/`
 | `precision_test.py`        | Test how the `precision` parameter affects arm articulation. |
 | `proc_gen_spawn_test.py`   | Test whether target objects and containers tend to stay in their initial positions. |
 | `target_object_test.py`    | Test target objects.                                         |
+| `occupancy_viewer.py`      | Show the occupancy map of a given scene and layout.          |
 
 ## Utility Scripts
 

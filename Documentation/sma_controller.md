@@ -100,7 +100,7 @@ for body_part_id in c.static_avatar_data:
 c.init_scene(scene="2a", layout=1)
 
 print(c.occupancy_map[37][16]) # 0 (occupied)
-print(c.get_occupancy_position(37, 16)) # (True, -1.5036439895629883, -0.42542076110839844)
+print(c.get_occupancy_position(37, 16)) # (1.5036439895629883, -0.42542076110839844)
 ```
 
 - `goal_positions` A dictionary of possible goal positions.
@@ -431,6 +431,7 @@ _Returns:_  A `TaskStatus` indicating whether the avatar put the object in the c
 
 Pour out the contents of a container held by the arm.
 Assuming that the arm is holding a container, its wrist will twist and the arm will lift.
+If after doing this there are still objects in the container, the avatar will shake the container.
 This action continues until the arm and the objects in the container have stopped moving.
 Possible [return values](task_status.md):
 - `success` (The container held by the arm is now empty.)
@@ -498,7 +499,7 @@ End the simulation. Terminate the build process.
 
 #### get_occupancy_position
 
-**`def get_occupancy_position(self, i: int, j: int) -> Tuple[bool, float, float]`**
+**`def get_occupancy_position(self, i: int, j: int) -> Tuple[float, float]`**
 
 Converts the position (i, j) in the occupancy map to (x, z) coordinates.
 
@@ -507,7 +508,7 @@ Converts the position (i, j) in the occupancy map to (x, z) coordinates.
 | i | The i coordinate in the occupancy map. |
 | j | The j coordinate in the occupancy map. |
 
-_Returns:_  Tuple: True if the position is in the occupancy map; x coordinate; z coordinate.
+_Returns:_  Tuple: x coordinate; z coordinate.
 
 ***
 
