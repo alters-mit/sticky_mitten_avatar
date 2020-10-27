@@ -13,7 +13,7 @@ class CollisionTest(TestController):
         super().__init__(port=port, launch_build=False, demo=False)
         self.o_id = 0
 
-    def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
+    def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
         commands = [{"$type": "load_scene",
                      "scene_name": "ProcGenScene"},
                     TDWUtils.create_empty_room(4, 4)]

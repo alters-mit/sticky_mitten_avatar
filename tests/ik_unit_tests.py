@@ -9,22 +9,8 @@ class IKUnitTests(StickyMittenAvatarController):
     """
 
     def __init__(self, port: int = 1071):
-        super().__init__(port=port, launch_build=False)
+        super().__init__(port=port, launch_build=False, debug=True)
         self.id = "a"
-
-    def do_test(self, test) -> None:
-        """
-        Create an avatar. Run a test. Stop the test.
-
-        :param test: The test as a function.
-        """
-
-        # Create the avatar.
-        self._create_avatar(avatar_id=self.id, debug=True)
-        # Run the test.
-        test()
-        # End the test.
-        self._destroy_avatar(avatar_id=self.id)
 
     def symmetry(self) -> None:
         """
@@ -96,8 +82,9 @@ if __name__ == "__main__":
     c = IKUnitTests()
     c.init_scene()
 
-    c.do_test(c.symmetry)
-    c.do_test(c.rotation)
-    c.do_test(c.position)
-    c.do_test(c.pick_up_test)
+    c.symmetry()
+    c.rotation()
+    c.position()
+    c.pick_up_test()
     c.end()
+

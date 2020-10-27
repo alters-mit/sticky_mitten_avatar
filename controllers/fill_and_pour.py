@@ -20,7 +20,7 @@ class FillAndPour(StickyMittenAvatarController):
         super().__init__(port=port, launch_build=False, id_pass=False, demo=True)
         self.container_id = 0
 
-    def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
+    def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
         # Don't include this function in an actual simulation.
         # Use `init_scene()` with `scene` and `layout` parameters instead.
         commands = super()._get_scene_init_commands()

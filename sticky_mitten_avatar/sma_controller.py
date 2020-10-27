@@ -1638,8 +1638,7 @@ class StickyMittenAvatarController(FloorplanController):
                           "sensor_name": "FollowCamera"},
                          {"$type": "teleport_avatar_to",
                           "avatar_id": "a",
-                          "position": avatar_position},
-                         self._avatar.get_default_sticky_mitten_profile()])
+                          "position": avatar_position}])
         if not self._demo:
             commands.append({"$type": "toggle_image_sensor",
                              "sensor_name": "SensorContainer"})
