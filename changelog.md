@@ -25,6 +25,11 @@
   - Fixed: Reduced overall physics glitchiness.
 - `BodyPartStatic`:
   - Renamed `color` to `segmentation_color`.
+  - Removed: `audio`
+  - Added: `mass`
+- `StaticObjectInfo`:
+  - Removed: `audio`
+  - Added: `mass`
 - Removed example controllers that are obsolete or aren't good examples of how to code a controller that is actually usable (as opposed to being a demo):
   - `put_in_held_container.py`
   - `put_object_in_container.py`

@@ -14,8 +14,8 @@ from tdw.object_init_data import AudioInitData
 from tdw.release.pypi import PyPi
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
-from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD, \
-    OCCUPANCY_CELL_SIZE, TARGET_OBJECT_MASS, CONTAINER_MASS, CONTAINER_SCALE
+from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, OCCUPANCY_CELL_SIZE, \
+    TARGET_OBJECT_MASS, CONTAINER_MASS, CONTAINER_SCALE
 from sticky_mitten_avatar.paths import SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, \
     ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, TARGET_OBJECTS_PATH, COMPOSITE_OBJECT_AUDIO_PATH, SURFACE_MAP_DIRECTORY, \
     TARGET_OBJECT_MATERIALS_PATH
@@ -267,7 +267,6 @@ class StickyMittenAvatarController(FloorplanController):
         self._avatar_commands: List[dict] = []
         self._audio_values: Dict[int, ObjectInfo] = dict()
         self.static_object_info: Dict[int, StaticObjectInfo] = dict()
-        self.static_avatar_info: Dict[int, BodyPartStatic] = dict()
         self.segmentation_color_to_id: Dict[int, int] = dict()
         self._cam_commands: Optional[list] = None
 

@@ -11,7 +11,7 @@ Fields:
 - `object_id` The object ID of the body part.
 - `segmentation_color` The segmentation color of the body part.
 - `name` The name of the body part.
-- `audio` [Audio values](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#objectinfo) for the body part.
+- `mass` The mass of the body part.
 
 ***
 
