@@ -32,7 +32,6 @@ class StaticObjectInfo:
     - `segmentation_color`: The RGB segmentation color for the object as a numpy array.
     - `model_name`: [The name of the model.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/librarian/model_librarian.md)
     - `category`: The semantic category of the object.
-    - `audio`: [Audio properties.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/py_impact.md#objectinfo)
     - `container`': If True, this object is container-shaped (a bowl or open basket that smaller objects can be placed in).
     - `kinematic`: If True, this object is kinematic, and won't respond to physics. Example: a painting hung on a wall.
     - `target_object`: If True, this is a small object that the avatar can place in a container.
@@ -70,26 +69,25 @@ class StaticObjectInfo:
         """
 
         self.object_id = object_id
-        self.audio = audio
-        self.model_name = self.audio.name
+        self.model_name = audio.name
         self.container = self.model_name in StaticObjectInfo.CONTAINERS
         self.kinematic = self.model_name in StaticObjectInfo._KINEMATIC
         self.target_object = target_object
 
         self.category = ""
         # This is a sub-object of a composite object.
-        if self.audio.library == "":
+        if audio.library == "":
             # Get the record of the composite object.
             for k in StaticObjectInfo._COMPOSITE_OBJECTS:
                 for v in StaticObjectInfo._COMPOSITE_OBJECTS[k]:
-                    if v == self.audio.name:
+                    if v == audio.name:
                         record = TransformInitData.LIBRARIES["models_core.json"].get_record(k)
                         # Get the semantic category.
                         self.category = record.wcategory
                         break
         else:
             # Get the model record from the audio data.
-            record = TransformInitData.LIBRARIES[self.audio.library].get_record(self.audio.name)
+            record = TransformInitData.LIBRARIES[audio.library].get_record(audio.name)
             # Get the semantic category.
             self.category = record.wcategory
 

@@ -147,13 +147,12 @@ class StickyMittenAvatarController(FloorplanController):
     _STOP_DRAG = 1000
 
     def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True,
-                 audio: bool = False, screen_width: int = 256, screen_height: int = 256, debug: bool = False):
+                 screen_width: int = 256, screen_height: int = 256, debug: bool = False):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
-        :param demo: If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step.
+        :param demo: If True, this is a demo controller. All frames will be rendered.
         :param id_pass: If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run somewhat slower.
-        :param audio: If True, include audio data in the FrameData.
         :param screen_width: The width of the screen in pixels.
         :param screen_height: The height of the screen in pixels.
         :param debug: If True, debug mode will be enabled.
@@ -161,7 +160,6 @@ class StickyMittenAvatarController(FloorplanController):
 
         self._debug = debug
         self._id_pass = id_pass
-        self._audio = audio
 
         self._container_shapes = loads(Path(resource_filename(__name__, "object_data/container_shapes.json")).
                                        read_text(encoding="utf-8"))
@@ -360,7 +358,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         resp = self.communicate(commands)
         # Update the frame data.
-        self.frame = FrameData(resp=resp, objects=self.static_object_info, avatar=self._avatar, audio=self._audio)
+        self.frame = FrameData(resp=resp, avatar=self._avatar)
 
     def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
         """
@@ -384,9 +382,6 @@ class StickyMittenAvatarController(FloorplanController):
 
         # Clear avatar commands.
         self._avatar_commands.clear()
-
-        # Add audio commands.
-        commands.extend(self._get_audio_commands())
 
         # Send the commands and get a response.
         resp = super().communicate(commands)
@@ -1309,69 +1304,6 @@ class StickyMittenAvatarController(FloorplanController):
         self.communicate({"$type": "destroy_avatar",
                           "avatar_id": avatar_id})
 
-    def _tap(self, object_id: int, arm: Arm) -> TaskStatus:
-        """
-        Try to tap an object.
-
-        Possible [return values](task_status.md):
-
-        - `success` (The avatar tapped the object.)
-        - `too_close_to_reach`
-        - `too_far_to_reach`
-        - `behind_avatar`
-        - `no_longer_bending`
-        - `bad_raycast`
-        - `failed_to_tap`
-
-        :param object_id: The ID of the object.
-        :param arm: The arm.
-
-        :return: A `TaskStatus` indicating whether the avatar tapped the object and if not, why.
-        """
-
-        self._start_task()
-
-        # Get the origin of the raycast.
-        if arm == Arm.left:
-            origin = np.array(self._avatar.frame.get_mitten_center_left_position())
-        else:
-            origin = self._avatar.frame.get_mitten_center_right_position()
-
-        success, target = self._get_raycast_point(object_id=object_id, origin=np.array(origin), forward=0.01)
-
-        # The raycast didn't hit the target.
-        if not success:
-            return TaskStatus.bad_raycast
-
-        angle = get_angle_between(v1=FORWARD, v2=self._avatar.frame.get_forward())
-        target = rotate_point_around(point=target - self._avatar.frame.get_position(), angle=-angle)
-
-        # Couldn't bend the arm to the target.
-        reach_status = self.reach_for_target(target=TDWUtils.array_to_vector3(target), arm=arm)
-        if reach_status != TaskStatus.success:
-            return reach_status
-
-        # Tap the object.
-        p = target + np.array(self._avatar.frame.get_forward()) * 1.1
-        self.reach_for_target(target=TDWUtils.array_to_vector3(p), arm=arm, check_if_possible=False, do_motion=False)
-        # Get the mitten ID.
-        mitten_id = self._avatar.mitten_ids[arm]
-        # Let the arm bend until the mitten collides with the object.
-        mitten_collision = False
-        count = 0
-        while not mitten_collision and count < 200:
-            self.communicate([])
-            if object_id in self._avatar.collisions[mitten_id]:
-                mitten_collision = True
-                break
-            count += 1
-        self.reset_arm(arm=arm)
-        self._avatar.status = TaskStatus.idle
-        if mitten_collision:
-            return TaskStatus.success
-        else:
-            return TaskStatus.failed_to_tap
-
     def end(self) -> None:
         """
         End the simulation. Terminate the build process.
@@ -1448,29 +1380,6 @@ class StickyMittenAvatarController(FloorplanController):
                 self._avatar.frame.get_angles_right()[-2]
             done_twisting_wrist = np.abs(a1 - a0) < precision
             a0 = a1
-
-    def _get_audio_commands(self) -> List[dict]:
-        """
-        :return: A list of audio commands generated from `self.frame_data`
-        """
-
-        commands = []
-        if not self._demo:
-            return commands
-        elif self.frame is None:
-            return commands
-        # Get audio per collision.
-        for audio, object_id in self.frame.audio:
-            if audio is None:
-                continue
-            commands.append({"$type": "play_audio_data",
-                             "id": object_id,
-                             "num_frames": audio.length,
-                             "num_channels": 1,
-                             "frame_rate": 44100,
-                             "wav_data": audio.wav_str,
-                             "y_pos_offset": 0.1})
-        return commands
 
     def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
         """
@@ -1669,7 +1578,6 @@ class StickyMittenAvatarController(FloorplanController):
                           "frequency": "once"}])
 
         return commands
-
 
     def _get_avatar_status(self) -> TaskStatus:
         """
