@@ -8,6 +8,7 @@
   - Added: `segmentation_color_to_id` A dictionary of hashed colors mapped to object IDs.
   - Added optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
   - Added optional parameter `num_attempts` to `go_to()`, `move_forward_by()`, `turn_to()`, and `turn_by()`.
+  - `get_occupancy_position()` returns `(float, float)` instead of `(bool, float, float)`.
   - Fixed: Occupancy maps are inaccurate.
   - Fixed: Containers and target objects are sometimes initially positioned in mid-air.
   - Fixed: Containers and target objects are sometimes initially positioned where the avatar can't reach them.
@@ -23,6 +24,7 @@
 - Added: `surface_maps/` which includes arrays of booleans. If True, the position is a floor or low-lying surface.
 - `occupancy_mapper.py` generates more accurate maps and creates surface maps.
 - Added: `object_data/target_object_materials.txt` Valid materials for a target object.
+- Added: `occupancy_viewer.py`. Show an occupancy map.
 
 ## 0.6.2
 
