@@ -82,7 +82,7 @@ class StickyMittenAvatarController(FloorplanController):
     # etc.
     ```
 
-    - `static_object_data`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
+    - `static_object_info`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
 
     ```python
     # Get the segmentation color of an object.
@@ -99,7 +99,7 @@ class StickyMittenAvatarController(FloorplanController):
     
       To convert an RGB array to a hashable integer, see: [`TDWUtils.color_to_hashable()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/tdw_utils.md).
 
-    - `static_avatar_data` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API. Key = body part ID.
+    - `static_avatar_info` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API. Key = body part ID.
 
     ```python
     for body_part_id in c.static_avatar_data:
@@ -337,13 +337,14 @@ class StickyMittenAvatarController(FloorplanController):
         bounds = get_data(resp=resp, d_type=Bounds)
         for i in range(segmentation_colors.get_num()):
             object_id = segmentation_colors.get_object_id(i)
+            object_name = segmentation_colors.get_object_name(i).lower()
             # Add audio data for either the root object or a sub-object.
             if object_id in composite_object_audio:
                 object_audio = composite_object_audio[object_id]
             elif object_id in self._audio_values:
                 object_audio = self._audio_values[object_id]
             else:
-                object_audio = self._default_audio_values[segmentation_colors.get_object_name(i).lower()]
+                object_audio = self._default_audio_values[object_name]
 
             static_object = StaticObjectInfo(object_id=object_id,
                                              segmentation_colors=segmentation_colors,
@@ -352,7 +353,8 @@ class StickyMittenAvatarController(FloorplanController):
                                              bounds=bounds,
                                              target_object=object_id in self._target_object_ids)
             self.static_object_info[static_object.object_id] = static_object
-        # Fill the segmentation color dictionary.
+
+        # Fill the segmentation color dictionary and carve into the NavMesh.
         for object_id in self.static_object_info:
             hashable_color = TDWUtils.color_to_hashable(self.static_object_info[object_id].segmentation_color)
             self.segmentation_color_to_id[hashable_color] = object_id
@@ -1596,6 +1598,16 @@ class StickyMittenAvatarController(FloorplanController):
 
         if scene is not None and layout is not None:
             commands = self.get_scene_init_commands(scene=scene, layout=layout, audio=True)
+
+            # Make all non-kinematic objects NavMesh obstacles.
+            carve_commands = []
+            for cmd in commands:
+                if cmd["$type"] == "set_kinematic_state" and not cmd["is_kinematic"]:
+                    carve_commands.append({"$type": "make_nav_mesh_obstacle",
+                                           "id": cmd["id"],
+                                           "carve_type": "stationary",
+                                           "scale": 0.5})
+            commands.extend(carve_commands)
 
             self.occupancy_map = np.load(
                 str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
