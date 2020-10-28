@@ -5,7 +5,6 @@ from json import dumps
 from tdw.floorplan_controller import FloorplanController
 from tdw.output_data import Raycast, Version, SegmentationColors
 from tdw.tdw_utils import TDWUtils
-from tdw.librarian import ModelLibrarian
 from sticky_mitten_avatar.util import OCCUPANCY_CELL_SIZE, get_data
 from sticky_mitten_avatar.paths import OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, Y_MAP_DIRECTORY, \
     SURFACE_MAP_DIRECTORY, ROOM_MAP_DIRECTORY, SURFACE_OBJECT_CATEGORIES_PATH,\
@@ -86,9 +85,8 @@ class IslandMapper:
 if __name__ == "__main__":
     # Valid categories of surface models.
     surface_object_categories = loads(SURFACE_OBJECT_CATEGORIES_PATH.read_text(encoding="utf-8"))
-    lib = ModelLibrarian()
 
-    c = FloorplanController(launch_build=False)
+    c = FloorplanController(launch_build=True)
     bounds: Dict[str, Dict[str, float]] = dict()
 
     # Iterate through each scene and layout.
@@ -120,10 +118,9 @@ if __name__ == "__main__":
                 object_name = segmentation_colors.get_object_name(i).lower()
                 object_id = segmentation_colors.get_object_id(i)
                 object_names[object_id] = object_name
-                record = lib.get_record(object_name)
                 # Check if this is a surface.
                 # The record might be None if this is a composite object.
-                if record is not None and record in surface_object_categories:
+                if object_name in surface_object_categories:
                     surface_ids.append(object_id)
 
             # Cache the environment data.
@@ -204,11 +201,22 @@ if __name__ == "__main__":
             y_values = np.array(y_values)
             object_ids = np.array(object_ids)
 
+            # Save the numpy data.
+            save_filename = f"{scene}_{layout}"
+            np.save(str(OCCUPANCY_MAP_DIRECTORY.joinpath(save_filename).resolve()), positions)
+            np.save(str(Y_MAP_DIRECTORY.joinpath(save_filename).resolve()), y_values)
+
+            # Any "islands" on the occupancy map are unreachable. Don't spawn objects there.
+            spawn_object_positions = np.zeros(positions.shape, dtype=bool)
+            mapper = IslandMapper(occupancy_map=positions)
+            # Get all the positions of the largest "island". These are ok places to place objects.
+            for ip in list(sorted(mapper.get_islands(), key=len))[-1]:
+                spawn_object_positions[ip[0]][ip[1]] = True
+            np.save(str(OBJECT_SPAWN_MAP_DIRECTORY.joinpath(save_filename).resolve()), spawn_object_positions)
+
             # Load the room map.
             room_map = np.load(str(ROOM_MAP_DIRECTORY.joinpath(f"{scene[0]}.npy").resolve()))
-
             surfaces: Dict[int, Dict[str, List[Tuple[int, int]]]] = dict()
-
             # Calculate surfaces.
             for ix, iy in np.ndindex(positions.shape):
                 # Ignore positions that aren't objects, aren't in the scene, or too high, or not a surface.
@@ -223,7 +231,8 @@ if __name__ == "__main__":
                 # Check if the avatar can reach this position.
                 reachable = False
                 for jx, jy in np.ndindex(positions.shape):
-                    if positions[jx][jy] == 1 and np.linalg.norm(np.array([ix, iy]) - np.array([jx, jy])) <= 1.5:
+                    if spawn_object_positions[jx][jy] and \
+                            np.linalg.norm(np.array([ix, iy]) - np.array([jx, jy])) <= 1.5:
                         reachable = True
                         break
                 if reachable:
@@ -235,18 +244,6 @@ if __name__ == "__main__":
                     if object_category not in surfaces[room]:
                         surfaces[room][object_category] = list()
                     surfaces[room][object_category].append((ix, iy))
-            # Save the numpy data.
-            save_filename = f"{scene}_{layout}"
-            np.save(str(OCCUPANCY_MAP_DIRECTORY.joinpath(save_filename).resolve()), positions)
-            np.save(str(Y_MAP_DIRECTORY.joinpath(save_filename).resolve()), y_values)
-
-            # Any "islands" on the occupancy map are unreachable. Don't spawn objects there.
-            spawn_object_positions = np.zeros(positions.shape, dtype=bool)
-            mapper = IslandMapper(occupancy_map=positions)
-            # Get all the positions of the largest "island". These are ok places to place objects.
-            for ip in list(sorted(mapper.get_islands(), key=len))[-1]:
-                spawn_object_positions[ip[0]][ip[1]] = True
-            np.save(str(OBJECT_SPAWN_MAP_DIRECTORY.joinpath(save_filename).resolve()), spawn_object_positions)
 
             # Save the surface data.
             SURFACE_MAP_DIRECTORY.joinpath(save_filename + ".json").write_text(dumps(surfaces, sort_keys=True))
