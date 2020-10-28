@@ -11,6 +11,8 @@
   -  Adjusted the scale of all containers, the mass of all containers, and the mass of all target objects.
   -  Added two more types of target objects.
   -  Target objects now have a random visual material.
+  -  Removed `audio` parameter from constructor.
+  -  Added `debug` parameter to constructor.
   -  `reset_arm()` will return `TaskStatus.no_longer_bending` if the arm isn't close to its original position.
   - Fixed: The timestep is different if `demo == True` resulting in different simulation behavior.
   - Fixed: Arm forces don't always reset at the end of an action, which means that the avatar doesn't hold a pose that it should.
