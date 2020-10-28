@@ -27,3 +27,5 @@ TARGET_OBJECTS_PATH = OBJECT_DATA_DIRECTORY.joinpath("target_objects.csv")
 COMPOSITE_OBJECT_AUDIO_PATH = OBJECT_DATA_DIRECTORY.joinpath("composite_object_audio.json")
 # The path to the visual materials for target objects.
 TARGET_OBJECT_MATERIALS_PATH = OBJECT_DATA_DIRECTORY.joinpath("target_object_materials.txt")
+# The path to the dictionary of surface objects.
+SURFACE_OBJECT_CATEGORIES_PATH = OBJECT_DATA_DIRECTORY.joinpath("surface_object_categories.json")

@@ -8,7 +8,7 @@ from tdw.tdw_utils import TDWUtils
 from tdw.librarian import ModelLibrarian
 from sticky_mitten_avatar.util import OCCUPANCY_CELL_SIZE, get_data
 from sticky_mitten_avatar.paths import OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, Y_MAP_DIRECTORY, \
-    SURFACE_MAP_DIRECTORY, ROOM_MAP_DIRECTORY, SPAWN_POSITIONS_PATH
+    SURFACE_MAP_DIRECTORY, ROOM_MAP_DIRECTORY, SPAWN_POSITIONS_PATH, SURFACE_OBJECT_CATEGORIES_PATH
 from sticky_mitten_avatar.environments import Environments
 
 
@@ -20,7 +20,7 @@ Save the results to a file.
 
 if __name__ == "__main__":
     # Valid categories of surface models.
-    surface_categories = ["coffee table", "cocktail table", "table", "bed", "sofa", "chair", "bench", "trunk"]
+    surface_object_categories = loads(SURFACE_OBJECT_CATEGORIES_PATH.read_text(encoding="utf-8"))
     lib = ModelLibrarian()
 
     c = FloorplanController(launch_build=False)
@@ -85,7 +85,7 @@ if __name__ == "__main__":
                 record = lib.get_record(object_name)
                 # Check if this is a surface.
                 # The record might be None if this is a composite object.
-                if record is not None and record.wcategory in surface_categories:
+                if record is not None and record in surface_object_categories:
                     surface_ids.append(object_id)
 
             # Cache the environment data.
@@ -175,7 +175,6 @@ if __name__ == "__main__":
                 y_values.append(ys_row)
                 object_ids.append(ids_row)
                 x += OCCUPANCY_CELL_SIZE
-
             positions = np.array(positions)
 
             y_values = np.array(y_values)
@@ -208,9 +207,10 @@ if __name__ == "__main__":
                         surfaces[room] = dict()
                     # Add the position to the dictionary.
                     object_name = object_names[object_ids[ix][iy]]
-                    if object_name not in surfaces[room]:
-                        surfaces[room][object_name] = list()
-                    surfaces[room][object_name].append((ix, iy))
+                    object_category = surface_object_categories[object_name]
+                    if object_category not in surfaces[room]:
+                        surfaces[room][object_category] = list()
+                    surfaces[room][object_category].append((ix, iy))
             # Save the numpy data.
             save_filename = f"{scene}_{layout}"
             np.save(str(OCCUPANCY_MAP_DIRECTORY.joinpath(save_filename).resolve()), positions)
