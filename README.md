@@ -93,7 +93,6 @@ All example controllers can be found in: `controllers/`
 | `precision_test.py`        | Test how the `precision` parameter affects arm articulation. |
 | `proc_gen_spawn_test.py`   | Test whether target objects and containers tend to stay in their initial positions. |
 | `target_object_test.py`    | Test target objects.                                         |
-| `occupancy_viewer.py`      | Show the occupancy map of a given scene and layout.          |
 
 ## Utility Scripts
 
@@ -105,6 +104,7 @@ Utility scripts are located in `util/`
 | `occupancy_mapper.py` | Create occupancy maps of each floorplan and layout. |
 | `spawn_mapper.py` | Pre-calculate avatar spawn positions per room, per layout, per scene. |
 | `room_positions.py` | Cache which positions of each occupancy map are in each room. |
+| `occupancy_images.py`      | Create an image of each occupancy map per scene per layout.  |
 
 ## Changelog
 

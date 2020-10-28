@@ -13,6 +13,8 @@ OCCUPANCY_MAP_DIRECTORY = SCENE_DATA_DIRECTORY.joinpath("occupancy_maps")
 Y_MAP_DIRECTORY = SCENE_DATA_DIRECTORY.joinpath("y_maps")
 # The directory of maps of reachable surface positions.
 SURFACE_MAP_DIRECTORY = SCENE_DATA_DIRECTORY.joinpath("surface_maps")
+# The directory of positions where objects can be procedurally created.
+OBJECT_SPAWN_MAP_DIRECTORY = SCENE_DATA_DIRECTORY.joinpath("object_spawn_maps")
 # The map of positions per room per scene.
 ROOM_MAP_DIRECTORY = SCENE_DATA_DIRECTORY.joinpath("room_maps")
 # The path to the scene bounds data.
@@ -27,3 +29,5 @@ TARGET_OBJECTS_PATH = OBJECT_DATA_DIRECTORY.joinpath("target_objects.csv")
 COMPOSITE_OBJECT_AUDIO_PATH = OBJECT_DATA_DIRECTORY.joinpath("composite_object_audio.json")
 # The path to the visual materials for target objects.
 TARGET_OBJECT_MATERIALS_PATH = OBJECT_DATA_DIRECTORY.joinpath("target_object_materials.txt")
+# The path to the dictionary of surface objects.
+SURFACE_OBJECT_CATEGORIES_PATH = OBJECT_DATA_DIRECTORY.joinpath("surface_object_categories.json")

@@ -23,6 +23,7 @@
   - Fixed: `reset_arm()` allows the arms to be too floppy.
   - Fixed: The avatar's grip is looser than it should be.
   - Fixed: Reduced overall physics glitchiness.
+  - Fixed: Target objects and containers are sometimes in places that the avatar can't go to.
 - `BodyPartStatic`:
   - Renamed `color` to `segmentation_color`.
   - Removed: `audio`
@@ -37,15 +38,19 @@
 - Added: `fill_and_pour.py` example controller. Fill a container and pour the contents out.
 - Added: `initialize_scene.py` example controller. Basic scene initialization.
 - Added: `videos/fill_and_pour.mp4`
+- Added: `images/occupancy_maps` Images of occupancy maps.
 
 ### Backend
 
 - Removed a lot of unused code from `StickyMittenAvatarController` and `FrameData`.
-- Refactored `StickyMittenAvatarControllerinit_scene()` so that it requires only 1 frame and 1 function.
+- Refactored `StickyMittenAvatarController.init_scene()` so that it requires only 1 frame and 1 function.
 - Removed: `in_box_test.py`
 - Added: `target_object_test.py`
 - Added backend functionality to roll the wrist (which makes it easy for the avatar to put objects in a container).
 - The scale of all containers, the mass of all containers, and the mass of all target objects are all constants in `util.py` so that the demo controllers can use them too.
+- Some objects have categories idiosyncratic to this repo, as opposed  to just using the category in the model record. All model-category data  is stored in: `sticky_mitten_avatar/object_data/surface_object_categories.json`
+- Added: `sticky_mitten_avatar/scene_data/object_spawn_maps/` Data for where objects can be spawned.
+- Renamed `occupancy_viewer.py` to `occupancy_images.py`. Moved the script from `tests/` to `util/`. The script now saves an image of each occupancy map.
 
 ## 0.6.3
 
