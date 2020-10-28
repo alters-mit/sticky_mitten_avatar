@@ -18,7 +18,7 @@ from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, 
     TARGET_OBJECT_MASS, CONTAINER_MASS, CONTAINER_SCALE
 from sticky_mitten_avatar.paths import SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, \
     ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, TARGET_OBJECTS_PATH, COMPOSITE_OBJECT_AUDIO_PATH, SURFACE_MAP_DIRECTORY, \
-    TARGET_OBJECT_MATERIALS_PATH
+    TARGET_OBJECT_MATERIALS_PATH, OBJECT_SPAWN_MAP_DIRECTORY
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -115,6 +115,9 @@ class StickyMittenAvatarController(FloorplanController):
        A position is occupied if there is an object (such as a table) or environment obstacle (such as a wall) within 0.25 meters of the position.
 
        This is static data for the _initial_ scene occupancy_maps. It won't update if an object's position changes.
+
+       Images of each occupancy map can be found in: `images/occupancy_maps`
+       Key: Red = Free position. Blue = Free position where a target object or container can be placed.
 
        Convert from the coordinates in the array to an actual position using `get_occupancy_position()`.
 
@@ -1399,12 +1402,13 @@ class StickyMittenAvatarController(FloorplanController):
         else:
             commands = self.get_scene_init_commands(scene=scene, layout=layout, audio=True)
 
-            self.occupancy_map = np.load(
-                str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
             self._scene_bounds = loads(SCENE_BOUNDS_PATH.read_text())[scene[0]]
-
             room_map = np.load(str(ROOM_MAP_DIRECTORY.joinpath(f"{scene[0]}.npy").resolve()))
-            ys_map = np.load(str(Y_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
+            map_filename = f"{scene[0]}_{layout}.npy"
+            self.occupancy_map = np.load(
+                str(OCCUPANCY_MAP_DIRECTORY.joinpath(map_filename).resolve()))
+            ys_map = np.load(str(Y_MAP_DIRECTORY.joinpath(map_filename).resolve()))
+            object_spawn_map = np.load(str(Y_MAP_DIRECTORY.joinpath(map_filename).resolve()))
 
             # Get all "placeable" positions in the room.
             rooms: Dict[int, List[Tuple[int, int]]] = dict()
@@ -1413,8 +1417,8 @@ class StickyMittenAvatarController(FloorplanController):
                 placeable_positions: List[Tuple[int, int]] = list()
                 for ix, iy in np.ndindex(room_map.shape):
                     if room_map[ix][iy] == i:
-                        # If this is the floor, add the position.
-                        if self.occupancy_map[ix][iy] == 1:
+                        # If this is a spawnable position, add it.
+                        if object_spawn_map[ix][iy]:
                             placeable_positions.append((ix, iy))
                 if len(placeable_positions) > 0:
                     rooms[i] = placeable_positions
