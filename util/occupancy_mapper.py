@@ -1,13 +1,14 @@
+from json import loads
 from typing import List, Dict, Tuple
 import numpy as np
 from json import dumps
 from tdw.floorplan_controller import FloorplanController
-from tdw.output_data import Raycast, Version, SegmentationColors
+from tdw.output_data import OutputData, Raycast, Version, SegmentationColors, NavMeshPath, IsOnNavMesh
 from tdw.tdw_utils import TDWUtils
 from tdw.librarian import ModelLibrarian
 from sticky_mitten_avatar.util import OCCUPANCY_CELL_SIZE, get_data
 from sticky_mitten_avatar.paths import OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, Y_MAP_DIRECTORY, \
-    SURFACE_MAP_DIRECTORY, ROOM_MAP_DIRECTORY
+    SURFACE_MAP_DIRECTORY, ROOM_MAP_DIRECTORY, SPAWN_POSITIONS_PATH
 from sticky_mitten_avatar.environments import Environments
 
 
@@ -30,11 +31,22 @@ if __name__ == "__main__":
     # Iterate through each scene and layout.
     for scene in ["1", "2", "4", "5"]:
         for layout in [0, 1, 2]:
+            spawn_positions = loads(SPAWN_POSITIONS_PATH.read_text())[scene[0]][str(layout)]
             positions = list()
             y_values = list()
             object_ids = list()
             # Load the scene and layout.
             commands = c.get_scene_init_commands(scene=scene + "a", layout=layout, audio=False)
+            # Make all non-kinematic objects NavMesh obstacles.
+            carve_commands = []
+            for cmd in commands:
+                if cmd["$type"] == "set_kinematic_state" and not cmd["is_kinematic"]:
+                    carve_commands.append({"$type": "make_nav_mesh_obstacle",
+                                           "id": cmd["id"],
+                                           "carve_type": "stationary",
+                                           "scale": 0.5})
+            commands.extend(carve_commands)
+            
             # Get the locations and sizes of each room.
             commands.extend([{"$type": "set_floorplan_roof",
                               "show": False},
@@ -42,12 +54,28 @@ if __name__ == "__main__":
                              {"$type": "send_environments"},
                              {"$type": "send_version"},
                              {"$type": "send_segmentation_colors"}])
-            # noinspection DuplicatedCode
+            # Send the commands.
             resp = c.communicate(commands)
             env = Environments(resp=resp)
             is_standalone = get_data(resp=resp, d_type=Version).get_standalone()
             # Cache the names of all objects and get all surface models.
             segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
+
+            # Ignore spawn positions that aren't on the NavMesh (we know that they are navigable).
+            temp_spawn_positions = []
+            # Check whether each spawn position is on the NavMesh.
+            for spawn_position in spawn_positions:
+                resp = c.communicate({"$type": "send_is_on_nav_mesh",
+                                      "position": spawn_position,
+                                      "max_distance": 0.25})
+                for i in range(len(resp) - 1):
+                    r_id = OutputData.get_data_type_id(resp[i])
+                    if r_id == "isnm":
+                        isnm = IsOnNavMesh(resp[i])
+                        if isnm.get_is_on():
+                            temp_spawn_positions.append(spawn_position)
+            spawn_positions = temp_spawn_positions
+
             object_names: Dict[int, str] = dict()
             surface_ids: List[int] = list()
             for i in range(segmentation_colors.get_num()):
@@ -121,10 +149,24 @@ if __name__ == "__main__":
                         # The position is free.
                         else:
                             y = 0
-                            occupied = 1
-                            if not is_standalone:
-                                c.communicate({"$type": "add_position_marker",
-                                               "position": {"x": x, "y": 0, "z": z}})
+                            # Is this position navigable?
+                            navigable = True
+                            for spawn_position in spawn_positions:
+                                resp = c.communicate({"$type": "send_nav_mesh_path",
+                                                      "origin": spawn_position,
+                                                      "destination": {"x": x, "y": y, "z": z}})
+                                path = get_data(resp=resp, d_type=NavMeshPath)
+                                if path.get_state() != "complete":
+                                    navigable = False
+                                    break
+
+                            if not navigable:
+                                occupied = 2
+                            else:
+                                occupied = 1
+                                if not is_standalone:
+                                    c.communicate({"$type": "add_position_marker",
+                                                   "position": {"x": x, "y": 0, "z": z}})
                     pos_row.append(occupied)
                     ys_row.append(y)
                     ids_row.append(object_id)
@@ -134,8 +176,8 @@ if __name__ == "__main__":
                 object_ids.append(ids_row)
                 x += OCCUPANCY_CELL_SIZE
 
-            # Calculate reachable surfaces.
             positions = np.array(positions)
+
             y_values = np.array(y_values)
             object_ids = np.array(object_ids)
 

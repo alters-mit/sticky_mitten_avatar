@@ -1399,16 +1399,6 @@ class StickyMittenAvatarController(FloorplanController):
         else:
             commands = self.get_scene_init_commands(scene=scene, layout=layout, audio=True)
 
-            # Make all non-kinematic objects NavMesh obstacles.
-            carve_commands = []
-            for cmd in commands:
-                if cmd["$type"] == "set_kinematic_state" and not cmd["is_kinematic"]:
-                    carve_commands.append({"$type": "make_nav_mesh_obstacle",
-                                           "id": cmd["id"],
-                                           "carve_type": "stationary",
-                                           "scale": 0.5})
-            commands.extend(carve_commands)
-
             self.occupancy_map = np.load(
                 str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
             self._scene_bounds = loads(SCENE_BOUNDS_PATH.read_text())[scene[0]]
