@@ -8,6 +8,7 @@ from tdw.tdw_utils import TDWUtils
 from tdw.output_data import OutputData, NavMeshPath
 from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 from sticky_mitten_avatar.task_status import TaskStatus
+from sticky_mitten_avatar.util import get_data
 
 
 class _ActionType(Enum):
@@ -84,7 +85,7 @@ class NavTest(StickyMittenAvatarController):
         """
 
         self.reach_for_target(arm=arm,
-                              target={"x": -0.2 if arm == Arm.left else 0.2, "y": 0.4, "z": 0.385},
+                              target={"x": -0.2 if arm == Arm.left else 0.2, "y": 0.4, "z": 0.3},
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
 
@@ -109,11 +110,13 @@ class NavTest(StickyMittenAvatarController):
         # Try to get a path to each object.
         for object_id in self.static_object_info:
             if self.static_object_info[object_id].target_object or self.static_object_info[object_id].container:
-                commands.append({"$type": "send_nav_mesh_path",
-                                 "origin": avatar_position,
-                                 "destination": TDWUtils.array_to_vector3(self.frame.object_transforms[object_id].
-                                                                          position),
-                                 "id": object_id})
+                object_position = TDWUtils.array_to_vector3(self.frame.object_transforms[object_id].position)
+                # Ignore anything above the floor.
+                if object_position["y"] < 0.03:
+                    commands.append({"$type": "send_nav_mesh_path",
+                                     "origin": avatar_position,
+                                     "destination": object_position,
+                                     "id": object_id})
         resp = self.communicate(commands)
         for i in range(len(resp) - 1):
             r_id = OutputData.get_data_type_id(resp[i])
@@ -131,28 +134,37 @@ class NavTest(StickyMittenAvatarController):
                         raise Exception(object_id)
         return objects, containers
 
-    def navigate(self, path: np.array) -> bool:
+    def navigate_to(self, object_id: int) -> bool:
         """
         Go to each waypoint on the path.
 
-        :param path: The path. An array of (x, y, z) coordinates.
+        :param object_id: The target object.
 
         :return: True if the avatar reached its destination.
         """
 
         num_actions = 0
 
-        # Lift any arms holding objects.
-        for arm in [Arm.left, Arm.right]:
-            if len(self.frame.held_objects[arm]) > 0:
-                self.reset_arm(arm)
+        avatar_position = TDWUtils.array_to_vector3(self.frame.avatar_transform.position)
+        object_position = TDWUtils.array_to_vector3(self.frame.object_transforms[object_id].position)
+        resp = self.communicate({"$type": "send_nav_mesh_path",
+                                 "origin": avatar_position,
+                                 "destination": object_position,
+                                 "id": object_id})
+        nav_mesh_path = get_data(resp=resp, d_type=NavMeshPath)
+        if nav_mesh_path.get_state() != "complete":
+            return False
+
+        # The first position in the path is always the origin.
+        path = nav_mesh_path.get_path()[1:]
+
+        for waypoint in path:
+            # Lift any arms holding objects.
+            for arm in [Arm.left, Arm.right]:
+                self.reset_arm(arm=arm)
                 self._lift_arm(arm)
                 num_actions += 2
 
-        # The first position in the path is always the origin.
-        path = path[1:]
-
-        for waypoint in path:
             self.communicate({"$type": "add_position_marker",
                               "position": TDWUtils.array_to_vector3(waypoint),
                               "scale": 0.3})
@@ -175,8 +187,12 @@ class NavTest(StickyMittenAvatarController):
                 num_tries += 1
             if waypoint_status != TaskStatus.success:
                 self._record_result(_ActionType.navigate, False, num_actions)
+                print(f"Failed to go to {waypoint}")
+                self.communicate({"$type": "remove_position_markers"})
                 return False
         self._record_result(_ActionType.navigate, True, num_actions)
+        print(f"Arrived at destination")
+        self.communicate({"$type": "remove_position_markers"})
         return True
 
     def grasp_and_lift(self, object_id: int, arm: Optional[Arm] = None) -> bool:
@@ -225,6 +241,7 @@ class NavTest(StickyMittenAvatarController):
         num_actions = 0
         success, num_actions = _turn_to_grasp(1, num_actions)
         if success:
+            print(f"Picked up {object_id}")
             return True
 
         # Reset the rotation.
@@ -232,10 +249,15 @@ class NavTest(StickyMittenAvatarController):
         num_actions += 1
         if status != TaskStatus.success:
             self._record_result(_ActionType.grasp, False, num_actions)
+            print(f"Failed to turn for some reason??")
             return False
 
         # Try turning the other way.
         success, num_actions = _turn_to_grasp(-1, num_actions)
+        if success:
+            print(f"Picked up {object_id}")
+        else:
+            print(f"Failed to pick up {object_id}")
         return success
 
     def is_holding_container(self) -> Tuple[bool, int]:
@@ -282,7 +304,11 @@ class NavTest(StickyMittenAvatarController):
         container_arm: Optional[Arm] = None
         holding_container = False
         holding_object = False
-        num_actions = 0
+        # Reset the arms.
+        self.reset_arm(arm=Arm.left)
+        self.reset_arm(arm=Arm.right)
+
+        num_actions = 2
         for arm in [Arm.left, Arm.right]:
             # Are we already holding the container?
             for o_id in self.frame.held_objects[arm]:
@@ -294,11 +320,12 @@ class NavTest(StickyMittenAvatarController):
         # We are not holding the container. Get a free mitten.
         if container_arm is None:
             for arm in [Arm.left, Arm.right]:
-                if len(self.frame.held_objects) == 0:
+                if len(self.frame.held_objects[arm]) == 0:
                     container_arm = arm
                     break
         # If both mittens are holding objects, drop everything and assign a container arm.
         if container_arm is None:
+            print("Holding too many objects. Dropping everything.")
             # Drop everything.
             self.drop(arm=Arm.left)
             self.drop(arm=Arm.right)
@@ -311,22 +338,28 @@ class NavTest(StickyMittenAvatarController):
         if not holding_container:
             success, num_actions = _grasp(a=container_arm, n=num_actions, o=container_id)
             if not success:
+                print("Failed to pick up container")
                 return False
+        else:
+            print("Already holding container.")
         # Pick up the object.
         if not holding_object:
             success, num_actions = _grasp(a=object_arm, n=num_actions, o=object_id)
             if not success:
+                print("Failed to pick up object")
                 return False
+        else:
+            print("Already holding object.")
 
         # Reset the arms.
         self.reset_arm(arm=Arm.left)
         self.reset_arm(arm=Arm.right)
 
-        lift_container_target = {"x": -0.2, "y": 0.2, "z": 0.32}
+        lift_container_target = {"x": -0.2 if container_arm == Arm.left else 0.2, "y": 0.2, "z": 0.32}
 
         # Lift the container.
         self.reach_for_target(target=lift_container_target,
-                              arm=Arm.left,
+                              arm=container_arm,
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
         # Put the object in the container.
@@ -335,13 +368,18 @@ class NavTest(StickyMittenAvatarController):
 
         # Pour out a full container.
         if status == TaskStatus.full_container:
+            print("Container is full. Trying to pour out.")
             status = self.pour_out_container(arm=container_arm)
             num_actions += 1
 
             # If the pour action was successful, try again to put the object in the container.
             if status == TaskStatus.success:
+                print("Poured out container.")
                 status = self.put_in_container(object_id=object_id, container_id=container_id, arm=object_arm)
+                print(f"Tried to put object in container: {status}")
                 num_actions += 1
+            else:
+                print(f"Failed to pour out container: {status}")
 
         # Move the arms away and reset their positions.
         self.reach_for_target(target=lift_container_target, arm=Arm.left)
@@ -352,6 +390,10 @@ class NavTest(StickyMittenAvatarController):
 
         success = status != TaskStatus.success
         self._record_result(t=_ActionType.put_in_container, success=success, num_actions=num_actions)
+        if success:
+            print("The object is in the container")
+        else:
+            print("Failed to put the object is in the container")
         return success
 
     def run(self) -> None:
@@ -362,14 +404,19 @@ class NavTest(StickyMittenAvatarController):
         """
 
         self.init_scene(scene="2a", layout=1, room=1)
-
         # Get all objects and containers that the avatar can navigate to.
         target_object_paths, container_paths = self.get_navigable()
         container_ids = list(container_paths.keys())
 
+        while len(container_ids) == 0:
+            self.init_scene(scene="2a", layout=1, room=1)
+            # Get all objects and containers that the avatar can navigate to.
+            target_object_paths, container_paths = self.get_navigable()
+            container_ids = list(container_paths.keys())
+
         for target_object_id in target_object_paths:
             # Go to the object.
-            navigated = self.navigate(target_object_paths[target_object_id])
+            navigated = self.navigate_to(target_object_id)
 
             # Try to pick up the object.
             if navigated:
@@ -380,7 +427,7 @@ class NavTest(StickyMittenAvatarController):
                     if not holding_container:
                         shuffle(container_ids)
                         container_id = container_ids[0]
-                        navigated = self.navigate(target_object_paths[container_id])
+                        navigated = self.navigate_to(container_id)
                         if navigated:
                             self.put_in_container_sequence(container_id=container_id, object_id=target_object_id)
                     # Use a held container.
@@ -402,8 +449,14 @@ class NavTest(StickyMittenAvatarController):
                 if a.success:
                     num_successes += 1
                     num_actions.append(a.num_actions)
-            accuracy = num_successes / num_total
-            avg_num_actions = float(sum(num_actions)) / len(num_actions)
+            if num_total == 0:
+                accuracy = 0
+            else:
+                accuracy = num_successes / num_total
+            if len(num_actions) == 0:
+                avg_num_actions = 0
+            else:
+                avg_num_actions = float(sum(num_actions)) / len(num_actions)
             results[t.name] = {"accuracy": accuracy,
                                "avg_num_actions": avg_num_actions}
         dump = dumps(results, indent=2, sort_keys=True)
@@ -413,6 +466,8 @@ class NavTest(StickyMittenAvatarController):
 
 if __name__ == "__main__":
     c = NavTest()
-    c.run()
-    c.write_results()
-    c.end()
+    try:
+        c.run()
+    finally:
+        c.write_results()
+        c.end()

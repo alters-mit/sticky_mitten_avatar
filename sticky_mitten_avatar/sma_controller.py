@@ -337,17 +337,18 @@ class StickyMittenAvatarController(FloorplanController):
 
         self._end_task()
 
-    def _end_task(self, toggle_sensor: bool = True) -> None:
+    def _end_task(self, enable_sensor: bool = True) -> None:
         """
         End the task and update the frame data.
 
-        :param toggle_sensor: If True, toggle the image sensor.
+        :param enable_sensor: If True, enable the image sensor.
         """
 
         commands = [self._avatar.get_default_sticky_mitten_profile()]
 
-        if not self._demo and toggle_sensor:
-            commands.append({"$type": "toggle_image_sensor",
+        if enable_sensor:
+            commands.append({"$type": "enable_image_sensor",
+                             "enable": True,
                              "sensor_name": "SensorContainer",
                              "avatar_id": self._avatar.id})
         # Request output data to update the frame data.
@@ -601,20 +602,23 @@ class StickyMittenAvatarController(FloorplanController):
             if not done:
                 self.communicate([])
 
-    def _stop_avatar(self) -> None:
+    def _stop_avatar(self, enable_sensor: bool) -> None:
         """
         Advance 1 frame and stop the avatar's movement and turning.
+
+        :param enable_sensor: If True, enable the image sensor.
         """
 
         self.communicate({"$type": "set_avatar_drag",
                           "drag": self._STOP_DRAG,
                           "angular_drag": self._STOP_DRAG,
                           "avatar_id": self._avatar.id})
-        self._end_task()
+        self._end_task(enable_sensor=enable_sensor)
         self._avatar.status = TaskStatus.idle
 
     def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000,
-                stopping_threshold: float = 0.15, num_attempts: int = 200) -> TaskStatus:
+                stopping_threshold: float = 0.15, num_attempts: int = 200,
+                enable_sensor_on_finish: bool = True) -> TaskStatus:
         """
         Turn the avatar to face a target position or object.
 
@@ -627,6 +631,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param stopping_threshold: Stop when the avatar is within this many degrees of the target.
         :param num_attempts: The avatar will apply more angular force this many times to complete the turn before giving up.
+        :param enable_sensor_on_finish: Enable the camera upon completing the task. This is for internal use only.
 
         :return: A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
         """
@@ -687,11 +692,11 @@ class StickyMittenAvatarController(FloorplanController):
                 state, previous_angle = _get_turn_state()
                 # The turn succeeded!
                 if state == TaskStatus.success:
-                    self._stop_avatar()
+                    self._stop_avatar(enable_sensor_on_finish)
                     return state
                 # The turn failed.
                 elif state != TaskStatus.ongoing:
-                    self._stop_avatar()
+                    self._stop_avatar(enable_sensor_on_finish)
                     return state
                 self.communicate([])
 
@@ -700,14 +705,14 @@ class StickyMittenAvatarController(FloorplanController):
             state, previous_angle = _get_turn_state()
             # The turn succeeded!
             if state == TaskStatus.success:
-                self._stop_avatar()
+                self._stop_avatar(enable_sensor_on_finish)
                 return state
             # The turn failed.
             elif state != TaskStatus.ongoing:
-                self._stop_avatar()
+                self._stop_avatar(enable_sensor_on_finish)
                 return state
             i += 1
-        self._stop_avatar()
+        self._stop_avatar(enable_sensor_on_finish)
         return TaskStatus.too_long
 
     def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200) -> \
@@ -807,9 +812,10 @@ class StickyMittenAvatarController(FloorplanController):
         if turn:
             # Turn to the target.
             status = self.turn_to(target=TDWUtils.array_to_vector3(target), force=turn_force,
-                                  stopping_threshold=turn_stopping_threshold, num_attempts=num_attempts)
+                                  stopping_threshold=turn_stopping_threshold, num_attempts=num_attempts,
+                                  enable_sensor_on_finish=False)
             if status != TaskStatus.success:
-                self._stop_avatar()
+                self._stop_avatar(True)
                 return status
         self._start_task()
         self._avatar.status = TaskStatus.ongoing
@@ -827,23 +833,23 @@ class StickyMittenAvatarController(FloorplanController):
                               "avatar_id": self._avatar.id})
             t = _get_state()
             if t == TaskStatus.success:
-                self._stop_avatar()
+                self._stop_avatar(True)
                 return t
             elif t != TaskStatus.ongoing:
-                self._stop_avatar()
+                self._stop_avatar(True)
                 return t
             # Glide.
             while np.linalg.norm(self._avatar.frame.get_velocity()) > 0.1:
                 self.communicate([])
                 t = _get_state()
                 if t == TaskStatus.success:
-                    self._stop_avatar()
+                    self._stop_avatar(True)
                     return t
                 elif t != TaskStatus.ongoing:
-                    self._stop_avatar()
+                    self._stop_avatar(True)
                     return t
             i += 1
-        self._stop_avatar()
+        self._stop_avatar(True)
         return TaskStatus.too_long
 
     def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35,
@@ -991,7 +997,7 @@ class StickyMittenAvatarController(FloorplanController):
         if object_id not in self.frame.held_objects[arm]:
             status = self.grasp_object(object_id=object_id, arm=arm)
             if status != TaskStatus.success:
-                self._end_task()
+                self._end_task(enable_sensor=False)
                 return status
         container_arm = Arm.left if arm == Arm.right else Arm.right
 
@@ -1013,7 +1019,7 @@ class StickyMittenAvatarController(FloorplanController):
         # Twist the wrist of the arm holding the container.
         self._roll_wrist(arm=container_arm, angle=60)
 
-        self._end_task(toggle_sensor=False)
+        self._end_task(enable_sensor=False)
         container_position = self.frame.object_transforms[container_id].position
 
         # Continuously try to position the object over the container.
@@ -1024,7 +1030,7 @@ class StickyMittenAvatarController(FloorplanController):
         target_z = target_position[2]
         while not hit and attempts < num_attempts:
             # Call `_end_task()` to update the FrameData.
-            self._end_task(toggle_sensor=False)
+            self._end_task(enable_sensor=False)
 
             # Get the new distance.
             container_position = self.frame.object_transforms[container_id].position
@@ -1230,7 +1236,8 @@ class StickyMittenAvatarController(FloorplanController):
                              "avatar_id": cam_id})
         if images == "cam":
             # Disable avatar cameras.
-            commands.append({"$type": "toggle_image_sensor",
+            commands.append({"$type": "enable_image_sensor",
+                             "enable": False,
                              "sensor_name": "SensorContainer"})
 
             commands.append({"$type": "send_images",
@@ -1410,7 +1417,7 @@ class StickyMittenAvatarController(FloorplanController):
             self.occupancy_map = np.load(
                 str(OCCUPANCY_MAP_DIRECTORY.joinpath(map_filename).resolve()))
             ys_map = np.load(str(Y_MAP_DIRECTORY.joinpath(map_filename).resolve()))
-            object_spawn_map = np.load(str(Y_MAP_DIRECTORY.joinpath(map_filename).resolve()))
+            object_spawn_map = np.load(str(OBJECT_SPAWN_MAP_DIRECTORY.joinpath(map_filename).resolve()))
 
             # Get all "placeable" positions in the room.
             rooms: Dict[int, List[Tuple[int, int]]] = dict()
@@ -1538,13 +1545,15 @@ class StickyMittenAvatarController(FloorplanController):
                           "angular_drag": self._STOP_DRAG},
                          {"$type": "set_pass_masks",
                           "pass_masks": pass_masks},
-                         {"$type": "toggle_image_sensor",
+                         {"$type": "enable_image_sensor",
+                          "enable": False,
                           "sensor_name": "FollowCamera"},
                          {"$type": "teleport_avatar_to",
                           "avatar_id": "a",
                           "position": avatar_position}])
         if not self._demo:
-            commands.append({"$type": "toggle_image_sensor",
+            commands.append({"$type": "enable_image_sensor",
+                             "enable": False,
                              "sensor_name": "SensorContainer"})
         # Set all sides of both mittens to be sticky.
         for sub_mitten in ["palm", "back", "side"]:
@@ -1593,6 +1602,7 @@ class StickyMittenAvatarController(FloorplanController):
         if self._demo or self._avatar is None:
             return
 
-        self._avatar_commands.append({"$type": "toggle_image_sensor",
+        self._avatar_commands.append({"$type": "enable_image_sensor",
+                                      "enable": False,
                                       "sensor_name": "SensorContainer",
                                       "avatar_id": self._avatar.id})
