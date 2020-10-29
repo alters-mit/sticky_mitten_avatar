@@ -96,6 +96,14 @@ class Baby(Avatar):
                 "wrist_roll": {"mass": 1.5, "damper": 530, "force": 150, "angular_drag": 200},
                 "wrist_pitch": {"mass": 1.5, "damper": 505, "force": 125, "angular_drag": 200}}
 
+    def _get_movement_sticky_mitten_profile(self) -> dict:
+        return {"shoulder_pitch": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 10},
+                "shoulder_yaw": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 10},
+                "shoulder_roll": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 10},
+                "elbow": {"mass": 2, "damper": 555, "force": 150, "angular_drag": 10},
+                "wrist_roll": {"mass": 1.5, "damper": 530, "force": 150, "angular_drag": 10},
+                "wrist_pitch": {"mass": 1.5, "damper": 505, "force": 125, "angular_drag": 10}}
+
     def _get_start_bend_sticky_mitten_profile(self) -> dict:
         return {"shoulder_pitch": {"mass": 3, "damper": 75, "force": 450, "angular_drag": 1},
                 "shoulder_yaw": {"mass": 3, "damper": 75, "force": 450, "angular_drag": 1},

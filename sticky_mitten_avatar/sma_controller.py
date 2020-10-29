@@ -822,10 +822,11 @@ class StickyMittenAvatarController(FloorplanController):
         self._avatar.status = TaskStatus.ongoing
 
         # Go to the target.
-        self.communicate({"$type": "set_avatar_drag",
-                          "drag": 0.1,
-                          "angular_drag": 100,
-                          "avatar_id": self._avatar.id})
+        self.communicate([self._avatar.get_movement_sticky_mitten_profile(),
+                          {"$type": "set_avatar_drag",
+                           "drag": 0.1,
+                           "angular_drag": 100,
+                           "avatar_id": self._avatar.id}])
         i = 0
         while i < num_attempts:
             # Start gliding.
@@ -1004,21 +1005,25 @@ class StickyMittenAvatarController(FloorplanController):
 
         # These values will be used to initially lift the object and then to re-aim it until it's over the container.
         d_arm_z = -0.1
-        target_y = 0.6
+        target_y = 0.4
 
         # Lift up the object.
-        self.reach_for_target(target={"x": 0.35 if arm == Arm.right else -0.35, "y": target_y, "z": 0.36},
+        self.reach_for_target(target={"x": 0.35 if arm == Arm.right else -0.35, "y": 0.3, "z": 0.36},
                               arm=arm,
                               check_if_possible=False,
                               stop_on_mitten_collision=False,
                               precision=0.2)
-        # Lift the container.
-        self.reach_for_target(target={"x": 0.05 if arm == Arm.right else -0.05, "y": 0.05, "z": 0.32},
+        # Put the container in front of the avatar.
+        self.reach_for_target(target={"x": 0, "y": 0.1, "z": 0.3},
                               arm=container_arm,
                               check_if_possible=False,
-                              stop_on_mitten_collision=False)
-        # Twist the wrist of the arm holding the container.
-        self._roll_wrist(arm=container_arm, angle=60)
+                              stop_on_mitten_collision=False,
+                              precision=0.2)
+
+        # Let the container fall to the ground.
+        self.drop(arm=container_arm)
+
+        self.turn_to(target=int(container_id))
 
         self._end_task(enable_sensor=False)
         container_position = self.frame.object_transforms[container_id].position
@@ -1052,8 +1057,13 @@ class StickyMittenAvatarController(FloorplanController):
                 self.reach_for_target(target={"x": target_x, "y": target_y, "z": target_z}, arm=arm,
                                       precision=0.2, check_if_possible=False)
                 # Roll the wrist of the arm holding the object so that the mitten isn't in the way.
-                self._roll_wrist(arm=arm, angle=0, precision=0.05)
+                # self._roll_wrist(arm=arm, angle=0, precision=0.05)
             attempts += 1
+
+        # Stop moving!
+        self.communicate(self._avatar.get_default_sticky_mitten_profile())
+        for i in range(20):
+            self.communicate([])
 
         # Drop the object.
         self.drop(arm=arm, reset_arm=False, do_motion=False)
@@ -1078,11 +1088,11 @@ class StickyMittenAvatarController(FloorplanController):
                     sleeping = rigidbodies.get_sleeping(i) or np.linalg.norm(rigidbodies.get_velocity(i)) < 0.1
                     break
         overlap_ids = self._get_objects_in_container(container_id=container_id)
+        self._end_task()
+        print(overlap_ids)
         if object_id not in overlap_ids:
-            self._end_task()
             return TaskStatus.not_in_container
         else:
-            self._end_task()
             return TaskStatus.success
 
     def pour_out_container(self, arm: Arm) -> TaskStatus:

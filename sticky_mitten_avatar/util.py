@@ -29,7 +29,7 @@ TARGET_OBJECT_MASS = 0.25
 # The mass of a container.
 CONTAINER_MASS = 1
 # The scale of every container.
-CONTAINER_SCALE = {"x": 0.7, "y": 0.4, "z": 0.7}
+CONTAINER_SCALE = {"x": 0.6, "y": 0.4, "z": 0.6}
 
 
 def get_data(resp: List[bytes], d_type: Type[T]) -> Optional[T]:
