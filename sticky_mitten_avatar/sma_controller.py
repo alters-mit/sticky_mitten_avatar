@@ -1410,7 +1410,7 @@ class StickyMittenAvatarController(FloorplanController):
             self.occupancy_map = np.load(
                 str(OCCUPANCY_MAP_DIRECTORY.joinpath(map_filename).resolve()))
             ys_map = np.load(str(Y_MAP_DIRECTORY.joinpath(map_filename).resolve()))
-            object_spawn_map = np.load(str(Y_MAP_DIRECTORY.joinpath(map_filename).resolve()))
+            object_spawn_map = np.load(str(OBJECT_SPAWN_MAP_DIRECTORY.joinpath(map_filename).resolve()))
 
             # Get all "placeable" positions in the room.
             rooms: Dict[int, List[Tuple[int, int]]] = dict()
@@ -1426,15 +1426,15 @@ class StickyMittenAvatarController(FloorplanController):
                     rooms[i] = placeable_positions
 
             # Add 0-1 containers per room.
-            for room in list(rooms.keys()):
+            for room_key in list(rooms.keys()):
                 # Maybe don't add a container in this room.
                 if random.random() < 0.25:
                     continue
 
-                proc_gen_positions = rooms[room][:]
+                proc_gen_positions = rooms[room_key][:]
                 random.shuffle(proc_gen_positions)
                 # Get a random position in the room.
-                ix, iy = random.choice(rooms[room])
+                ix, iy = random.choice(rooms[room_key])
 
                 # Get the (x, z) coordinates for this position.
                 # The y coordinate is in `ys_map`.

@@ -12,6 +12,7 @@
   -  Added two more types of target objects.
   -  Target objects now have a random visual material.
   -  Removed `audio` parameter from constructor.
+  -  Removed most containers to make their shapes more uniform.
   -  Added `debug` parameter to constructor.
   -  `reset_arm()` will return `TaskStatus.no_longer_bending` if the arm isn't close to its original position.
   - Fixed: The timestep is different if `demo == True` resulting in different simulation behavior.
