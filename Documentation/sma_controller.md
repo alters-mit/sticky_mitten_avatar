@@ -94,6 +94,11 @@ for body_part_id in c.static_avatar_data:
 
    This is static data for the _initial_ scene occupancy_maps. It won't update if an object's position changes.
 
+   This is _not_ a navigation map. If there is a gap between positions, the avatar might still be able to go from one to the other.
+
+   Images of each occupancy map can be found in: `images/occupancy_maps`
+   Key: Red = Free position. Blue = Free position where a target object or container can be placed.
+
    Convert from the coordinates in the array to an actual position using `get_occupancy_position()`.
 
 ```python
@@ -264,7 +269,7 @@ Possible [return values](task_status.md):
 
 #### reset_arm
 
-**`def reset_arm(self, arm: Arm, do_motion: bool = True) -> TaskStatus`**
+**`def reset_arm(self, arm: Arm, do_motion: bool = True, slowly: bool = False) -> TaskStatus`**
 
 Reset an avatar's arm to its neutral positions.
 Possible [return values](task_status.md):
@@ -275,12 +280,13 @@ Possible [return values](task_status.md):
 | --- | --- |
 | arm | The arm that will be reset. |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
+| slowly | If True, move the arms slowly and with less force. |
 
 ***
 
 #### turn_to
 
-**`def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200) -> TaskStatus`**
+**`def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200, enable_sensor_on_finish: bool = True) -> TaskStatus`**
 
 Turn the avatar to face a target position or object.
 Possible [return values](task_status.md):
@@ -293,6 +299,7 @@ Possible [return values](task_status.md):
 | force | The force at which the avatar will turn. More force = faster, but might overshoot the target. |
 | stopping_threshold | Stop when the avatar is within this many degrees of the target. |
 | num_attempts | The avatar will apply more angular force this many times to complete the turn before giving up. |
+| enable_sensor_on_finish | Enable the camera upon completing the task. This is for internal use only. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
 

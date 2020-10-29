@@ -132,6 +132,7 @@ class NavTest(StickyMittenAvatarController):
                         containers[object_id] = path
                     else:
                         raise Exception(object_id)
+        self.communicate({"$type": "pause_editor"})
         return objects, containers
 
     def navigate_to(self, object_id: int) -> bool:
@@ -145,55 +146,66 @@ class NavTest(StickyMittenAvatarController):
 
         num_actions = 0
 
-        avatar_position = TDWUtils.array_to_vector3(self.frame.avatar_transform.position)
-        object_position = TDWUtils.array_to_vector3(self.frame.object_transforms[object_id].position)
-        resp = self.communicate({"$type": "send_nav_mesh_path",
-                                 "origin": avatar_position,
-                                 "destination": object_position,
-                                 "id": object_id})
-        nav_mesh_path = get_data(resp=resp, d_type=NavMeshPath)
-        if nav_mesh_path.get_state() != "complete":
-            return False
-
-        # The first position in the path is always the origin.
-        path = nav_mesh_path.get_path()[1:]
-
-        for waypoint in path:
-            # Lift any arms holding objects.
-            for arm in [Arm.left, Arm.right]:
-                self.reset_arm(arm=arm)
-                self._lift_arm(arm)
-                num_actions += 2
-
-            self.communicate({"$type": "add_position_marker",
-                              "position": TDWUtils.array_to_vector3(waypoint),
-                              "scale": 0.3})
-            num_tries = 0
-            waypoint_status = self.go_to(target=TDWUtils.array_to_vector3(waypoint),
-                                         stop_on_collision=False)
-            num_actions += 1
-            # The avatar might drift away from the target. Try again to go to it.
-            while waypoint_status != TaskStatus.success and num_tries < 5:
-                # Back up just a bit.
-                self.turn_by(-179)
-                self.move_forward_by(distance=0.5,
-                                     move_stopping_threshold=0.3,
-                                     num_attempts=10)
-                # Try to go again.
-                waypoint_status = self.go_to(target=TDWUtils.array_to_vector3(waypoint),
-                                             stop_on_collision=False,
-                                             move_stopping_threshold=0.3)
-                num_actions += 3
-                num_tries += 1
-            if waypoint_status != TaskStatus.success:
-                self._record_result(_ActionType.navigate, False, num_actions)
-                print(f"Failed to go to {waypoint}")
-                self.communicate({"$type": "remove_position_markers"})
+        for i in range(5):
+            avatar_position = TDWUtils.array_to_vector3(self.frame.avatar_transform.position)
+            object_position = TDWUtils.array_to_vector3(self.frame.object_transforms[object_id].position)
+            resp = self.communicate({"$type": "send_nav_mesh_path",
+                                     "origin": avatar_position,
+                                     "destination": object_position,
+                                     "id": object_id})
+            nav_mesh_path = get_data(resp=resp, d_type=NavMeshPath)
+            if nav_mesh_path.get_state() != "complete":
                 return False
-        self._record_result(_ActionType.navigate, True, num_actions)
-        print(f"Arrived at destination")
+
+            # The first position in the path is always the origin.
+            path = nav_mesh_path.get_path()[1:]
+
+            # Set each point on the path to the nearest position on the occupancy map.
+            temp = list()
+            for waypoint in path[:-1]:
+                min_distance = 1000
+                nearest = None
+                way_pos = np.array([waypoint[0], 0, waypoint[1]])
+                for ix, iy in np.ndindex(self.occupancy_map.shape):
+                    if self.occupancy_map[ix][iy] != 1:
+                        continue
+                    x, z = self.get_occupancy_position(ix, iy)
+                    occ_poss = np.array([x, 0, z])
+                    d = np.linalg.norm(occ_poss - way_pos)
+                    if d < min_distance:
+                        min_distance = d
+                        nearest = occ_poss
+                temp.append(nearest)
+            temp.append(path[-1])
+            path = temp
+            success = True
+            for waypoint in path:
+                # Lift any arms holding objects.
+                for arm in [Arm.left, Arm.right]:
+                    self.reset_arm(arm=arm, slowly=True)
+                    self._lift_arm(arm)
+                    num_actions += 2
+
+                self.communicate({"$type": "add_position_marker",
+                                  "position": TDWUtils.array_to_vector3(waypoint),
+                                  "scale": 0.3})
+                waypoint_status = self.go_to(target=TDWUtils.array_to_vector3(waypoint),
+                                             stop_on_collision=False)
+                num_actions += 1
+                # The avatar might drift away from the target. Try again to go to it.
+                if waypoint_status != TaskStatus.success:
+                    success = False
+                    print("Retrying path...")
+                    break
+            if success:
+                self._record_result(_ActionType.navigate, True, num_actions)
+                print(f"Arrived at destination")
+                self.communicate({"$type": "remove_position_markers"})
+                return True
+        self._record_result(_ActionType.navigate, False, num_actions)
+        print(f"Failed to go to {object_id}")
         self.communicate({"$type": "remove_position_markers"})
-        return True
+        return False
 
     def grasp_and_lift(self, object_id: int, arm: Optional[Arm] = None) -> bool:
         """
@@ -305,8 +317,8 @@ class NavTest(StickyMittenAvatarController):
         holding_container = False
         holding_object = False
         # Reset the arms.
-        self.reset_arm(arm=Arm.left)
-        self.reset_arm(arm=Arm.right)
+        self.reset_arm(arm=Arm.left, slowly=True)
+        self.reset_arm(arm=Arm.right, slowly=True)
 
         num_actions = 2
         for arm in [Arm.left, Arm.right]:
@@ -383,8 +395,8 @@ class NavTest(StickyMittenAvatarController):
 
         # Move the arms away and reset their positions.
         self.reach_for_target(target=lift_container_target, arm=Arm.left)
-        self.reset_arm(arm=Arm.right)
-        self.reset_arm(arm=Arm.left)
+        self.reset_arm(arm=Arm.right, slowly=True)
+        self.reset_arm(arm=Arm.left, slowly=True)
 
         num_actions += 3
 
@@ -466,8 +478,6 @@ class NavTest(StickyMittenAvatarController):
 
 if __name__ == "__main__":
     c = NavTest()
-    try:
-        c.run()
-    finally:
-        c.write_results()
-        c.end()
+    c.run()
+    c.write_results()
+    c.end()

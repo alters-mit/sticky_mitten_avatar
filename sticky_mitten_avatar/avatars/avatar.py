@@ -536,14 +536,18 @@ class Avatar(ABC):
             commands.extend(self.reset_arm(arm=arm))
         return commands
 
-    def reset_arm(self, arm: Arm) -> List[dict]:
+    def reset_arm(self, arm: Arm, slowly: bool = False) -> List[dict]:
         """
         :param arm: The arm that will be reset.
+        :param slowly: If True, bend the arm slowly.
 
         :return: A list of commands to drop arms to their starting positions.
         """
 
-        commands = [self.get_reset_arm_sticky_mitten_profile(arm=arm)]
+        if slowly:
+            commands = [self.get_default_sticky_mitten_profile()]
+        else:
+            commands = [self.get_reset_arm_sticky_mitten_profile(arm=arm)]
         for j in self.JOINTS:
             if j.arm != arm.name:
                 continue

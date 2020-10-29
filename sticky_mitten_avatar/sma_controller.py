@@ -565,7 +565,7 @@ class StickyMittenAvatarController(FloorplanController):
         self._end_task()
         return TaskStatus.success
 
-    def reset_arm(self, arm: Arm, do_motion: bool = True) -> TaskStatus:
+    def reset_arm(self, arm: Arm, do_motion: bool = True, slowly: bool = False) -> TaskStatus:
         """
         Reset an avatar's arm to its neutral positions.
 
@@ -576,11 +576,12 @@ class StickyMittenAvatarController(FloorplanController):
 
         :param arm: The arm that will be reset.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
+        :param slowly: If True, move the arms slowly and with less force.
         """
 
         self._start_task()
 
-        self._avatar_commands.extend(self._avatar.reset_arm(arm=arm))
+        self._avatar_commands.extend(self._avatar.reset_arm(arm=arm, slowly=slowly))
         if do_motion:
             self._do_joint_motion()
         self._end_task()
