@@ -43,7 +43,7 @@ class StaticObjectInfo:
 
     # The names of every container model.
     CONTAINERS = ["basket_18inx18inx12iin", "basket_18inx18inx12iin_bamboo", "basket_18inx18inx12iin_plastic_lattice",
-                  "basket_18inx18inx12iin_wicker", "basket_18inx18inx12iin_wood_mesh", "box_18inx18inx12in_cardboard"]
+                  "basket_18inx18inx12iin_wicker", "basket_18inx18inx12iin_wood_mesh"]
     # Objects that we can assume are kinematic.
     _KINEMATIC = ['24_in_wall_cabinet_white_wood', '24_in_wall_cabinet_wood_beach_honey',
                   '36_in_wall_cabinet_white_wood', '36_in_wall_cabinet_wood_beach_honey', 'blue_rug',
