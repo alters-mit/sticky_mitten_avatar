@@ -269,7 +269,7 @@ Possible [return values](task_status.md):
 
 #### reset_arm
 
-**`def reset_arm(self, arm: Arm, do_motion: bool = True, slowly: bool = False) -> TaskStatus`**
+**`def reset_arm(self, arm: Arm, do_motion: bool = True) -> TaskStatus`**
 
 Reset an avatar's arm to its neutral positions.
 Possible [return values](task_status.md):
@@ -280,7 +280,6 @@ Possible [return values](task_status.md):
 | --- | --- |
 | arm | The arm that will be reset. |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
-| slowly | If True, move the arms slowly and with less force. |
 
 ***
 
