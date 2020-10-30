@@ -8,6 +8,9 @@
   - Added: `pour_out_container()` Pour out the contents of a container.
   -  Added: optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
   -  Added: optional parameter `num_attempts` to `put_in_container()` to adjust the number of attempts it makes before dropping the object.
+  -  Added: optional parameter `absolute` to `reach_for_target()` for absolute world coordinates.
+  -  Added: optional parameter `enable_sensor_on_finish` to `turn_to()`.
+  -  Removed: parameter `num_attempts` from `put_in_container()`.
   -  Adjusted the scale of all containers, the mass of all containers, and the mass of all target objects.
   -  Added two more types of target objects.
   -  Target objects now have a random visual material.
@@ -20,7 +23,7 @@
   - Fixed: `grasp_object()` will try to grasp an object that is already held. Now, if the object is held, it automatically returns `success`.
   - Fixed: Physics glitches due to there being too many objects in a held container. The avatar will try to fill a container with up to 2 objects and no more. `put_in_container()` will return `full_container` if the container is "full".
   - Fixed: The "sleep threshold" of the simulation is too high, causing objects to sometimes float in midair.
-  - Fixed: the aiming of `put_in_container()` is inaccurate. The avatar will now make multiple attempts to position an object over the container.
+  - Fixed: the aiming of `put_in_container()` is inaccurate. The container and its contents are now teleported to ensure accuracy.
   - Fixed: `grasp_object()` often stops with a `success` status before the object is grasped.
   - Fixed: objects that are stacked on top of one another in a container are sometimes not counted as being in the container.
   - Fixed: `reset_arm()` allows the arms to be too floppy.

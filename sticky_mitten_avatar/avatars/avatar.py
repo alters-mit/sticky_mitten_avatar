@@ -358,7 +358,7 @@ class Avatar(ABC):
                             self._ik_goals[arm] = None
                             if self._debug:
                                 print("Stopping because the mitten collided with something.")
-                            return []
+                            return self._stop_arm(arm=arm)
                 # Check if the collision includes a body part.
                 if collider_id in self.body_parts_static and collidee_id not in self.body_parts_static:
                     if collider_id not in self.collisions:
@@ -529,7 +529,8 @@ class Avatar(ABC):
         :return: A list of commands to put down the object.
         """
 
-        commands = [{"$type": "put_down",
+        commands = [self.get_default_sticky_mitten_profile(),
+                    {"$type": "put_down",
                      "is_left": True if arm == Arm.left else False,
                      "avatar_id": self.id}]
         if reset:
@@ -681,6 +682,22 @@ class Avatar(ABC):
         raise Exception()
 
     @abstractmethod
+    def _get_movement_sticky_mitten_profile(self) -> dict:
+        """
+        :return: The StickyMittenProfile for when the avatar is moving.
+        """
+
+        raise Exception()
+
+    @abstractmethod
+    def _get_rotation_sticky_mitten_profile(self) -> dict:
+        """
+        :return: The StickyMittenProfile for when the avatar is rotatins.
+        """
+
+        raise Exception()
+
+    @abstractmethod
     def _get_start_bend_sticky_mitten_profile(self) -> dict:
         """
         :return: The StickyMittenProfile required for beginning to bend an arm.
@@ -748,6 +765,23 @@ class Avatar(ABC):
 
         return self._get_sticky_mitten_profile(left=move if arm == Arm.left else fixed,
                                                right=move if arm == Arm.right else fixed)
+
+    def get_rotation_sticky_mitten_profile(self) -> dict:
+        """
+        :return: A `set_sticky_mitten_profile` command for when the avatar needs to rotate.
+        """
+
+        profile = self._get_rotation_sticky_mitten_profile()
+        return self._get_sticky_mitten_profile(left=profile, right=profile)
+
+    def get_movement_sticky_mitten_profile(self) -> dict:
+        """
+        :return: A `set_sticky_mitten_profile` command for when the avatar needs to move.
+        """
+
+        profile = self._get_movement_sticky_mitten_profile()
+
+        return self._get_sticky_mitten_profile(left=profile, right=profile)
 
     def get_reset_arm_sticky_mitten_profile(self, arm: Arm) -> dict:
         """
