@@ -1,14 +1,10 @@
-from pathlib import Path
-from json import dumps
 import random
-from enum import Enum
 import numpy as np
-from typing import Tuple, Dict, Optional, List
+from typing import Tuple, Optional, List
 from tdw.tdw_utils import TDWUtils
-from tdw.output_data import OutputData, NavMeshPath
 from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 from sticky_mitten_avatar.task_status import TaskStatus
-from sticky_mitten_avatar.util import get_data, rotate_point_around, CONTAINER_SCALE, TARGET_OBJECT_MASS
+from sticky_mitten_avatar.util import  rotate_point_around, CONTAINER_SCALE, TARGET_OBJECT_MASS, CONTAINER_MASS
 
 
 class PutInContainerTest(StickyMittenAvatarController):
@@ -37,6 +33,9 @@ class PutInContainerTest(StickyMittenAvatarController):
                                                                 position=TDWUtils.array_to_vector3(container_position),
                                                                 rotation={"x": 0, "y": random.uniform(-179, 179)})
             commands.extend(container_commands)
+            commands.append({"$type": "set_mass",
+                             "id": container_id,
+                             "mass": CONTAINER_MASS})
             self.container_ids.append(container_id)
             theta += d_theta
         num_objects = 10
@@ -51,6 +50,9 @@ class PutInContainerTest(StickyMittenAvatarController):
                                                           position=TDWUtils.array_to_vector3(object_position),
                                                           rotation={"x": 0, "y": random.uniform(-179, 179)})
             commands.extend(object_commands)
+            commands.append({"$type": "set_mass",
+                             "id": object_id,
+                             "mass": TARGET_OBJECT_MASS})
             self.object_ids.append(object_id)
             theta += d_theta
 
@@ -245,12 +247,6 @@ class PutInContainerTest(StickyMittenAvatarController):
 
         status = self.put_in_container(object_id=target_object_id, container_id=container_id, arm=object_arm)
         print(f"Put in container: {status}")
-        # Pour out the container.
-        if status == TaskStatus.full_container:
-            status = self.pour_out_container(arm=container_arm)
-            if status != TaskStatus.success:
-                return status
-            status = self.put_in_container(object_id=target_object_id, container_id=container_id, arm=object_arm)
         if status != TaskStatus.success:
             success = self.grasp_and_lift(object_id=container_id, arm=container_arm)
         else:
@@ -264,7 +260,7 @@ class PutInContainerTest(StickyMittenAvatarController):
         Try to reuse the container.
         """
 
-        num_trials = 10
+        num_trials = 3
         num_successes = 0
 
         # Initialize the scene.

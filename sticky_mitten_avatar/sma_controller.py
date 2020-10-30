@@ -1056,6 +1056,10 @@ class StickyMittenAvatarController(FloorplanController):
             self._wait_for_objects_to_stop(object_ids=overlap_ids)
             self._end_task()
 
+        self.communicate({"$type": "set_avatar_rigidbody_constraints",
+                          "rotate": False,
+                          "translate": False})
+
         # Lift the arm away.
         self.reach_for_target(target={"x": 0.25 if arm == Arm.right else -0.25, "y": 0.6, "z": 0.3},
                               arm=arm,
@@ -1064,7 +1068,7 @@ class StickyMittenAvatarController(FloorplanController):
         aim_position = self.frame.object_transforms[container_id].position
         aim_position[1] = 0.3
         self.reach_for_target(arm=arm,
-                              target={"x": -0.091 if arm == Arm.right else 0.091, "y": 0.306, "z": 0.392},
+                              target={"x": 0, "y": 0.306, "z": 0.392},
                               stop_on_mitten_collision=False,
                               check_if_possible=False)
 
@@ -1082,10 +1086,14 @@ class StickyMittenAvatarController(FloorplanController):
         self._wait_for_objects_to_stop(object_ids=[object_id])
         self.reset_arm(arm=arm)
 
-        # Check if the object is in the container.
-        overlap_ids = self._get_objects_in_container(container_id=container_id)
-        if object_id not in overlap_ids:
-            return TaskStatus.not_in_container
+        self.communicate({"$type": "set_avatar_rigidbody_constraints",
+                          "rotate": True,
+                          "translate": True})
+
+        # Connect the object to the container.
+        self.communicate({"$type": "add_fixed_joint",
+                          "id": object_id,
+                          "parent_id": container_id})
 
         self.reset_arm(arm=container_arm)
 
@@ -1286,14 +1294,14 @@ class StickyMittenAvatarController(FloorplanController):
         # Check the overlap of the container to see if the object is in that space. If so, it is in the container.
         size = self.static_object_info[container_id].size
         # Set the position to be in the center of the rotated object.
-        center = TDWUtils.array_to_vector3(pos + (up * size[1] * 0.75))
+        center = TDWUtils.array_to_vector3(pos + (up * size[1] * 0.5))
         pos = TDWUtils.array_to_vector3(pos)
         # Decide which overlap shape to use depending on the container shape.
         if shape == "box":
             resp = self.communicate({"$type": "send_overlap_box",
                                      "position": pos,
                                      "rotation": TDWUtils.array_to_vector4(rot),
-                                     "half_extents": TDWUtils.array_to_vector3(size * 1.25)})
+                                     "half_extents": TDWUtils.array_to_vector3(size / 2)})
         elif shape == "sphere":
             resp = self.communicate({"$type": "send_overlap_sphere",
                                      "position": pos,
@@ -1306,8 +1314,7 @@ class StickyMittenAvatarController(FloorplanController):
         else:
             raise Exception(f"Bad shape for {name}: {shape}")
         overlap = get_data(resp=resp, d_type=Overlap)
-        return [int(o_id) for o_id in overlap.get_object_ids() if int(o_id) != container_id and int(o_id) in
-                self.static_object_info.keys()]
+        return [int(o_id) for o_id in overlap.get_object_ids() if int(o_id) != container_id]
 
     def _destroy_avatar(self, avatar_id: str) -> None:
         """
