@@ -209,8 +209,6 @@ class StickyMittenAvatarController(FloorplanController):
                      "enabled": False},
                     {"$type": "set_shadow_strength",
                      "strength": 1.0},
-                    {"$type": "set_sleep_threshold",
-                     "sleep_threshold": 0.01},
                     {"$type": "set_screen_size",
                      "width": screen_width,
                      "height": screen_height},
@@ -428,7 +426,7 @@ class StickyMittenAvatarController(FloorplanController):
 
     def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True,
                          check_if_possible: bool = True, stop_on_mitten_collision: bool = True,
-                         precision: float = 0.05) -> TaskStatus:
+                         precision: float = 0.05, absolute: bool = False) -> TaskStatus:
         """
         Bend an arm joints of an avatar to reach for a target position.
 
@@ -442,11 +440,12 @@ class StickyMittenAvatarController(FloorplanController):
         - `mitten_collision` (If `stop_if_mitten_collision == True`)
 
         :param arm: The arm (left or right).
-        :param target: The target position for the mitten relative to the avatar.
+        :param target: The target position for the mitten.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         :param stop_on_mitten_collision: If true, the arm will stop bending if the mitten collides with an object other than the target object.
         :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
         :param precision: The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`.
+        :param absolute: If True, `target` is in absolute world coordinates. If False, `target` is in coordinates relative to the avatar's position and rotation.
 
         :return: A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
         """
@@ -454,6 +453,10 @@ class StickyMittenAvatarController(FloorplanController):
         self._start_task()
 
         target = TDWUtils.vector3_to_array(target)
+
+        # Convert to relative coordinates.
+        if absolute:
+            target = self._avatar.get_rotated_target(target=target)
 
         # Check if it is possible for the avatar to reach the target.
         if check_if_possible:
@@ -829,9 +832,10 @@ class StickyMittenAvatarController(FloorplanController):
         i = 0
         while i < num_attempts:
             # Start gliding.
-            self.communicate({"$type": "move_avatar_forward_by",
-                              "magnitude": move_force,
-                              "avatar_id": self._avatar.id})
+            self.communicate([{"$type": "move_avatar_forward_by",
+                               "magnitude": move_force,
+                               "avatar_id": self._avatar.id},
+                              self._avatar.get_movement_sticky_mitten_profile()])
             t = _get_state()
             if t == TaskStatus.success:
                 self._stop_avatar(True)
@@ -986,11 +990,11 @@ class StickyMittenAvatarController(FloorplanController):
         if not self.static_object_info[container_id].container:
             return TaskStatus.not_a_container
 
-        self._start_task()
+        self._stop_avatar(enable_sensor=False)
 
         # A "full" container has too many objects such that physics might glitch.
         overlap_ids = self._get_objects_in_container(container_id=container_id)
-        if len(overlap_ids) > 4:
+        if len(overlap_ids) > 3:
             self._end_task()
             return TaskStatus.full_container
 
@@ -1002,67 +1006,77 @@ class StickyMittenAvatarController(FloorplanController):
                 return status
         container_arm = Arm.left if arm == Arm.right else Arm.right
 
-        # These values will be used to initially lift the object and then to re-aim it until it's over the container.
-        d_arm_z = -0.1
-        target_y = 0.4
-
         # Lift up the object.
         self.reach_for_target(target={"x": 0.35 if arm == Arm.right else -0.35, "y": 0.3, "z": 0.36},
                               arm=arm,
                               check_if_possible=False,
                               stop_on_mitten_collision=False,
                               precision=0.2)
-        # Put the container in front of the avatar.
-        self.reach_for_target(target={"x": 0, "y": 0.1, "z": 0.3},
-                              arm=container_arm,
-                              check_if_possible=False,
-                              stop_on_mitten_collision=False,
-                              precision=0.2)
 
         # Let the container fall to the ground.
         self.drop(arm=container_arm)
+        self.reset_arm(arm=container_arm)
 
-        self.turn_to(target=int(container_id))
+        # Try to nudge the container to be directly in front of the avatar.
+        new_container_position = self.frame.avatar_transform.position + np.array([-0.215 if arm == Arm.right else 0.215,
+                                                                                  0, 0.341])
+        new_container_angle = get_angle(forward=self.frame.avatar_transform.forward,
+                                        origin=self.frame.avatar_transform.position,
+                                        position=new_container_position)
+        new_container_position = rotate_point_around(point=new_container_position,
+                                                     origin=self.frame.avatar_transform.position,
+                                                     angle=new_container_angle)
+        new_container_rotation = TDWUtils.array_to_vector4(self.frame.avatar_transform.rotation)
+        # Check if there's anything in the way.
+        resp = self.communicate({"$type": "send_overlap_box",
+                                 "position": TDWUtils.array_to_vector3(new_container_position),
+                                 "rotation": new_container_rotation,
+                                 "half_extents": TDWUtils.array_to_vector3(self.static_object_info[container_id].size /
+                                                                           2)})
+        overlap_ids = get_data(resp=resp, d_type=Overlap).get_object_ids()
+        can_nudge = True
+        for overlap_id in overlap_ids:
+            if not self.static_object_info[overlap_id].container and \
+                    not self.static_object_info[overlap_id].target_object:
+                can_nudge = False
+                break
+        # Teleport the objects an easily-to-reach location.
+        if can_nudge:
+            self._end_task(enable_sensor=False)
+            overlap_ids = self._get_objects_in_container(container_id=container_id)
+            delta_position = new_container_position - self.frame.object_transforms[container_id].position
+            overlap_ids.append(container_id)
+            teleport_commands = [{"$type": "rotate_object_to",
+                                  "rotation": TDWUtils.array_to_vector4(self.frame.avatar_transform.rotation),
+                                  "id": container_id,
+                                  "physics": True}]
+            for teleport_id in overlap_ids:
+                teleport_position = TDWUtils.array_to_vector3(self.frame.object_transforms[teleport_id].position +
+                                                              delta_position)
+                teleport_position["y"] += 0.03
+                teleport_commands.append({"$type": "teleport_object",
+                                          "position": teleport_position,
+                                          "id": teleport_id,
+                                          "physics": True})
+            self.communicate(teleport_commands)
+            self._wait_for_objects_to_stop(object_ids=overlap_ids)
+            self._end_task()
+        else:
+            print(overlap_ids, container_id, object_id)
+
+        # Lift the arm away.
+        self.reach_for_target(target={"x": 0.25 if arm == Arm.right else -0.25, "y": 0.6, "z": 0.3},
+                              arm=arm,
+                              check_if_possible=False,
+                              stop_on_mitten_collision=False)
+        aim_position = self.frame.object_transforms[container_id].position
+        aim_position[1] = 0.3
+        self.reach_for_target(arm=arm,
+                              target={"x": -0.091 if arm == Arm.right else 0.091, "y": 0.306, "z": 0.392},
+                              stop_on_mitten_collision=False,
+                              check_if_possible=False)
 
         self._end_task(enable_sensor=False)
-        container_position = self.frame.object_transforms[container_id].position
-
-        # Continuously try to position the object over the container.
-        hit = False
-        attempts = 0
-        target_position = self._avatar.get_rotated_target(target=container_position)
-        target_x = target_position[0]
-        target_z = target_position[2]
-        while not hit and attempts < num_attempts:
-            # Call `_end_task()` to update the FrameData.
-            self._end_task(enable_sensor=False)
-
-            # Get the new distance.
-            container_position = self.frame.object_transforms[container_id].position
-
-            # Raycast from the object directly downward to see if it's directly above the container.
-            object_position = TDWUtils.array_to_vector3(self.frame.object_transforms[object_id].position)
-
-            resp = self.communicate({"$type": "send_raycast",
-                                     "origin": object_position,
-                                     "destination": {"x": object_position["x"], "y": 0, "z": object_position["z"]}})
-            raycast = get_data(resp=resp, d_type=Raycast)
-            hit = raycast.get_hit_object()
-            hit_point = raycast.get_point()
-            distance_to_container = np.linalg.norm(container_position - hit_point)
-            # Move the arm slightly until there's a hit that is close to the center of the container.
-            if not hit or distance_to_container > 0.2:
-                target_z += d_arm_z
-                self.reach_for_target(target={"x": target_x, "y": target_y, "z": target_z}, arm=arm,
-                                      precision=0.2, check_if_possible=False)
-                # Roll the wrist of the arm holding the object so that the mitten isn't in the way.
-                # self._roll_wrist(arm=arm, angle=0, precision=0.05)
-            attempts += 1
-
-        # Stop moving!
-        self.communicate(self._avatar.get_default_sticky_mitten_profile())
-        for i in range(20):
-            self.communicate([])
 
         # Drop the object.
         self.drop(arm=arm, reset_arm=False, do_motion=False)
@@ -1073,26 +1087,39 @@ class StickyMittenAvatarController(FloorplanController):
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
 
-        # Wait for the object to stop moving.
-        self.communicate({"$type": "send_rigidbodies",
-                          "frequency": "always"})
-        sleeping = False
-        while not sleeping:
-            # Advance one frame.
-            resp = self.communicate([])
-            rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
-            # Check if the object stopped moving.
-            for i in range(rigidbodies.get_num()):
-                if rigidbodies.get_id(i) == object_id:
-                    sleeping = rigidbodies.get_sleeping(i) or np.linalg.norm(rigidbodies.get_velocity(i)) < 0.1
-                    break
+        self._wait_for_objects_to_stop(object_ids=[object_id])
+        self.reset_arm(arm=arm)
+
+        # Check if the object is in the container.
         overlap_ids = self._get_objects_in_container(container_id=container_id)
-        self._end_task()
-        print(overlap_ids)
         if object_id not in overlap_ids:
             return TaskStatus.not_in_container
-        else:
-            return TaskStatus.success
+
+        self.reset_arm(arm=container_arm)
+
+        # Move the container and its objects in front of the mitten.
+        mitten_id = self._avatar.mitten_ids[container_arm]
+        new_container_position = self.frame.avatar_body_part_transforms[mitten_id].position + self.frame.\
+            avatar_transform.forward * 0.3
+        delta_position = new_container_position - self.frame.object_transforms[container_id].position
+        teleport_commands = [{"$type": "teleport_object",
+                              "id": container_id,
+                              "position": TDWUtils.array_to_vector3(new_container_position),
+                              "physics": True}]
+        for overlap_id in overlap_ids:
+            teleport_position = self.frame.object_transforms[overlap_id].position + delta_position
+            teleport_position[1] += 0.03
+            teleport_commands.append({"$type": "teleport_object",
+                                      "id": overlap_id,
+                                      "position": TDWUtils.array_to_vector3(teleport_position),
+                                      "physics": True})
+
+        self.communicate(teleport_commands)
+
+        self._wait_for_objects_to_stop(object_ids=[object_id])
+
+        # Pick up the container again.
+        return self.grasp_object(object_id=container_id, arm=container_arm, check_if_possible=False)
 
     def pour_out_container(self, arm: Arm) -> TaskStatus:
         """
@@ -1112,26 +1139,6 @@ class StickyMittenAvatarController(FloorplanController):
 
         :return: A `TaskStatus` indicating whether the avatar poured all objects out of the container and if not, why.
         """
-
-        def _wait_until_objects_stop() -> None:
-            """
-            Wait until the objects in the container stop moving.
-            """
-
-            # Wait for the objects to stop moving.
-            resp = self.communicate({"$type": "send_rigidbodies",
-                                     "frequency": "always",
-                                     "ids": overlap_ids})
-            moving = True
-            while moving:
-                rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
-                moving = False
-                for i in range(rigidbodies.get_num()):
-                    sleeping = rigidbodies.get_sleeping(i) or np.linalg.norm(rigidbodies.get_velocity(i)) < 0.1
-                    if not sleeping:
-                        moving = True
-                        break
-                resp = self.communicate([])
 
         # Make sure that this arm is holding a container.
         held = self._avatar.frame.get_held_left() if arm == Arm.left else self._avatar.frame.get_held_right()
@@ -1154,10 +1161,10 @@ class StickyMittenAvatarController(FloorplanController):
         self._roll_wrist(arm=arm, angle=90)
         # Lift the arm to tilt the container.
         self.reach_for_target(arm=arm, target={"x": -0.3 if arm == Arm.left else 0.3, "y": 0.6, "z": 0.35},
-                              check_if_possible=False, stop_on_mitten_collision=False, precision=0.2)
+                              check_if_possible=False, stop_on_mitten_collision=False)
         self._roll_wrist(arm=arm, angle=90)
 
-        _wait_until_objects_stop()
+        self._wait_for_objects_to_stop(object_ids=overlap_ids)
 
         # Get all of the objects in the container. If there aren't any, this task succeeded.
         overlap_ids = self._get_objects_in_container(container_id=container_id)
@@ -1167,7 +1174,7 @@ class StickyMittenAvatarController(FloorplanController):
         # Try to shake objects out of the container.
         else:
             self.shake(joint_name=f"elbow_{arm.name}", num_shakes=(2, 2))
-            _wait_until_objects_stop()
+            self._wait_for_objects_to_stop(object_ids=overlap_ids)
             overlap_ids = self._get_objects_in_container(container_id=container_id)
             self._end_task()
             return TaskStatus.success if len(overlap_ids) == 0 else TaskStatus.still_in_container
@@ -1616,3 +1623,29 @@ class StickyMittenAvatarController(FloorplanController):
                                       "enable": False,
                                       "sensor_name": "SensorContainer",
                                       "avatar_id": self._avatar.id})
+
+    def _wait_for_objects_to_stop(self, object_ids: List[int]) -> None:
+        """
+        Wait for some objects to stop moving.
+
+        :param object_ids: A list of object IDs.
+        """
+
+        # Request rigidbody data per frame for each of the objects.
+        resp = self.communicate({"$type": "send_rigidbodies",
+                                 "frequency": "always",
+                                 "ids": object_ids})
+        sleeping = False
+        while not sleeping:
+            sleeping = True
+            # Advance one frame.
+            rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
+            # Check if the object stopped moving.
+            for i in range(rigidbodies.get_num()):
+                # Check if this object is moving.
+                if np.linalg.norm(rigidbodies.get_velocity(i)) > 0.1:
+                    sleeping = False
+                    break
+            resp = self.communicate([])
+
+        self._end_task(enable_sensor=False)

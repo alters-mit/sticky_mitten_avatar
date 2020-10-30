@@ -19,6 +19,7 @@ class FillAndPour(StickyMittenAvatarController):
         # In an actual simulation, set it to `False`.
         super().__init__(port=port, launch_build=False, id_pass=False, demo=True)
         self.container_id = 0
+        self.jug_ids = []
 
     def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
         # Don't include this function in an actual simulation.
@@ -37,7 +38,7 @@ class FillAndPour(StickyMittenAvatarController):
                          "mass": CONTAINER_MASS})
         x = 0.215
         z = 0.516
-        for i in range(4):
+        for i in range(2):
             o_id, object_commands = self._add_object("jug05",
                                                      position={"x": x, "y": 0, "z": z + i * 0.5},
                                                      scale={"x": 0.5, "y": 0.5, "z": 0.5})
@@ -47,7 +48,13 @@ class FillAndPour(StickyMittenAvatarController):
             commands.append({"$type": "set_mass",
                              "id": o_id,
                              "mass": TARGET_OBJECT_MASS})
+            self.jug_ids.append(o_id)
         return commands
+
+    def init_scene(self, scene: str = None, layout: int = None, room: int = -1) -> None:
+        super().init_scene(scene=scene, layout=layout, room=room)
+        for o_id in self.jug_ids:
+            self.static_object_info[o_id].target_object = True
 
 
 if __name__ == "__main__":
@@ -67,7 +74,7 @@ if __name__ == "__main__":
     # - Try moving forwards or backing away.
     # - Try checking if there is an obstacle in the way. If so, move it out of the way and try again.
     # - Something else!
-    lift_container_target = {"x": -0.2, "y": 0.2, "z": 0.32}
+    lift_container_target = {"x": -0.2, "y": 0.4, "z": 0.32}
     d_theta = -15
     for object_id in c.static_object_info:
         # Don't try to pick up a container.
@@ -106,10 +113,6 @@ if __name__ == "__main__":
         # Put the object in the container.
         status = c.put_in_container(object_id=object_id, container_id=c.container_id, arm=Arm.right)
         assert status == TaskStatus.success, status
-
-        # Move the arms away and reset their positions.
-        c.reach_for_target(target=lift_container_target, arm=Arm.left)
-        c.reset_arm(arm=Arm.right)
         c.reset_arm(arm=Arm.left)
     # Move forward a little more.
     c.reach_for_target(target=lift_container_target,
