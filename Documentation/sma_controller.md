@@ -198,7 +198,7 @@ _Returns:_  The response from the build.
 
 #### reach_for_target
 
-**`def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05) -> TaskStatus`**
+**`def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05, absolute: bool = False) -> TaskStatus`**
 
 Bend an arm joints of an avatar to reach for a target position.
 Possible [return values](task_status.md):
@@ -212,11 +212,12 @@ Possible [return values](task_status.md):
 | Parameter | Description |
 | --- | --- |
 | arm | The arm (left or right). |
-| target | The target position for the mitten relative to the avatar. |
+| target | The target position for the mitten. |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
 | stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object other than the target object. |
 | check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
 | precision | The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. |
+| absolute | If True, `target` is in absolute world coordinates. If False, `target` is in coordinates relative to the avatar's position and rotation. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
 
@@ -400,13 +401,15 @@ _Returns:_  A `TaskStatus` indicating whether the avatar shook the joint and if 
 
 #### put_in_container
 
-**`def put_in_container(self, object_id: int, container_id: int, arm: Arm, num_attempts: int = 10) -> TaskStatus`**
+**`def put_in_container(self, object_id: int, container_id: int, arm: Arm) -> TaskStatus`**
 
 Try to put an object in a container.
 1. The avatar will grasp the object and a container via `grasp_object()` if it isn't holding them already.
-2. The avatar will lift the object up and then over the container via `reach_for_target()`
-3. The avatar will make multiple attempts to position the object over the container via `reach_for_target()` plus some backend-only logic.
-4. The avatar will `drop()` the object into the container.
+2. The avatar will lift the object up.
+3. The container and its contents will be teleported to be in front of the avatar.
+4. The avatar will move the object over the container and drop it.
+5. The avatar will pick up the container again.
+The container will be teleport to
 Possible [return values](task_status.md):
 - `success` (The avatar put the object in the container.)
 - `too_close_to_reach` (Either the object or the container is too close.)
@@ -425,7 +428,6 @@ Possible [return values](task_status.md):
 | object_id | The ID of the object that the avatar will try to put in the container. |
 | container_id | The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container')(static_object_info.md). |
 | arm | The arm that will try to pick up the object. |
-| num_attempts | Make this many attempts to re-position the object above the container. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar put the object in the container and if not, why.
 

@@ -14,7 +14,7 @@ from sticky_mitten_avatar.util import get_data, rotate_point_around, CONTAINER_S
 class PutInContainerTest(StickyMittenAvatarController):
     # Try to turn this many degrees per attempt at grasping an object.
     _D_THETA_GRASP = 15
-    _LIFT_CONTAINER_TARGET = {"x": -0.2, "y": 0.2, "z": 0.32}
+    _LIFT_CONTAINER_TARGET = {"x": -0.2, "y": 0.4, "z": 0.32}
 
     def __init__(self, port: int = 1071):
         super().__init__(port=port, launch_build=False, id_pass=False)
@@ -64,7 +64,7 @@ class PutInContainerTest(StickyMittenAvatarController):
         """
 
         self.reach_for_target(arm=arm,
-                              target={"x": -0.2 if arm == Arm.left else 0.2, "y": 0.4, "z": 0.2},
+                              target={"x": -0.2 if arm == Arm.left else 0.2, "y": 0.4, "z": 0.3},
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
 
@@ -88,15 +88,32 @@ class PutInContainerTest(StickyMittenAvatarController):
                     return TaskStatus.success, object_id
         object_id = random.choice(object_ids)
 
+        holding_arms = []
+        for a in self.frame.held_objects:
+            if len(self.frame.held_objects[a]) > 0:
+                holding_arms.append(a)
+
+        for a in holding_arms:
+            self._lift_arm(arm=a)
+
         # Go to the object.
         self.go_to(object_id, move_stopping_threshold=stopping_distance)
+        for a in holding_arms:
+            self.reset_arm(arm=a)
+            self._lift_arm(arm=a)
 
         d = np.linalg.norm(self.frame.avatar_transform.position - self.frame.object_transforms[object_id].position)
         for i in range(5):
-            if d > stopping_distance:
+            if d > 0.7:
+                for a in holding_arms:
+                    self.reset_arm(arm=a)
+                    self._lift_arm(arm=a)
                 self.go_to(object_id, move_stopping_threshold=stopping_distance)
             else:
                 break
+
+        for a in holding_arms:
+            self._lift_arm(arm=a)
 
         success = False
         for i in range(5):
@@ -179,7 +196,12 @@ class PutInContainerTest(StickyMittenAvatarController):
         object_id = int(object_id)
         self.turn_to(target=object_id)
 
-        success = _turn_to_grasp(1)
+        if arm is not None and arm == Arm.right:
+            d = -1
+        else:
+            d = 1
+
+        success = _turn_to_grasp(d)
         if success:
             print(f"Picked up {object_id}")
             return True
@@ -191,7 +213,8 @@ class PutInContainerTest(StickyMittenAvatarController):
             return False
 
         # Try turning the other way.
-        success = _turn_to_grasp(-1)
+        d *= -1
+        success = _turn_to_grasp(d)
         if success:
             print(f"Picked up {object_id}")
         else:
@@ -212,11 +235,13 @@ class PutInContainerTest(StickyMittenAvatarController):
                 elif object_id in self.object_ids:
                     target_object_id = object_id
                     object_arm = arm
-
         if container_arm is None:
             return TaskStatus.not_a_container
         if object_arm is None:
             return TaskStatus.failed_to_pick_up
+
+        target_object_id = int(target_object_id)
+        container_id = int(container_id)
 
         status = self.put_in_container(object_id=target_object_id, container_id=container_id, arm=object_arm)
         print(f"Put in container: {status}")
@@ -227,14 +252,9 @@ class PutInContainerTest(StickyMittenAvatarController):
                 return status
             status = self.put_in_container(object_id=target_object_id, container_id=container_id, arm=object_arm)
         if status != TaskStatus.success:
-            return status
-
-        # Reset the arms.
-        self.reset_arm(arm=Arm.right)
-        self.reset_arm(arm=Arm.left)
-
-        # Grasp the container again.
-        success = self.grasp_and_lift(container_id)
+            success = self.grasp_and_lift(object_id=container_id, arm=container_arm)
+        else:
+            success = True
 
         return TaskStatus.success if success else TaskStatus.failed_to_pick_up
 

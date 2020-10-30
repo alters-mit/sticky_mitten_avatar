@@ -690,6 +690,14 @@ class Avatar(ABC):
         raise Exception()
 
     @abstractmethod
+    def _get_rotation_sticky_mitten_profile(self) -> dict:
+        """
+        :return: The StickyMittenProfile for when the avatar is rotatins.
+        """
+
+        raise Exception()
+
+    @abstractmethod
     def _get_start_bend_sticky_mitten_profile(self) -> dict:
         """
         :return: The StickyMittenProfile required for beginning to bend an arm.
@@ -758,14 +766,22 @@ class Avatar(ABC):
         return self._get_sticky_mitten_profile(left=move if arm == Arm.left else fixed,
                                                right=move if arm == Arm.right else fixed)
 
+    def get_rotation_sticky_mitten_profile(self) -> dict:
+        """
+        :return: A `set_sticky_mitten_profile` command for when the avatar needs to rotate.
+        """
+
+        profile = self._get_rotation_sticky_mitten_profile()
+        return self._get_sticky_mitten_profile(left=profile, right=profile)
+
     def get_movement_sticky_mitten_profile(self) -> dict:
         """
         :return: A `set_sticky_mitten_profile` command for when the avatar needs to move.
         """
 
-        move = self._get_movement_sticky_mitten_profile()
+        profile = self._get_movement_sticky_mitten_profile()
 
-        return self._get_sticky_mitten_profile(left=move, right=move)
+        return self._get_sticky_mitten_profile(left=profile, right=profile)
 
     def get_reset_arm_sticky_mitten_profile(self, arm: Arm) -> dict:
         """

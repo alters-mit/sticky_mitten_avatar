@@ -674,20 +674,16 @@ class StickyMittenAvatarController(FloorplanController):
 
         self._avatar.status = TaskStatus.ongoing
 
-        # Set a low drag.
-        self.communicate({"$type": "set_avatar_drag",
-                          "drag": 0,
-                          "angular_drag": 0.05,
-                          "avatar_id": self._avatar.id})
-
-        turn_command = {"$type": "turn_avatar_by",
-                        "torque": force * direction,
-                        "avatar_id": self._avatar.id}
-
-        # Begin to turn.
-        self.communicate(turn_command)
         i = 0
         while i < num_attempts:
+            self.communicate([{"$type": "set_avatar_drag",
+                               "drag": 0,
+                               "angular_drag": 0.05,
+                               "avatar_id": self._avatar.id},
+                              self._avatar.get_rotation_sticky_mitten_profile(),
+                              {"$type": "turn_avatar_by",
+                               "torque": force * direction,
+                               "avatar_id": self._avatar.id}])
             # Coast to a stop.
             coasting = True
             while coasting:
@@ -704,7 +700,6 @@ class StickyMittenAvatarController(FloorplanController):
                 self.communicate([])
 
             # Turn.
-            self.communicate(turn_command)
             state, previous_angle = _get_turn_state()
             # The turn succeeded!
             if state == TaskStatus.success:
@@ -822,18 +817,15 @@ class StickyMittenAvatarController(FloorplanController):
                 return status
         self._start_task()
         self._avatar.status = TaskStatus.ongoing
-
-        # Go to the target.
-        self.communicate([self._avatar.get_movement_sticky_mitten_profile(),
-                          {"$type": "set_avatar_drag",
-                           "drag": 0.1,
-                           "angular_drag": 100,
-                           "avatar_id": self._avatar.id}])
         i = 0
         while i < num_attempts:
             # Start gliding.
             self.communicate([{"$type": "move_avatar_forward_by",
                                "magnitude": move_force,
+                               "avatar_id": self._avatar.id},
+                              {"$type": "set_avatar_drag",
+                               "drag": 0.1,
+                               "angular_drag": 100,
                                "avatar_id": self._avatar.id},
                               self._avatar.get_movement_sticky_mitten_profile()])
             t = _get_state()
@@ -956,14 +948,17 @@ class StickyMittenAvatarController(FloorplanController):
         self._end_task()
         return TaskStatus.success
 
-    def put_in_container(self, object_id: int, container_id: int, arm: Arm, num_attempts: int = 10) -> TaskStatus:
+    def put_in_container(self, object_id: int, container_id: int, arm: Arm) -> TaskStatus:
         """
         Try to put an object in a container.
 
         1. The avatar will grasp the object and a container via `grasp_object()` if it isn't holding them already.
-        2. The avatar will lift the object up and then over the container via `reach_for_target()`
-        3. The avatar will make multiple attempts to position the object over the container via `reach_for_target()` plus some backend-only logic.
-        4. The avatar will `drop()` the object into the container.
+        2. The avatar will lift the object up.
+        3. The container and its contents will be teleported to be in front of the avatar.
+        4. The avatar will move the object over the container and drop it.
+        5. The avatar will pick up the container again.
+
+        The container will be teleport to
 
         Possible [return values](task_status.md):
 
@@ -982,7 +977,6 @@ class StickyMittenAvatarController(FloorplanController):
         :param object_id: The ID of the object that the avatar will try to put in the container.
         :param container_id: The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container')(static_object_info.md).
         :param arm: The arm that will try to pick up the object.
-        :param num_attempts: Make this many attempts to re-position the object above the container.
 
         :return: A `TaskStatus` indicating whether the avatar put the object in the container and if not, why.
         """
@@ -1061,8 +1055,6 @@ class StickyMittenAvatarController(FloorplanController):
             self.communicate(teleport_commands)
             self._wait_for_objects_to_stop(object_ids=overlap_ids)
             self._end_task()
-        else:
-            print(overlap_ids, container_id, object_id)
 
         # Lift the arm away.
         self.reach_for_target(target={"x": 0.25 if arm == Arm.right else -0.25, "y": 0.6, "z": 0.3},
@@ -1299,12 +1291,12 @@ class StickyMittenAvatarController(FloorplanController):
         # Decide which overlap shape to use depending on the container shape.
         if shape == "box":
             resp = self.communicate({"$type": "send_overlap_box",
-                                     "position": center,
+                                     "position": pos,
                                      "rotation": TDWUtils.array_to_vector4(rot),
-                                     "half_extents": TDWUtils.array_to_vector3(size / 2)})
+                                     "half_extents": TDWUtils.array_to_vector3(size * 1.25)})
         elif shape == "sphere":
             resp = self.communicate({"$type": "send_overlap_sphere",
-                                     "position": center,
+                                     "position": pos,
                                      "radius": min(size)})
         elif shape == "capsule":
             resp = self.communicate({"$type": "send_overlap_capsule",
