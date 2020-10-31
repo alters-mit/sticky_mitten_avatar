@@ -4,7 +4,7 @@ from typing import Tuple, Optional, List
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 from sticky_mitten_avatar.task_status import TaskStatus
-from sticky_mitten_avatar.util import  rotate_point_around, CONTAINER_SCALE, TARGET_OBJECT_MASS, CONTAINER_MASS
+from sticky_mitten_avatar.util import rotate_point_around, CONTAINER_SCALE, TARGET_OBJECT_MASS, CONTAINER_MASS
 
 
 class PutInContainerTest(StickyMittenAvatarController):

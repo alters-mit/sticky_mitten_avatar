@@ -9,9 +9,11 @@ from sticky_mitten_avatar.paths import COMPOSITE_OBJECT_AUDIO_PATH
 
 class StaticObjectInfo:
     """
-    Info for an object that doesn't change between frames.
+    Info for an object that doesn't change between frames, such as its ID and mass.
 
-    *** Static Fields
+    ***
+
+    ## Static Fields
 
     - `CONTAINERS` The names of every possible container object.
 
@@ -29,7 +31,7 @@ class StaticObjectInfo:
 
     - `object_id`: The unique ID of the object.
     - `mass`: The mass of the object.
-    - `segmentation_color`: The RGB segmentation color for the object as a numpy array.
+    - `segmentation_color`: The RGB segmentation color for the object as a numpy array: `[r, g, b]`
     - `model_name`: [The name of the model.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/librarian/model_librarian.md)
     - `category`: The semantic category of the object.
     - `container`': If True, this object is container-shaped (a bowl or open basket that smaller objects can be placed in).
@@ -38,6 +40,8 @@ class StaticObjectInfo:
     - `size`: The size of the object as a numpy array: `[width, height, length]`
 
     ***
+
+    ## Functions
 
     """
 

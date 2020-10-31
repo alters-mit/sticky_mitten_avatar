@@ -4,8 +4,8 @@
 
 `from sticky_mitten_avatar.sticky_mitten_avatar.frame_data import FrameData`
 
-Per-frame data that an avatar can use to decide what action to do next.
-
+Data about the scene from the most recent frame about doing an action such as `reach_for_target()`.
+Use this data to plan what the next action should be.
 Access this data from the [StickyMittenAvatarController](sma_controller.md):
 
 ```python
@@ -81,7 +81,7 @@ c = StickyMittenAvatarController()
 
 # Your code here.
 
-# Prints all objects held by the left mitten at the last frame.
+# Prints all objects held by the left mitten.
 print(c.frame.held_objects[Arm.left])
 ```
 

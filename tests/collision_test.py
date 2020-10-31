@@ -1,10 +1,10 @@
 from typing import List
 from tdw.tdw_utils import TDWUtils
-from sticky_mitten_avatar.test_controller import TestController
+from sticky_mitten_avatar import StickyMittenAvatarController
 from sticky_mitten_avatar.task_status import TaskStatus
 
 
-class CollisionTest(TestController):
+class CollisionTest(StickyMittenAvatarController):
     """
     Test whether the avatar stops when it collides with a large object.
     """

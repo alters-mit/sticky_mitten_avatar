@@ -1,10 +1,10 @@
 from typing import List
 from sticky_mitten_avatar import Arm
-from sticky_mitten_avatar.test_controller import TestController
+from sticky_mitten_avatar import StickyMittenAvatarController
 from sticky_mitten_avatar.task_status import TaskStatus
 
 
-class MittenCollisionTest(TestController):
+class MittenCollisionTest(StickyMittenAvatarController):
     """
     Test whether a collision between a mitten and an object stops arm-bending motion.
     """
