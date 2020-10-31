@@ -1022,45 +1022,21 @@ class StickyMittenAvatarController(FloorplanController):
         new_container_position = rotate_point_around(point=new_container_position,
                                                      origin=self.frame.avatar_transform.position,
                                                      angle=new_container_angle)
-        new_container_rotation = TDWUtils.array_to_vector4(self.frame.avatar_transform.rotation)
-        # Check if there's anything in the way.
-        resp = self.communicate({"$type": "send_overlap_box",
-                                 "position": TDWUtils.array_to_vector3(new_container_position),
-                                 "rotation": new_container_rotation,
-                                 "half_extents": TDWUtils.array_to_vector3(self.static_object_info[container_id].size /
-                                                                           2)})
-        overlap_ids = get_data(resp=resp, d_type=Overlap).get_object_ids()
-        can_nudge = True
-        for overlap_id in overlap_ids:
-            if not self.static_object_info[overlap_id].container and \
-                    not self.static_object_info[overlap_id].target_object:
-                can_nudge = False
-                break
-        # Teleport the objects an easily-to-reach location.
-        if can_nudge:
-            self._end_task(enable_sensor=False)
-            overlap_ids = self._get_objects_in_container(container_id=container_id)
-            delta_position = new_container_position - self.frame.object_transforms[container_id].position
-            overlap_ids.append(container_id)
-            teleport_commands = [{"$type": "rotate_object_to",
-                                  "rotation": TDWUtils.array_to_vector4(self.frame.avatar_transform.rotation),
-                                  "id": container_id,
-                                  "physics": True}]
-            for teleport_id in overlap_ids:
-                teleport_position = TDWUtils.array_to_vector3(self.frame.object_transforms[teleport_id].position +
-                                                              delta_position)
-                teleport_position["y"] += 0.03
-                teleport_commands.append({"$type": "teleport_object",
-                                          "position": teleport_position,
-                                          "id": teleport_id,
-                                          "physics": True})
-            self.communicate(teleport_commands)
-            self._wait_for_objects_to_stop(object_ids=overlap_ids)
-            self._end_task()
 
-        self.communicate({"$type": "set_avatar_rigidbody_constraints",
-                          "rotate": False,
-                          "translate": False})
+        self.communicate([{"$type": "rotate_object_to",
+                           "rotation": TDWUtils.array_to_vector4(self.frame.avatar_transform.rotation),
+                           "id": container_id,
+                           "physics": True},
+                          {"$type": "teleport_object",
+                           "position": TDWUtils.array_to_vector3(new_container_position),
+                           "id": container_id,
+                           "physics": True},
+                          {"$type": "set_avatar_rigidbody_constraints",
+                           "rotate": False,
+                           "translate": False}])
+
+        self._wait_for_objects_to_stop(object_ids=[container_id])
+        self._end_task()
 
         # Lift the arm away.
         self.reach_for_target(target={"x": 0.25 if arm == Arm.right else -0.25, "y": 0.6, "z": 0.3},
@@ -1085,12 +1061,16 @@ class StickyMittenAvatarController(FloorplanController):
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
 
-        self._wait_for_objects_to_stop(object_ids=[object_id])
         self.reset_arm(arm=arm)
+        self._wait_for_objects_to_stop(object_ids=[object_id])
 
         self.communicate({"$type": "set_avatar_rigidbody_constraints",
                           "rotate": True,
                           "translate": True})
+
+        if object_id not in self._get_objects_in_container(container_id=container_id):
+            print(self._get_objects_in_container(container_id=container_id))
+            return TaskStatus.not_in_container
 
         # Connect the object to the container.
         self.communicate({"$type": "add_fixed_joint",
@@ -1303,7 +1283,7 @@ class StickyMittenAvatarController(FloorplanController):
             resp = self.communicate({"$type": "send_overlap_box",
                                      "position": pos,
                                      "rotation": TDWUtils.array_to_vector4(rot),
-                                     "half_extents": TDWUtils.array_to_vector3(size / 2)})
+                                     "half_extents": TDWUtils.array_to_vector3(size)})
         elif shape == "sphere":
             resp = self.communicate({"$type": "send_overlap_sphere",
                                      "position": pos,
