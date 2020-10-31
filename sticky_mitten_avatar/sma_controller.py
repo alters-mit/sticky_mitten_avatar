@@ -984,6 +984,8 @@ class StickyMittenAvatarController(FloorplanController):
         if not self.static_object_info[container_id].container:
             return TaskStatus.not_a_container
 
+        container_id = int(container_id)
+
         self._stop_avatar(enable_sensor=False)
 
         # A "full" container has too many objects such that physics might glitch.
