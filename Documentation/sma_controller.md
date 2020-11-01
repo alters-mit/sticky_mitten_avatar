@@ -433,28 +433,6 @@ _Returns:_  A `TaskStatus` indicating whether the avatar put the object in the c
 
 ***
 
-#### pour_out_container
-
-**`def pour_out_container(self, arm: Arm) -> TaskStatus`**
-
-Pour out the contents of a container held by the arm.
-Assuming that the arm is holding a container, its wrist will twist and the arm will lift.
-If after doing this there are still objects in the container, the avatar will shake the container.
-This action continues until the arm and the objects in the container have stopped moving.
-Possible [return values](task_status.md):
-- `success` (The container held by the arm is now empty.)
-- `not_a_container`
-- `empty_container`
-- `still_in_container`
-
-| Parameter | Description |
-| --- | --- |
-| arm | The arm holding the container. |
-
-_Returns:_  A `TaskStatus` indicating whether the avatar poured all objects out of the container and if not, why.
-
-***
-
 #### rotate_camera_by
 
 **`def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None`**

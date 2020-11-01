@@ -36,14 +36,11 @@ Otherwise, the avatar may have tried moving, turning, bending an arm, etc. befor
 | `collided_with_something_heavy` | The avatar stopped moving because collided with something heavy (mass > 90). |
 | `collided_with_environment` | The avatar stopped moving because it collided with the environment, e.g. a wall. |
 | `bad_raycast` | The avatar tried to cast array to the object but the ray was obstructed. |
-| `failed_to_tap` | The avatar tried to tap the object but the mitten never collided with it. |
 | `mitten_collision` | The avatar bent its arm but stopped part-way because the mitten collided with an object. |
 | `not_in_container` | The avatar tried to drop an object in a container but the object isn't in the container. |
 | `bad_joint` | This joint doesn't exist. |
 | `not_a_container` | The avatar didn't try to put one object into another because the other object isn't a container. |
-| `empty_container` | The avatar didn't try to pour a container because the container was empty. |
-| `still_in_container` | The avatar tried to pour objects out of the container but there are still objects in it. |
-| `full_container` | The container has too many objects. Adding more would result in physics glitches. |
+| `full_container` | The avatar didn't try to put an object in the container because the container has >3 objects. |
 
 ***
 

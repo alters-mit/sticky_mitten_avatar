@@ -1103,64 +1103,6 @@ class StickyMittenAvatarController(FloorplanController):
         # Pick up the container again.
         return self.grasp_object(object_id=container_id, arm=container_arm, check_if_possible=False)
 
-    def pour_out_container(self, arm: Arm) -> TaskStatus:
-        """
-        Pour out the contents of a container held by the arm.
-        Assuming that the arm is holding a container, its wrist will twist and the arm will lift.
-        If after doing this there are still objects in the container, the avatar will shake the container.
-        This action continues until the arm and the objects in the container have stopped moving.
-
-        Possible [return values](task_status.md):
-
-        - `success` (The container held by the arm is now empty.)
-        - `not_a_container`
-        - `empty_container`
-        - `still_in_container`
-
-        :param arm: The arm holding the container.
-
-        :return: A `TaskStatus` indicating whether the avatar poured all objects out of the container and if not, why.
-        """
-
-        # Make sure that this arm is holding a container.
-        held = self._avatar.frame.get_held_left() if arm == Arm.left else self._avatar.frame.get_held_right()
-        container_id: Optional[int] = None
-        for o_id in held:
-            if self.static_object_info[o_id].container:
-                container_id = o_id
-                break
-        if container_id is None:
-            return TaskStatus.not_a_container
-
-        self._start_task()
-
-        # Don't try to pour out an empty container.
-        overlap_ids = self._get_objects_in_container(container_id=container_id)
-        if len(overlap_ids) == 0:
-            self._end_task()
-            return TaskStatus.empty_container
-
-        self._roll_wrist(arm=arm, angle=90)
-        # Lift the arm to tilt the container.
-        self.reach_for_target(arm=arm, target={"x": -0.3 if arm == Arm.left else 0.3, "y": 0.6, "z": 0.35},
-                              check_if_possible=False, stop_on_mitten_collision=False)
-        self._roll_wrist(arm=arm, angle=90)
-
-        self._wait_for_objects_to_stop(object_ids=overlap_ids)
-
-        # Get all of the objects in the container. If there aren't any, this task succeeded.
-        overlap_ids = self._get_objects_in_container(container_id=container_id)
-        if len(overlap_ids) == 0:
-            self._end_task()
-            return TaskStatus.success
-        # Try to shake objects out of the container.
-        else:
-            self.shake(joint_name=f"elbow_{arm.name}", num_shakes=(2, 2))
-            self._wait_for_objects_to_stop(object_ids=overlap_ids)
-            overlap_ids = self._get_objects_in_container(container_id=container_id)
-            self._end_task()
-            return TaskStatus.success if len(overlap_ids) == 0 else TaskStatus.still_in_container
-
     def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None:
         """
         Rotate an avatar's camera around each axis.
