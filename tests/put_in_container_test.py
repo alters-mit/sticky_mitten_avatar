@@ -8,9 +8,16 @@ from sticky_mitten_avatar.util import rotate_point_around, CONTAINER_SCALE, TARG
 
 
 class PutInContainerTest(StickyMittenAvatarController):
+    """
+    This is a demo controller of simple navigation and arm articulation techniques.
+    It is NOT an optimized solution! You will need to improve upon it.
+
+    In this scene, there are target objects and containers.
+    The avatar will pick up a random container, and then put objects into the container until it's full.
+    """
+
     # Try to turn this many degrees per attempt at grasping an object.
     _D_THETA_GRASP = 15
-    _LIFT_CONTAINER_TARGET = {"x": -0.2, "y": 0.4, "z": 0.32}
 
     def __init__(self, port: int = 1071):
         super().__init__(port=port, launch_build=False, id_pass=False)
@@ -19,6 +26,8 @@ class PutInContainerTest(StickyMittenAvatarController):
 
     def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
         commands = super()._get_scene_init_commands()
+
+        # This function includes low-level TDW commands that you won't need to use in an actual simulation.
 
         # Add containers.
         theta = 0
@@ -38,6 +47,8 @@ class PutInContainerTest(StickyMittenAvatarController):
                              "mass": CONTAINER_MASS})
             self.container_ids.append(container_id)
             theta += d_theta
+
+        # Add target objects.
         num_objects = 10
         d_theta = 360 / num_objects
         theta = d_theta / 2
@@ -83,6 +94,7 @@ class PutInContainerTest(StickyMittenAvatarController):
         :return: Tuple: TaskStatus, and the object ID.
         """
 
+        # Is the avatar already holding the object?
         for a in self.frame.held_objects:
             for object_id in self.frame.held_objects[a]:
                 if object_id in object_ids:
@@ -90,20 +102,22 @@ class PutInContainerTest(StickyMittenAvatarController):
                     return TaskStatus.success, object_id
         object_id = random.choice(object_ids)
 
+        # Lift up any arm that is holding an object.
         holding_arms = []
         for a in self.frame.held_objects:
             if len(self.frame.held_objects[a]) > 0:
                 holding_arms.append(a)
-
         for a in holding_arms:
             self._lift_arm(arm=a)
 
         # Go to the object.
         self.go_to(object_id, move_stopping_threshold=stopping_distance)
+        # Reset the arm positions after movement.
         for a in holding_arms:
             self.reset_arm(arm=a)
             self._lift_arm(arm=a)
 
+        # Correct for a navigation error.
         d = np.linalg.norm(self.frame.avatar_transform.position - self.frame.object_transforms[object_id].position)
         for i in range(5):
             if d > 0.7:
@@ -117,11 +131,9 @@ class PutInContainerTest(StickyMittenAvatarController):
         for a in holding_arms:
             self._lift_arm(arm=a)
 
-        success = False
-        for i in range(5):
-            success = self.grasp_and_lift(object_id=object_id, arm=arm)
-            if success:
-                break
+        # Pick up the object.
+        success = self.grasp_and_lift(object_id=object_id, arm=arm)
+
         return TaskStatus.success if success else TaskStatus.failed_to_pick_up, object_id
 
     def lift_container(self) -> TaskStatus:
@@ -142,6 +154,8 @@ class PutInContainerTest(StickyMittenAvatarController):
         :return: A TaskStatus; `success` when the avatar is holding a target object.
         """
 
+        # If the avatar is already holding a container, use the free mitten instead.
+        # Otherwise, choose the mitten while trying to pick up the object.
         container_arm: Optional[Arm] = None
         for arm in self.frame.held_objects:
             for object_id in self.frame.held_objects[arm]:
@@ -169,6 +183,15 @@ class PutInContainerTest(StickyMittenAvatarController):
         """
 
         def _turn_to_grasp(direction: int) -> bool:
+            """
+            Turn a bit, then try to grasp the object.
+            This ends when the avatar has turned too far or if it grasps the object.
+
+            :param direction: The direction to turn.
+
+            :return: True if the avatar grasped the object.
+            """
+
             theta = 0
             grasp_arm: Optional[Arm] = None
             # Try turning before giving up.
@@ -196,6 +219,8 @@ class PutInContainerTest(StickyMittenAvatarController):
             return grasp_arm is not None
 
         object_id = int(object_id)
+
+        # Turn to face the object.
         self.turn_to(target=object_id)
 
         if arm is not None and arm == Arm.right:
@@ -203,6 +228,7 @@ class PutInContainerTest(StickyMittenAvatarController):
         else:
             d = 1
 
+        # Turn and grasp repeatedly.
         success = _turn_to_grasp(d)
         if success:
             print(f"Picked up {object_id}")
@@ -224,11 +250,18 @@ class PutInContainerTest(StickyMittenAvatarController):
         return success
 
     def try_put_in_container(self) -> TaskStatus:
+        """
+        Try to put an object in a container.
+
+        :return: A TaskStatus indicating if the object is in the container and if not, why.
+        """
+
         object_arm: Optional[Arm] = None
         container_arm: Optional[Arm] = None
         target_object_id: Optional[int] = None
         container_id: Optional[int] = None
 
+        # Check if the avatar is holding a container and a target object.
         for arm in self.frame.held_objects:
             for object_id in self.frame.held_objects[arm]:
                 if object_id in self.container_ids:
@@ -245,6 +278,7 @@ class PutInContainerTest(StickyMittenAvatarController):
         target_object_id = int(target_object_id)
         container_id = int(container_id)
 
+        # Try to put the object in the container.
         status = self.put_in_container(object_id=target_object_id, container_id=container_id, arm=object_arm)
         print(f"Put in container: {status}")
         if status != TaskStatus.success:
@@ -283,3 +317,4 @@ class PutInContainerTest(StickyMittenAvatarController):
 if __name__ == "__main__":
     c = PutInContainerTest()
     c.run()
+    c.end()
