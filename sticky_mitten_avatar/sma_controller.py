@@ -612,10 +612,13 @@ class StickyMittenAvatarController(FloorplanController):
         :param enable_sensor: If True, enable the image sensor.
         """
 
-        self.communicate({"$type": "set_avatar_drag",
-                          "drag": self._STOP_DRAG,
-                          "angular_drag": self._STOP_DRAG,
-                          "avatar_id": self._avatar.id})
+        self.communicate([{"$type": "set_avatar_drag",
+                           "drag": self._STOP_DRAG,
+                           "angular_drag": self._STOP_DRAG,
+                           "avatar_id": self._avatar.id},
+                          {"$type": "set_avatar_rigidbody_constraints",
+                           "rotate": False,
+                           "translate": False}])
         self._end_task(enable_sensor=enable_sensor)
         self._avatar.status = TaskStatus.idle
 
@@ -676,7 +679,10 @@ class StickyMittenAvatarController(FloorplanController):
 
         i = 0
         while i < num_attempts:
-            self.communicate([{"$type": "set_avatar_drag",
+            self.communicate([{"$type": "set_avatar_rigidbody_constraints",
+                               "rotate": True,
+                               "translate": False},
+                              {"$type": "set_avatar_drag",
                                "drag": 0,
                                "angular_drag": 0.05,
                                "avatar_id": self._avatar.id},
@@ -820,7 +826,10 @@ class StickyMittenAvatarController(FloorplanController):
         i = 0
         while i < num_attempts:
             # Start gliding.
-            self.communicate([{"$type": "move_avatar_forward_by",
+            self.communicate([{"$type": "set_avatar_rigidbody_constraints",
+                               "rotate": False,
+                               "translate": True},
+                              {"$type": "move_avatar_forward_by",
                                "magnitude": move_force,
                                "avatar_id": self._avatar.id},
                               {"$type": "set_avatar_drag",
@@ -1064,10 +1073,6 @@ class StickyMittenAvatarController(FloorplanController):
         self.reset_arm(arm=arm)
         self._wait_for_objects_to_stop(object_ids=[object_id])
 
-        self.communicate({"$type": "set_avatar_rigidbody_constraints",
-                          "rotate": True,
-                          "translate": True})
-
         if object_id not in self._get_objects_in_container(container_id=container_id):
             print(self._get_objects_in_container(container_id=container_id))
             return TaskStatus.not_in_container
@@ -1089,6 +1094,8 @@ class StickyMittenAvatarController(FloorplanController):
                               "position": TDWUtils.array_to_vector3(new_container_position),
                               "physics": True}]
         for overlap_id in overlap_ids:
+            if overlap_id not in self.frame.object_transforms:
+                continue
             teleport_position = self.frame.object_transforms[overlap_id].position + delta_position
             teleport_position[1] += 0.03
             teleport_commands.append({"$type": "teleport_object",
