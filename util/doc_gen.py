@@ -1,3 +1,4 @@
+from json import loads
 from pathlib import Path
 import re
 from typing import List, Dict
@@ -14,9 +15,14 @@ class PyDocGen:
         """
 
         # Create the header.
-        doc = "# `" + filename.split("/")[-1] + "`\n\n"
+        doc = ""
 
         lines: List[str] = Path(filename).read_text().split("\n")
+
+        api_categories = loads(Path("util/api_categories.json").read_text(encoding="utf-8"))
+
+        class_name = ""
+        functions_by_categories = {"": []}
 
         for i in range(len(lines)):
             # Create a class description.
@@ -27,7 +33,11 @@ class PyDocGen:
                     continue
                 # Add the name of the class
                 class_name = re.search("class (.*):", lines[i]).group(1)
-                doc += f"## `{class_name}`\n\n"
+                class_header = re.sub(r"(.*)\((.*)\)", r"\1", class_name)
+
+                functions_by_categories.clear()
+
+                doc += f"# {class_header}\n\n"
 
                 import_name = re.sub(r"(.*)\((.*)\)", r'\1', class_name)
                 if import_name in ["StickyMittenAvatarController", "Arm"]:
@@ -48,16 +58,33 @@ class PyDocGen:
                 if match is not None and "__init__" not in lines[i]:
                     continue
                 # Append the function description.
-                doc += PyDocGen.get_function_documentation(lines, i) + "\n\n***\n\n"
+                function_documentation = PyDocGen.get_function_documentation(lines, i) + "\n\n"
+                function_name = re.search("#### (.*)", function_documentation).group(1).replace("\\_", "_")
 
-        # Move the "main class" to the top of the document.
-        main_class_name = ''.join(x.capitalize() or '_' for x in filename[:-3].split('_'))
-        main_class = re.search("(## `" + main_class_name + "`((.|\n)*))", doc)
-        if main_class is not None:
-            main_class = main_class.group(1)
-            doc_header = re.search("(.*)\n\n", doc).group(0)
-            doc_temp = doc.replace(main_class, "").replace(doc_header, "")
-            doc = doc_header + main_class + doc_temp
+                # Categorize the functions.
+                function_category = ""
+                if class_name in api_categories:
+                    for category in api_categories[class_name]:
+                        if function_name in api_categories[class_name][category]:
+                            function_category = category
+                            break
+                    if function_category == "":
+                        print(f"Warning: Uncategorized function {class_name}.{function_name}()")
+                if function_category == "":
+                    doc += function_documentation
+                # Add this later.
+                else:
+                    if function_category not in functions_by_categories:
+                        functions_by_categories[function_category] = list()
+                    functions_by_categories[function_category].append(function_documentation)
+
+        if class_name in api_categories:
+            for category in api_categories[class_name]:
+                if category != "Constructor":
+                    doc += f"### {category}\n\n"
+                for function in functions_by_categories[category]:
+                    doc += function
+                doc += "***\n\n"
 
         return doc
 
@@ -151,13 +178,15 @@ class PyDocGen:
                     param_desc = line.replace(":param " + param_name + ": ", "").strip()
                     parameters.update({param_name: param_desc})
                 elif line == "":
-                    continue
+                    func_desc += "\n"
                 # Get the return description
                 elif line.startswith(":return"):
                     return_description = line[8:]
                 # Get the overview description of the function.
                 else:
                     func_desc += line + "\n"
+        if func_desc[-1] == "\n":
+            func_desc = func_desc[:-1]
         # Add the paramter table.
         if len(parameters) > 0:
             func_desc += "\n| Parameter | Description |\n| --- | --- |\n"

@@ -1,6 +1,4 @@
-# `static_object_info.py`
-
-## `StaticObjectInfo`
+# StaticObjectInfo
 
 `from sticky_mitten_avatar.sticky_mitten_avatar.static_object_info import StaticObjectInfo`
 
@@ -44,13 +42,10 @@ for container in StaticObjectInfo.CONTAINERS:
 
 **`def __init__(self, object_id: int, rigidbodies: Rigidbodies, segmentation_colors: SegmentationColors, bounds: Bounds, audio: ObjectInfo, target_object: bool = False)`**
 
-
 | Parameter | Description |
 | --- | --- |
 | object_id | The unique ID of the object. |
 | rigidbodies | Rigidbodies output data. |
 | bounds | Bounds output data. |
 | segmentation_colors | Segmentation colors output data. |
-
-***
 

@@ -253,10 +253,10 @@ class StickyMittenAvatarController(FloorplanController):
 
         | `scene` | `layout` | `room` |
         | --- | --- | --- |
-        | 1a, 1b, or 1c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6 |
-        | 2a, 2b, or 2c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7, 8 |
-        | 4a, 4b, or 4c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7 |
-        | 5a, 5b, or 5c | 0, 1, or 2 | 0, 1, 2, 3 |
+        | 1a, 1b, 1c | 0, 1, 2 | 0, 1, 2, 3, 4, 5, 6 |
+        | 2a, 2b, 2c | 0, 1, 2 | 0, 1, 2, 3, 4, 5, 6, 7, 8 |
+        | 4a, 4b, 4c | 0, 1, 2 | 0, 1, 2, 3, 4, 5, 6, 7 |
+        | 5a, 5b, 5c | 0, 1, 2 | 0, 1, 2, 3 |
 
         You can safely call `init_scene()` more than once to reset the simulation.
 
@@ -365,14 +365,13 @@ class StickyMittenAvatarController(FloorplanController):
 
     def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
         """
-        Overrides [`Controller.communicate()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md).
-        Before sending commands, append any automatically-added commands (such as arm-bending or arm-stopping).
-        If there is a third-person camera, append commands to look at a target (see `add_overhead_camera()`).
-        After receiving a response from the build, update the `frame` data.
+        Use this function to send low-level TDW API commands and receive low-level output data. See: [`Controller.communicate()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md)
 
-        :param commands: Commands to send to the build.
+        You shouldn't ever need to use this function, but you might see it in some of the example controllers because they might require a custom scene setup.
 
-        :return: The response from the build.
+        :param commands: Commands to send to the build. See: [Command API](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/command_api.md).
+
+        :return: The response from the build as a list of byte arrays. See: [Output Data](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md).
         """
         if not isinstance(commands, list):
             commands = [commands]
@@ -967,8 +966,6 @@ class StickyMittenAvatarController(FloorplanController):
         4. The avatar will move the object over the container and drop it.
         5. The avatar will pick up the container again.
 
-        The container will be teleport to
-
         Possible [return values](task_status.md):
 
         - `success` (The avatar put the object in the container.)
@@ -1112,9 +1109,7 @@ class StickyMittenAvatarController(FloorplanController):
 
     def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None:
         """
-        Rotate an avatar's camera around each axis.
-        The head of the avatar won't visually rotate, as this could put the avatar off-balance.
-        Advances the simulation by 1 frame.
+        Rotate an avatar's camera around each axis. The head of the avatar won't visually rotate, as this could put the avatar off-balance.
 
         :param pitch: Pitch (nod your head "yes") the camera by this angle, in degrees.
         :param yaw: Yaw (shake your head "no") the camera by this angle, in degrees.
@@ -1134,7 +1129,6 @@ class StickyMittenAvatarController(FloorplanController):
     def reset_camera_rotation(self) -> None:
         """
         Reset the rotation of the avatar's camera.
-        Advances the simulation by 1 frame.
         """
 
         self._start_task()

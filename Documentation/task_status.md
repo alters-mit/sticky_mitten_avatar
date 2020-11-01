@@ -1,6 +1,4 @@
-# `task_status.py`
-
-## `TaskStatus(Enum)`
+# TaskStatus
 
 `from sticky_mitten_avatar.sticky_mitten_avatar.task_status import TaskStatus`
 

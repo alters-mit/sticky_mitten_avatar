@@ -1,13 +1,11 @@
-# `transform.py`
-
-## `Transform`
+# Transform
 
 `from sticky_mitten_avatar.sticky_mitten_avatar.transform import Transform`
 
 Transform data for an object, avatar, body part, etc.
 
 ```python
-from sticky_mitten_avatar import StickyMittenAvatarController, Arm
+from sticky_mitten_avatar import StickyMittenAvatarController
 
 c = StickyMittenAvatarController()
 c.init_scene()
@@ -35,12 +33,9 @@ c.end()
 
 **`def __init__(self, position: np.array, rotation: np.array, forward: np.array)`**
 
-
 | Parameter | Description |
 | --- | --- |
 | position | The position of the object as a numpy array. |
 | rotation | The rotation (quaternion) of the object as a numpy array. |
 | forward | The forward directional vector of the object as a numpy array. |
-
-***
 
