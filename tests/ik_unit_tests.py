@@ -87,4 +87,3 @@ if __name__ == "__main__":
     c.position()
     c.pick_up_test()
     c.end()
-

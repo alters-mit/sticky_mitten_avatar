@@ -7,7 +7,7 @@ from ikpy.utils import geometry
 from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Collision, \
     EnvironmentCollision
 from tdw.tdw_utils import TDWUtils
-from sticky_mitten_avatar.util import get_angle_between, rotate_point_around, FORWARD
+from sticky_mitten_avatar.util import FORWARD
 from sticky_mitten_avatar.body_part_static import BodyPartStatic
 from sticky_mitten_avatar.task_status import TaskStatus
 from sticky_mitten_avatar.arm import Arm
@@ -229,8 +229,8 @@ class Avatar(ABC):
         # Get the IK solution.
         rotations, ik_target = self._get_ik(target=target, arm=arm, target_orientation=target_orientation)
 
-        angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
-        target = rotate_point_around(point=ik_target, angle=angle) + self.frame.get_position()
+        angle = TDWUtils.get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
+        target = TDWUtils.rotate_position_around(position=ik_target, angle=angle) + self.frame.get_position()
 
         rotation_targets = dict()
         for c, r in zip(self._arms[arm].links[1:-1], rotations[1:-1]):
@@ -628,11 +628,13 @@ class Avatar(ABC):
         Rotate the target by the avatar's forward directional vector.
 
         :param target: The target position.
+
         :return: The rotated position.
         """
-        angle = get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
 
-        return rotate_point_around(point=target - self.frame.get_position(), angle=-angle)
+        angle = TDWUtils.get_angle_between(v1=FORWARD, v2=self.frame.get_forward())
+
+        return TDWUtils.rotate_position_around(position=target - self.frame.get_position(), angle=-angle)
 
     def _plot_ik(self, target: np.array, arm: Arm) -> None:
         """
