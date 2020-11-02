@@ -184,31 +184,22 @@ class FrameData:
         """
         Convert each image pass to PIL images.
 
-        :return: A dictionary of PIL images. Key = the name of the pass (img, id, depth)
+        :return: A dictionary of PIL images. Key = the pass name (img, id, depth); Value = The PIL image (can be None)
         """
 
-        print(type(Image.open(BytesIO(self.image_pass))))
-
-        return {"img": Image.open(BytesIO(self.image_pass)),
-                "id": Image.open(BytesIO(self.id_pass)),
-                "depth": Image.open(BytesIO(self.depth_pass))}
+        images = dict()
+        for pass_name, image in zip(["img", "id", "depth"], [self.image_pass, self.id_pass, self.depth_pass]):
+            if image is None:
+                images[pass_name] = None
+            else:
+                images[pass_name] = Image.open(BytesIO(image))
+        return images
 
     def get_depth_values(self) -> np.array:
         """
+        Convert the `depth_pass` to depth values.
+
         :return: A decoded depth pass as a numpy array of floats.
         """
 
         return TDWUtils.get_depth_values(self.depth_pass)
-
-    @staticmethod
-    def _get_velocity(rigidbodies: Rigidbodies, o_id: int) -> float:
-        """
-        :param rigidbodies: The rigidbody data.
-        :param o_id: The ID of the object.
-
-        :return: The velocity magnitude of the object.
-        """
-
-        for i in range(rigidbodies.get_num()):
-            if rigidbodies.get_id(i) == o_id:
-                return np.linalg.norm(rigidbodies.get_velocity(i))

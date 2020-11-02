@@ -17,7 +17,7 @@ task_status = c.reach_for_target(target={"x": -0.2, "y": 0.21, "z": 0.385}, arm=
 print(task_status) # TaskStatus.success
 
 # Get the segmentation color pass for the avatar after bending the arm.
-# See FrameData.save_images and FrameData.get_pil_images
+# See FrameData.save_images() and FrameData.get_pil_images()
 segmentation_colors = c.frame.id_pass
 
 c.end()
@@ -217,9 +217,10 @@ _Returns:_  The response from the build as a list of byte arrays. See: [Output D
 
 #### reach_for_target
 
-**`def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05, absolute: bool = False) -> TaskStatus`**
+**`def reach_for_target(self, arm: Arm, target: Dict[str, float], check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05, absolute: bool = False) -> TaskStatus`**
 
 Bend an arm joints of an avatar to reach for a target position.
+By default, the target is relative to the avatar's position and rotation.
 
 Possible [return values](task_status.md):
 
@@ -235,7 +236,6 @@ Possible [return values](task_status.md):
 | --- | --- |
 | arm | The arm (left or right). |
 | target | The target position for the mitten. |
-| do_motion | If True, advance simulation frames until the pick-up motion is done. |
 | stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object other than the target object. |
 | check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
 | precision | The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. |
@@ -245,10 +245,14 @@ _Returns:_  A `TaskStatus` indicating whether the avatar can reach the target an
 
 #### grasp_object
 
-**`def grasp_object(self, object_id: int, arm: Arm, do_motion: bool = True, check_if_possible: bool = True, stop_on_mitten_collision: bool = True) -> TaskStatus`**
+**`def grasp_object(self, object_id: int, arm: Arm, check_if_possible: bool = True, stop_on_mitten_collision: bool = True) -> TaskStatus`**
 
-The avatar's arm will reach for the object. Per frame, the arm's mitten will try to "grasp" the object.
-A grasped object is attached to the avatar's mitten and its ID will be in [`FrameData.held_objects`](frame_data.md). There may be some empty space between a mitten and a grasped object.
+The avatar's arm will reach for the object and continuously try to grasp the object.
+If it grasps the object, the simultation will attach the object to the avatar's mitten with an invisible joint. There may be some empty space between a mitten and a grasped object.
+This joint can be broken with sufficient force and torque.
+
+The grasped object's ID will be listed in [`FrameData.held_objects`](frame_data.md).
+
 This task ends when the avatar grasps the object (at which point it will stop bending its arm), or if it fails to grasp the object (see below).
 
 Possible [return values](task_status.md):
@@ -266,7 +270,6 @@ Possible [return values](task_status.md):
 | Parameter | Description |
 | --- | --- |
 | object_id | The ID of the target object. |
-| do_motion | If True, advance simulation frames until the pick-up motion is done. |
 | arm | The arm of the mitten that will try to grasp the object. |
 | stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object. |
 | check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
@@ -275,7 +278,7 @@ _Returns:_  A `TaskStatus` indicating whether the avatar picked up the object an
 
 #### drop
 
-**`def drop(self, arm: Arm, reset_arm: bool = True, do_motion: bool = True) -> TaskStatus`**
+**`def drop(self, arm: Arm, reset_arm: bool = True) -> TaskStatus`**
 
 Drop any held objects held by the arm. Reset the arm to its neutral position.
 
@@ -287,11 +290,10 @@ Possible [return values](task_status.md):
 | --- | --- |
 | arm | The arm that will drop any held objects. |
 | reset_arm | If True, reset the arm's positions to "neutral". |
-| do_motion | If True, advance simulation frames until the pick-up motion is done. |
 
 #### reset_arm
 
-**`def reset_arm(self, arm: Arm, do_motion: bool = True) -> TaskStatus`**
+**`def reset_arm(self, arm: Arm) -> TaskStatus`**
 
 Reset an avatar's arm to its neutral positions.
 
@@ -303,7 +305,6 @@ Possible [return values](task_status.md):
 | Parameter | Description |
 | --- | --- |
 | arm | The arm that will be reset. |
-| do_motion | If True, advance simulation frames until the pick-up motion is done. |
 
 #### turn_to
 
@@ -323,7 +324,7 @@ Possible [return values](task_status.md):
 | force | The force at which the avatar will turn. More force = faster, but might overshoot the target. |
 | stopping_threshold | Stop when the avatar is within this many degrees of the target. |
 | num_attempts | The avatar will apply more angular force this many times to complete the turn before giving up. |
-| enable_sensor_on_finish | Enable the camera upon completing the task. This is for internal use only. |
+| enable_sensor_on_finish | Enable the camera upon completing the task. This should only be set to False in the backend code. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
 
@@ -443,7 +444,7 @@ _Returns:_  A `TaskStatus` indicating whether the avatar put the object in the c
 
 **`def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None`**
 
-Rotate an avatar's camera around each axis. The head of the avatar won't visually rotate, as this could put the avatar off-balance.
+Rotate an avatar's camera. The head of the avatar won't visually rotate because it would cause the entire avatar to tilt.
 
 | Parameter | Description |
 | --- | --- |

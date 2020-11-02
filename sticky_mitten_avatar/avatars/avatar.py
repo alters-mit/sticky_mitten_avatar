@@ -75,14 +75,22 @@ class Avatar(ABC):
     High-level API for a sticky mitten avatar.
     Do not use this class directly; it is an abstract class. Use the `Baby` class instead (a subclass of `Avatar`).
 
-    Fields:
+    ***
+
+    ## Fields
 
     - `id` The ID of the avatar.
     - `body_parts_static` Static body parts data. Key = the name of the part. See `BodyPartsStatic`
     - `frame` Dynamic info for the avatar on this frame, such as its position. See `tdw.output_data.AvatarStickyMitten`
     - `status` The current `TaskStatus` of the avatar.
+
+    ***
+
+    ## Functions
+
     """
 
+    # A list of every joint in an avatar.
     JOINTS: List[Joint] = [Joint(arm="left", axis="pitch", part="shoulder"),
                            Joint(arm="left", axis="yaw", part="shoulder"),
                            Joint(arm="left", axis="roll", part="shoulder"),
@@ -96,9 +104,8 @@ class Avatar(ABC):
                            Joint(arm="right", axis="roll", part="wrist"),
                            Joint(arm="right", axis="pitch", part="wrist")]
 
+    # The order in which joint angles and values are evaluated and adjusted.
     ANGLE_ORDER = ["shoulder_pitch", "shoulder_yaw", "shoulder_roll", "elbow_pitch", "wrist_roll", "wrist_pitch"]
-
-    _GRIP = 10000
 
     def __init__(self, resp: List[bytes], avatar_id: str = "a", debug: bool = False):
         """

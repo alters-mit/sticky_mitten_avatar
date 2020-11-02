@@ -7,9 +7,15 @@
 - `StickyMittenAvatarController`:
   - Removed: `pour_out_container()`
   - Removed: `shake()`
+  - Removed parameter `do_motion` from `reach_for_target()`
+  - Removed parameter `do_motion` from `grasp_object()`
+  - Removed parameter `do_motion` from `drop()`
+  - Removed parameter `do_motion` from `reset_arm()`
   - Fixed: The avatar will sometimes veer off-course when trying to move forward.
   - Fixed: The avatar will sometimes twist when bending its arms.
   - Fixed: Crash in `put_in_container()` due to the controller sometimes trying to teleport a body part of the avatar.
+- `FrameData`:
+  - Fixed: Crash in `get_pil_images()` if any of the image passes are None.
 - `TaskStatus`:
   - Removed unused values.
 - Moved the `Arm` enum class to its own file and added documentation.
@@ -31,6 +37,7 @@
 - Added: `util/api_categories.json` Used for organizing function calls into categories in the documentation.
 - Added code to `doc_gen.py` to format documentation better and organize function calls by category.
 - Moved most of the functions in `util.py` to `TDWUtils`.
+- Removed unused `_get_velocities()` backend function from `FrameData`.
 
 ## 0.7.0
 

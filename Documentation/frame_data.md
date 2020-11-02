@@ -117,11 +117,13 @@ The image pass is a jpg file and the other passes are png files.
 
 Convert each image pass to PIL images.
 
-_Returns:_  A dictionary of PIL images. Key = the name of the pass (img, id, depth)
+_Returns:_  A dictionary of PIL images. Key = the pass name (img, id, depth); Value = The PIL image (can be None)
 
 #### get_depth_values
 
 **`def get_depth_values(self) -> np.array`**
+
+Convert the `depth_pass` to depth values.
 
 _Returns:_  A decoded depth pass as a numpy array of floats.
 
