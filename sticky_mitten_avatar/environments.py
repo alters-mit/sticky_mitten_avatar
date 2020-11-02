@@ -39,7 +39,7 @@ class Environments:
 
     ***
 
-    ## Fields:
+    ## Fields
 
     - `x_min`: Minimum x position for all environments.
     - `x_max`: Maximum x position for all environments.
@@ -49,7 +49,8 @@ class Environments:
 
     ***
 
-    ## Functions:
+    ## Functions
+
     """
 
     def __init__(self, resp: List[bytes]):

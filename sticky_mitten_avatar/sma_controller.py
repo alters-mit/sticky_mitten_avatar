@@ -41,7 +41,7 @@ class StickyMittenAvatarController(FloorplanController):
     print(task_status) # TaskStatus.success
 
     # Get the segmentation color pass for the avatar after bending the arm.
-    # See FrameData.save_images and FrameData.get_pil_images
+    # See FrameData.save_images() and FrameData.get_pil_images()
     segmentation_colors = c.frame.id_pass
 
     c.end()
@@ -432,6 +432,8 @@ class StickyMittenAvatarController(FloorplanController):
         :return: Tuple: The object ID; A list of commands to create the object.
         """
 
+        # Get the data.
+        # There isn't any audio in this simulation, but we use `AudioInitData` anyway to derive physics values.
         init_data = AudioInitData(name=model_name, position=position, rotation=rotation, scale_factor=scale,
                                   audio=audio, library=library)
         object_id, commands = init_data.get_commands()
@@ -441,11 +443,12 @@ class StickyMittenAvatarController(FloorplanController):
 
         return object_id, commands
 
-    def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True,
-                         check_if_possible: bool = True, stop_on_mitten_collision: bool = True,
-                         precision: float = 0.05, absolute: bool = False) -> TaskStatus:
+    def reach_for_target(self, arm: Arm, target: Dict[str, float], check_if_possible: bool = True,
+                         stop_on_mitten_collision: bool = True, precision: float = 0.05, absolute: bool = False) -> \
+            TaskStatus:
         """
         Bend an arm joints of an avatar to reach for a target position.
+        By default, the target is relative to the avatar's position and rotation.
 
         Possible [return values](task_status.md):
 
@@ -458,7 +461,6 @@ class StickyMittenAvatarController(FloorplanController):
 
         :param arm: The arm (left or right).
         :param target: The target position for the mitten.
-        :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         :param stop_on_mitten_collision: If true, the arm will stop bending if the mitten collides with an object other than the target object.
         :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
         :param precision: The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`.
@@ -487,16 +489,19 @@ class StickyMittenAvatarController(FloorplanController):
                                                                    stop_on_mitten_collision=stop_on_mitten_collision,
                                                                    precision=precision))
         self._avatar.status = TaskStatus.ongoing
-        if do_motion:
-            self._do_joint_motion()
+        self._do_joint_motion()
         self._end_task()
         return self._get_avatar_status()
 
-    def grasp_object(self, object_id: int, arm: Arm, do_motion: bool = True, check_if_possible: bool = True,
+    def grasp_object(self, object_id: int, arm: Arm, check_if_possible: bool = True,
                      stop_on_mitten_collision: bool = True) -> TaskStatus:
         """
-        The avatar's arm will reach for the object. Per frame, the arm's mitten will try to "grasp" the object.
-        A grasped object is attached to the avatar's mitten and its ID will be in [`FrameData.held_objects`](frame_data.md). There may be some empty space between a mitten and a grasped object.
+        The avatar's arm will reach for the object and continuously try to grasp the object.
+        If it grasps the object, the simultation will attach the object to the avatar's mitten with an invisible joint. There may be some empty space between a mitten and a grasped object.
+        This joint can be broken with sufficient force and torque.
+
+        The grasped object's ID will be listed in [`FrameData.held_objects`](frame_data.md).
+
         This task ends when the avatar grasps the object (at which point it will stop bending its arm), or if it fails to grasp the object (see below).
 
         Possible [return values](task_status.md):
@@ -511,7 +516,6 @@ class StickyMittenAvatarController(FloorplanController):
         - `mitten_collision` (If `stop_if_mitten_collision == True`)
 
         :param object_id: The ID of the target object.
-        :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         :param arm: The arm of the mitten that will try to grasp the object.
         :param stop_on_mitten_collision: If true, the arm will stop bending if the mitten collides with an object.
         :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
@@ -548,8 +552,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         self._avatar_commands.extend(commands)
         self._avatar.status = TaskStatus.ongoing
-        if do_motion:
-            self._do_joint_motion()
+        self._do_joint_motion()
         # The avatar failed to reach the target.
         if self._avatar.status != TaskStatus.success:
             self._end_task()
@@ -564,7 +567,7 @@ class StickyMittenAvatarController(FloorplanController):
             self._end_task()
             return TaskStatus.failed_to_pick_up
 
-    def drop(self, arm: Arm, reset_arm: bool = True, do_motion: bool = True) -> TaskStatus:
+    def drop(self, arm: Arm, reset_arm: bool = True) -> TaskStatus:
         """
         Drop any held objects held by the arm. Reset the arm to its neutral position.
 
@@ -574,18 +577,16 @@ class StickyMittenAvatarController(FloorplanController):
 
         :param arm: The arm that will drop any held objects.
         :param reset_arm: If True, reset the arm's positions to "neutral".
-        :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         """
 
         self._start_task()
 
         self._avatar_commands.extend(self._avatar.drop(reset=reset_arm, arm=arm))
-        if do_motion:
-            self._do_joint_motion()
+        self._do_joint_motion()
         self._end_task()
         return TaskStatus.success
 
-    def reset_arm(self, arm: Arm, do_motion: bool = True) -> TaskStatus:
+    def reset_arm(self, arm: Arm) -> TaskStatus:
         """
         Reset an avatar's arm to its neutral positions.
 
@@ -595,21 +596,18 @@ class StickyMittenAvatarController(FloorplanController):
         - `no_longer_bending` (The arm stopped bending before it reset, possibly due to an obstacle in the way.)
 
         :param arm: The arm that will be reset.
-        :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         """
 
         self._start_task()
 
         self._avatar_commands.extend(self._avatar.reset_arm(arm=arm))
-        if do_motion:
-            self._do_joint_motion()
+        self._do_joint_motion()
         self._end_task()
         return self._avatar.status
 
     def _do_joint_motion(self) -> None:
         """
         Step through the simulation until the joints of all avatars are done moving.
-        Useful when you want concurrent action.
         """
 
         done = False
@@ -624,7 +622,7 @@ class StickyMittenAvatarController(FloorplanController):
 
     def _stop_avatar(self, enable_sensor: bool) -> None:
         """
-        Advance 1 frame and stop the avatar's movement and turning.
+        Stop the avatar's movement and turning.
 
         :param enable_sensor: If True, enable the image sensor.
         """
@@ -654,7 +652,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param stopping_threshold: Stop when the avatar is within this many degrees of the target.
         :param num_attempts: The avatar will apply more angular force this many times to complete the turn before giving up.
-        :param enable_sensor_on_finish: Enable the camera upon completing the task. This is for internal use only.
+        :param enable_sensor_on_finish: Enable the camera upon completing the task. This should only be set to False in the backend code.
 
         :return: A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
         """
@@ -1008,7 +1006,7 @@ class StickyMittenAvatarController(FloorplanController):
         self._end_task(enable_sensor=False)
 
         # Drop the object.
-        self.drop(arm=arm, reset_arm=False, do_motion=False)
+        self.drop(arm=arm, reset_arm=False)
 
         # Lift the arm away.
         self.reach_for_target(target={"x": 0.25 if arm == Arm.right else -0.25, "y": 0.6, "z": 0.3},
@@ -1058,7 +1056,7 @@ class StickyMittenAvatarController(FloorplanController):
 
     def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None:
         """
-        Rotate an avatar's camera around each axis. The head of the avatar won't visually rotate, as this could put the avatar off-balance.
+        Rotate an avatar's camera. The head of the avatar won't visually rotate because it would cause the entire avatar to tilt.
 
         :param pitch: Pitch (nod your head "yes") the camera by this angle, in degrees.
         :param yaw: Yaw (shake your head "no") the camera by this angle, in degrees.
