@@ -77,7 +77,7 @@ All example controllers can be found in: `controllers/`
 
 | Controller            | Description                                            |
 | --------------------- | ------------------------------------------------------ |
-| `fill_and_pour.py`    | Fill a container with objects and then pour them out.  |
+| `fill_container.py`   | Fill a container with objects.                         |
 | `social_image.py`     | Generate the social image for the GitHub preview card. |
 | `initialize_scene.py` | Initialize a floorplan populated with objects.         |
 

@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.8.0
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Removed: `pour_out_container()`
+  - Removed: `shake()`
+  - Fixed: The avatar will sometimes veer off-course when trying to move forward.
+  - Fixed: The avatar will sometimes twist when bending its arms.
+  - Fixed: Crash in `put_in_container()` due to the controller sometimes trying to teleport a body part of the avatar.
+- `TaskStatus`:
+  - Removed unused values.
+- Moved the `Arm` enum class to its own file and added documentation.
+- Renamed `fill_and_pour.py` to `fill_container.py` and removed the obsolete pour API call.
+- Fixed a bug in `put_in_container_test.py` in which the avatar would sometimes try to pick up an object already in a container.
+- Documentation:
+  - `StickyMittenAvatarController`:
+    - Organized all functions by category.
+    - Fixed various typos and inaccuracies.
+    - Re-wrote documentation for `communicate()`.
+    - Added a section describing the `Arm` type.
+  - Aesthetic improvements to the headers and section breaks of each document.
+
+### Backend
+
+- Added: `util/api_categories.json` Used for organizing function calls into categories in the documentation.
+- Added code to `doc_gen.py` to format documentation better and organize function calls by category.
+
 ## 0.7.0
 
 ### Frontend
