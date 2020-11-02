@@ -134,7 +134,7 @@ c = StickyMittenAvatarController(launch_build=False)
 
 ### "I can only initialize a blank white room"
 
-To initialize a realistic indoor environment populated with objects, explicitly the `scene` and `layout` parameters of [`init_scene()`](Documentation/sma_controller.md#init_scene).
+To initialize a realistic indoor environment populated with objects, explicitly set the `scene` and `layout` parameters of [`init_scene()`](Documentation/sma_controller.md#init_scene).
 
 ```python
 from sticky_mitten_avatar import StickyMittenAvatarController
