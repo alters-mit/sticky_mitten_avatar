@@ -171,6 +171,12 @@ These should be very rare but they tend to be glitches in the Unity physics engi
 
 We can't fix this because this is how the Unity physics engine works.
 
+### "Objects are dragging on the ground / The avatar loses its grip on objects"
+
+Usually this is because you called `grasp_object()` without an additional `reach_for_target()` call. `grasp_object()` will grasp the object but it won't actually lift it up.
+
+The avatar will lose its grip on objects if it encounters a sufficiently powerful force, such as swinging the object into a wall or dragging it on the floor.
+
 ### "I can't navigate through the scene"
 
 There is no built-in navigation system in this API. You'll have to write one yourself.
