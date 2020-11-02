@@ -16,12 +16,15 @@
 - Renamed `fill_and_pour.py` to `fill_container.py` and removed the obsolete pour API call.
 - Fixed a bug in `put_in_container_test.py` in which the avatar would sometimes try to pick up an object already in a container.
 - Documentation:
+  - README:
+    - Added an intro section.
+    - Added a troubleshooting section.
   - `StickyMittenAvatarController`:
     - Organized all functions by category.
     - Fixed various typos and inaccuracies.
     - Re-wrote documentation for `communicate()`.
     - Added a section describing the `Arm` type.
-  - Aesthetic improvements to the headers and section breaks of each document.
+  - Aesthetic improvements to the headers and section breaks of each API document.
 
 ### Backend
 
