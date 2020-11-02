@@ -1,1 +1,1 @@
-{"3": {"ligne_roset_armchair": [[12, 5]], "table_stack": [[10, 9]]}, "4": {"bed01_red": [[51, 11]], "red_side_chair": [[49, 2]]}, "6": {"club_house_italia_nautilus_sofa": [[58, 20]], "de_castelli_placas_table_low": [[51, 21]], "yellow_side_chair": [[51, 24]]}}
+{"3": {"chair": [[12, 5]], "table": [[10, 9]]}, "4": {"bed": [[51, 11]], "chair": [[49, 2]], "coffee table": [[45, 3]]}, "6": {"chair": [[51, 24]], "table": [[51, 21]]}}

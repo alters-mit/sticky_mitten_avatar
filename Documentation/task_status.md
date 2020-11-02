@@ -41,6 +41,9 @@ Otherwise, the avatar may have tried moving, turning, bending an arm, etc. befor
 | `not_in_container` | The avatar tried to drop an object in a container but the object isn't in the container. |
 | `bad_joint` | This joint doesn't exist. |
 | `not_a_container` | The avatar didn't try to put one object into another because the other object isn't a container. |
+| `empty_container` | The avatar didn't try to pour a container because the container was empty. |
+| `still_in_container` | The avatar tried to pour objects out of the container but there are still objects in it. |
+| `full_container` | The container has too many objects. Adding more would result in physics glitches. |
 
 ***
 

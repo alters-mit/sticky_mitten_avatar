@@ -60,7 +60,7 @@ depth_pass = c.frame.depth_pass
 # etc.
 ```
 
-- `static_object_data`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
+- `static_object_info`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
 
 ```python
 # Get the segmentation color of an object.
@@ -77,7 +77,7 @@ for hashable_color in c.segmentation_color_to_id:
 
   To convert an RGB array to a hashable integer, see: [`TDWUtils.color_to_hashable()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/tdw_utils.md).
 
-- `static_avatar_data` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API. Key = body part ID.
+- `static_avatar_info` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API. Key = body part ID.
 
 ```python
 for body_part_id in c.static_avatar_data:
@@ -93,6 +93,11 @@ for body_part_id in c.static_avatar_data:
    A position is occupied if there is an object (such as a table) or environment obstacle (such as a wall) within 0.25 meters of the position.
 
    This is static data for the _initial_ scene occupancy_maps. It won't update if an object's position changes.
+
+   This is _not_ a navigation map. If there is a gap between positions, the avatar might still be able to go from one to the other.
+
+   Images of each occupancy map can be found in: `images/occupancy_maps`
+   Key: Red = Free position. Blue = Free position where a target object or container can be placed.
 
    Convert from the coordinates in the array to an actual position using `get_occupancy_position()`.
 
@@ -123,18 +128,18 @@ for room in c.goal_positions:
 
 #### \_\_init\_\_
 
-**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True, audio: bool = False, screen_width: int = 256, screen_height: int = 256)`**
+**`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True, screen_width: int = 256, screen_height: int = 256, debug: bool = False)`**
 
 
 | Parameter | Description |
 | --- | --- |
 | port | The port number. |
 | launch_build | If True, automatically launch the build. |
-| demo | If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step. |
+| demo | If True, this is a demo controller. All frames will be rendered. |
 | id_pass | If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run somewhat slower. |
-| audio | If True, include audio data in the FrameData. |
 | screen_width | The width of the screen in pixels. |
 | screen_height | The height of the screen in pixels. |
+| debug | If True, debug mode will be enabled. |
 
 ***
 
@@ -193,7 +198,7 @@ _Returns:_  The response from the build.
 
 #### reach_for_target
 
-**`def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05) -> TaskStatus`**
+**`def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05, absolute: bool = False) -> TaskStatus`**
 
 Bend an arm joints of an avatar to reach for a target position.
 Possible [return values](task_status.md):
@@ -207,11 +212,12 @@ Possible [return values](task_status.md):
 | Parameter | Description |
 | --- | --- |
 | arm | The arm (left or right). |
-| target | The target position for the mitten relative to the avatar. |
+| target | The target position for the mitten. |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
 | stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object other than the target object. |
 | check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
 | precision | The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. |
+| absolute | If True, `target` is in absolute world coordinates. If False, `target` is in coordinates relative to the avatar's position and rotation. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
 
@@ -268,7 +274,8 @@ Possible [return values](task_status.md):
 
 Reset an avatar's arm to its neutral positions.
 Possible [return values](task_status.md):
-- `success` (The avatar's arm reset.)
+- `success` (The arm reset to very close to its initial position.)
+- `no_longer_bending` (The arm stopped bending before it reset, possibly due to an obstacle in the way.)
 
 | Parameter | Description |
 | --- | --- |
@@ -279,7 +286,7 @@ Possible [return values](task_status.md):
 
 #### turn_to
 
-**`def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200) -> TaskStatus`**
+**`def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200, enable_sensor_on_finish: bool = True) -> TaskStatus`**
 
 Turn the avatar to face a target position or object.
 Possible [return values](task_status.md):
@@ -292,6 +299,7 @@ Possible [return values](task_status.md):
 | force | The force at which the avatar will turn. More force = faster, but might overshoot the target. |
 | stopping_threshold | Stop when the avatar is within this many degrees of the target. |
 | num_attempts | The avatar will apply more angular force this many times to complete the turn before giving up. |
+| enable_sensor_on_finish | Enable the camera upon completing the task. This is for internal use only. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
 
@@ -396,10 +404,12 @@ _Returns:_  A `TaskStatus` indicating whether the avatar shook the joint and if 
 **`def put_in_container(self, object_id: int, container_id: int, arm: Arm) -> TaskStatus`**
 
 Try to put an object in a container.
-Combines the following functions:
-1. `grasp_object(object_id, arm`) if the avatar isn't already grasping the object.
-2. `reach_for_target(position, arm)` where `position` is a point above the container.
-3. `drop(arm)`
+1. The avatar will grasp the object and a container via `grasp_object()` if it isn't holding them already.
+2. The avatar will lift the object up.
+3. The container and its contents will be teleported to be in front of the avatar.
+4. The avatar will move the object over the container and drop it.
+5. The avatar will pick up the container again.
+The container will be teleport to
 Possible [return values](task_status.md):
 - `success` (The avatar put the object in the container.)
 - `too_close_to_reach` (Either the object or the container is too close.)
@@ -411,6 +421,7 @@ Possible [return values](task_status.md):
 - `mitten_collision` (Only while trying to grasp the object.)
 - `not_in_container`
 - `not_a_container`
+- `full_container`
 
 | Parameter | Description |
 | --- | --- |
@@ -419,6 +430,28 @@ Possible [return values](task_status.md):
 | arm | The arm that will try to pick up the object. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar put the object in the container and if not, why.
+
+***
+
+#### pour_out_container
+
+**`def pour_out_container(self, arm: Arm) -> TaskStatus`**
+
+Pour out the contents of a container held by the arm.
+Assuming that the arm is holding a container, its wrist will twist and the arm will lift.
+If after doing this there are still objects in the container, the avatar will shake the container.
+This action continues until the arm and the objects in the container have stopped moving.
+Possible [return values](task_status.md):
+- `success` (The container held by the arm is now empty.)
+- `not_a_container`
+- `empty_container`
+- `still_in_container`
+
+| Parameter | Description |
+| --- | --- |
+| arm | The arm holding the container. |
+
+_Returns:_  A `TaskStatus` indicating whether the avatar poured all objects out of the container and if not, why.
 
 ***
 

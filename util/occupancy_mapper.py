@@ -1,13 +1,14 @@
+from json import loads
 from typing import List, Dict, Tuple
 import numpy as np
 from json import dumps
 from tdw.floorplan_controller import FloorplanController
 from tdw.output_data import Raycast, Version, SegmentationColors
 from tdw.tdw_utils import TDWUtils
-from tdw.librarian import ModelLibrarian
 from sticky_mitten_avatar.util import OCCUPANCY_CELL_SIZE, get_data
 from sticky_mitten_avatar.paths import OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, Y_MAP_DIRECTORY, \
-    SURFACE_MAP_DIRECTORY, ROOM_MAP_DIRECTORY
+    SURFACE_MAP_DIRECTORY, ROOM_MAP_DIRECTORY, SURFACE_OBJECT_CATEGORIES_PATH,\
+    OBJECT_SPAWN_MAP_DIRECTORY
 from sticky_mitten_avatar.environments import Environments
 
 
@@ -17,14 +18,75 @@ Save the results to a file.
 """
 
 
+class IslandMapper:
+    """
+    Divide the occupancy map into "islands", i.e. sectors that are detached from each other.
+    """
+
+    def __init__(self, occupancy_map: np.array):
+        """
+        :param occupancy_map: The occupancy map.
+        """
+
+        self.occupancy_map = occupancy_map
+
+    def get_islands(self) -> List[List[Tuple[int, int]]]:
+        """
+        :return: A list of all islands.
+        """
+
+        # Positions that have been reviewed so far.
+        traversed: List[Tuple[int, int]] = []
+        islands: List[List[Tuple[int, int]]] = list()
+
+        for ox, oy in np.ndindex(self.occupancy_map.shape):
+            p = (ox, oy)
+            if p in traversed:
+                continue
+            island = self._get_island(p=p)
+            if len(island) > 0:
+                for island_position in island:
+                    traversed.append(island_position)
+                islands.append(island)
+        return islands
+
+    def _get_island(self, p: Tuple[int, int]) -> List[Tuple[int, int]]:
+        """
+        Fill the island that position `p` belongs to.
+
+        :param p: The position.
+
+        :return: An island of positions as a list of (x, z) tuples.
+        """
+
+        to_check = [p]
+        island: List[Tuple[int, int]] = list()
+        while len(to_check) > 0:
+            # Check the next position.
+            p = to_check.pop(0)
+            if p[0] < 0 or p[0] >= self.occupancy_map.shape[0] or p[1] < 0 or p[1] >= self.occupancy_map.shape[1] or \
+                    self.occupancy_map[p[0]][p[1]] != 1 or p in island:
+                continue
+            # Mark the position as traversed.
+            island.append(p)
+            # Check these neighbors.
+            px, py = p
+            to_check.extend([(px, py + 1),
+                             (px + 1, py + 1),
+                             (px + 1, py),
+                             (px + 1, py - 1),
+                             (px, py - 1),
+                             (px - 1, py - 1),
+                             (px - 1, py),
+                             (px - 1, py + 1)])
+        return island
+
+
 if __name__ == "__main__":
     # Valid categories of surface models.
-    surface_categories = ["coffee table", "cocktail table", "table", "bed", "sofa", "chair", "bench", "trunk"]
-    lib = ModelLibrarian()
+    surface_object_categories = loads(SURFACE_OBJECT_CATEGORIES_PATH.read_text(encoding="utf-8"))
 
-    c = FloorplanController(launch_build=False)
-    # This is the minimum size of a surface.
-
+    c = FloorplanController(launch_build=True)
     bounds: Dict[str, Dict[str, float]] = dict()
 
     # Iterate through each scene and layout.
@@ -34,7 +96,8 @@ if __name__ == "__main__":
             y_values = list()
             object_ids = list()
             # Load the scene and layout.
-            commands = c.get_scene_init_commands(scene=scene + "a", layout=layout, audio=False)
+            commands = c.get_scene_init_commands(scene=scene + "a", layout=layout, audio=True)
+            
             # Get the locations and sizes of each room.
             commands.extend([{"$type": "set_floorplan_roof",
                               "show": False},
@@ -42,22 +105,22 @@ if __name__ == "__main__":
                              {"$type": "send_environments"},
                              {"$type": "send_version"},
                              {"$type": "send_segmentation_colors"}])
-            # noinspection DuplicatedCode
+            # Send the commands.
             resp = c.communicate(commands)
             env = Environments(resp=resp)
             is_standalone = get_data(resp=resp, d_type=Version).get_standalone()
             # Cache the names of all objects and get all surface models.
             segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
+
             object_names: Dict[int, str] = dict()
             surface_ids: List[int] = list()
             for i in range(segmentation_colors.get_num()):
                 object_name = segmentation_colors.get_object_name(i).lower()
                 object_id = segmentation_colors.get_object_id(i)
                 object_names[object_id] = object_name
-                record = lib.get_record(object_name)
                 # Check if this is a surface.
                 # The record might be None if this is a composite object.
-                if record is not None and record.wcategory in surface_categories:
+                if object_name in surface_object_categories:
                     surface_ids.append(object_id)
 
             # Cache the environment data.
@@ -102,7 +165,7 @@ if __name__ == "__main__":
                         # This space is occupied if:
                         # 1. The spherecast hit any objects.
                         # 2. The surface is higher than floor level (such that carpets are ignored).
-                        if any(hit_objs) and max(ys) > 0.01:
+                        if any(hit_objs) and max(ys) > 0.03:
                             occupied = 0
                             # Raycast to get the y value.
                             resp = c.communicate({"$type": "send_raycast",
@@ -122,6 +185,7 @@ if __name__ == "__main__":
                         else:
                             y = 0
                             occupied = 1
+                            navigable = True
                             if not is_standalone:
                                 c.communicate({"$type": "add_position_marker",
                                                "position": {"x": x, "y": 0, "z": z}})
@@ -133,17 +197,26 @@ if __name__ == "__main__":
                 y_values.append(ys_row)
                 object_ids.append(ids_row)
                 x += OCCUPANCY_CELL_SIZE
-
-            # Calculate reachable surfaces.
             positions = np.array(positions)
             y_values = np.array(y_values)
             object_ids = np.array(object_ids)
 
+            # Save the numpy data.
+            save_filename = f"{scene}_{layout}"
+            np.save(str(OCCUPANCY_MAP_DIRECTORY.joinpath(save_filename).resolve()), positions)
+            np.save(str(Y_MAP_DIRECTORY.joinpath(save_filename).resolve()), y_values)
+
+            # Any "islands" on the occupancy map are unreachable. Don't spawn objects there.
+            spawn_object_positions = np.zeros(positions.shape, dtype=bool)
+            mapper = IslandMapper(occupancy_map=positions)
+            # Get all the positions of the largest "island". These are ok places to place objects.
+            for ip in list(sorted(mapper.get_islands(), key=len))[-1]:
+                spawn_object_positions[ip[0]][ip[1]] = True
+            np.save(str(OBJECT_SPAWN_MAP_DIRECTORY.joinpath(save_filename).resolve()), spawn_object_positions)
+
             # Load the room map.
             room_map = np.load(str(ROOM_MAP_DIRECTORY.joinpath(f"{scene[0]}.npy").resolve()))
-
             surfaces: Dict[int, Dict[str, List[Tuple[int, int]]]] = dict()
-
             # Calculate surfaces.
             for ix, iy in np.ndindex(positions.shape):
                 # Ignore positions that aren't objects, aren't in the scene, or too high, or not a surface.
@@ -158,7 +231,8 @@ if __name__ == "__main__":
                 # Check if the avatar can reach this position.
                 reachable = False
                 for jx, jy in np.ndindex(positions.shape):
-                    if positions[jx][jy] == 1 and np.linalg.norm(np.array([ix, iy]) - np.array([jx, jy])) <= 1.5:
+                    if spawn_object_positions[jx][jy] and \
+                            np.linalg.norm(np.array([ix, iy]) - np.array([jx, jy])) <= 1.5:
                         reachable = True
                         break
                 if reachable:
@@ -166,13 +240,10 @@ if __name__ == "__main__":
                         surfaces[room] = dict()
                     # Add the position to the dictionary.
                     object_name = object_names[object_ids[ix][iy]]
-                    if object_name not in surfaces[room]:
-                        surfaces[room][object_name] = list()
-                    surfaces[room][object_name].append((ix, iy))
-            # Save the numpy data.
-            save_filename = f"{scene}_{layout}"
-            np.save(str(OCCUPANCY_MAP_DIRECTORY.joinpath(save_filename).resolve()), positions)
-            np.save(str(Y_MAP_DIRECTORY.joinpath(save_filename).resolve()), y_values)
+                    object_category = surface_object_categories[object_name]
+                    if object_category not in surfaces[room]:
+                        surfaces[room][object_category] = list()
+                    surfaces[room][object_category].append((ix, iy))
 
             # Save the surface data.
             SURFACE_MAP_DIRECTORY.joinpath(save_filename + ".json").write_text(dumps(surfaces, sort_keys=True))

@@ -75,12 +75,11 @@ To do something per-frame, regardless of whether the avatar is in the middle of 
 
 All example controllers can be found in: `controllers/`
 
-| Controller                   | Description                                                  |
-| ---------------------------- | ------------------------------------------------------------ |
-| `put_object_in_container.py` | Put an object in a container.                                |
-| `put_in_held_container.py`   | Put an object held with one mitten into a container held by another mitten. |
-| `shake_demo.py`              | An avatar shakes two different containers with different audio properties. |
-| `social_image.py`            | Generate the social image for the GitHub preview card.       |
+| Controller            | Description                                            |
+| --------------------- | ------------------------------------------------------ |
+| `fill_and_pour.py`    | Fill a container with objects and then pour them out.  |
+| `social_image.py`     | Generate the social image for the GitHub preview card. |
+| `initialize_scene.py` | Initialize a floorplan populated with objects.         |
 
 ## Tests
 
@@ -91,10 +90,9 @@ All example controllers can be found in: `controllers/`
 | `turn_test.py`             | Test avatar turning.                                         |
 | `composite_object_test.py` | Test if the avatar can grasp a sub-object of a composite object. |
 | `mitten_collision_test.py` | Test mitten collision detection.                             |
-| `in_box_test.py`           | Test the algorithm for checking whether an object is in a container. |
 | `precision_test.py`        | Test how the `precision` parameter affects arm articulation. |
 | `proc_gen_spawn_test.py`   | Test whether target objects and containers tend to stay in their initial positions. |
-| `occupancy_viewer.py`      | Show the occupancy map of a given scene and layout.          |
+| `target_object_test.py`    | Test target objects.                                         |
 
 ## Utility Scripts
 
@@ -106,6 +104,7 @@ Utility scripts are located in `util/`
 | `occupancy_mapper.py` | Create occupancy maps of each floorplan and layout. |
 | `spawn_mapper.py` | Pre-calculate avatar spawn positions per room, per layout, per scene. |
 | `room_positions.py` | Cache which positions of each occupancy map are in each room. |
+| `occupancy_images.py`      | Create an image of each occupancy map per scene per layout.  |
 
 ## Changelog
 

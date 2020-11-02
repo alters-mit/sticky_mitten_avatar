@@ -1,10 +1,10 @@
 from typing import List
 from tdw.tdw_utils import TDWUtils
-from sticky_mitten_avatar.test_controller import TestController
+from sticky_mitten_avatar import StickyMittenAvatarController
 from sticky_mitten_avatar.task_status import TaskStatus
 
 
-class CollisionTest(TestController):
+class CollisionTest(StickyMittenAvatarController):
     """
     Test whether the avatar stops when it collides with a large object.
     """
@@ -13,7 +13,7 @@ class CollisionTest(TestController):
         super().__init__(port=port, launch_build=False, demo=False)
         self.o_id = 0
 
-    def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
+    def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
         commands = [{"$type": "load_scene",
                      "scene_name": "ProcGenScene"},
                     TDWUtils.create_empty_room(4, 4)]

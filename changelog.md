@@ -1,5 +1,63 @@
 # Changelog
 
+## 0.7.0
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Added: `pour_out_container()` Pour out the contents of a container.
+  -  Added: optional parameter `precision` to `reach_for_target()` to adjust the threshold at which the action is considered successful.
+  -  Added: optional parameter `num_attempts` to `put_in_container()` to adjust the number of attempts it makes before dropping the object.
+  -  Added: optional parameter `absolute` to `reach_for_target()` for absolute world coordinates.
+  -  Added: optional parameter `enable_sensor_on_finish` to `turn_to()`.
+  -  Removed: parameter `num_attempts` from `put_in_container()`.
+  -  Adjusted the scale of all containers, the mass of all containers, and the mass of all target objects.
+  -  Added two more types of target objects.
+  -  Target objects now have a random visual material.
+  -  Removed `audio` parameter from constructor.
+  -  Removed most containers to make their shapes more uniform.
+  -  Added `debug` parameter to constructor.
+  -  `reset_arm()` will return `TaskStatus.no_longer_bending` if the arm isn't close to its original position.
+  - Fixed: The timestep is different if `demo == True` resulting in different simulation behavior.
+  - Fixed: Arm forces don't always reset at the end of an action, which means that the avatar doesn't hold a pose that it should.
+  - Fixed: `grasp_object()` will try to grasp an object that is already held. Now, if the object is held, it automatically returns `success`.
+  - Fixed: Physics glitches due to there being too many objects in a held container. The avatar will try to fill a container with up to 2 objects and no more. `put_in_container()` will return `full_container` if the container is "full".
+  - Fixed: The "sleep threshold" of the simulation is too high, causing objects to sometimes float in midair.
+  - Fixed: the aiming of `put_in_container()` is inaccurate. The container and its contents are now teleported to ensure accuracy.
+  - Fixed: `grasp_object()` often stops with a `success` status before the object is grasped.
+  - Fixed: objects that are stacked on top of one another in a container are sometimes not counted as being in the container.
+  - Fixed: `reset_arm()` allows the arms to be too floppy.
+  - Fixed: The avatar's grip is looser than it should be.
+  - Fixed: Reduced overall physics glitchiness.
+  - Fixed: Target objects and containers are sometimes in places that the avatar can't go to.
+- `BodyPartStatic`:
+  - Renamed `color` to `segmentation_color`.
+  - Removed: `audio`
+  - Added: `mass`
+- `StaticObjectInfo`:
+  - Removed: `audio`
+  - Added: `mass`
+- Removed example controllers that are obsolete or aren't good examples of how to code a controller that is actually usable (as opposed to being a demo):
+  - `put_in_held_container.py`
+  - `put_object_in_container.py`
+  - `shake_demo.py` (and all of the files it uses)
+- Added: `fill_and_pour.py` example controller. Fill a container and pour the contents out.
+- Added: `initialize_scene.py` example controller. Basic scene initialization.
+- Added: `videos/fill_and_pour.mp4`
+- Added: `images/occupancy_maps` Images of occupancy maps.
+
+### Backend
+
+- Removed a lot of unused code from `StickyMittenAvatarController` and `FrameData`.
+- Refactored `StickyMittenAvatarController.init_scene()` so that it requires only 1 frame and 1 function.
+- Removed: `in_box_test.py`
+- Added: `target_object_test.py`
+- Added backend functionality to roll the wrist (which makes it easy for the avatar to put objects in a container).
+- The scale of all containers, the mass of all containers, and the mass of all target objects are all constants in `util.py` so that the demo controllers can use them too.
+- Some objects have categories idiosyncratic to this repo, as opposed  to just using the category in the model record. All model-category data  is stored in: `sticky_mitten_avatar/object_data/surface_object_categories.json`
+- Added: `sticky_mitten_avatar/scene_data/object_spawn_maps/` Data for where objects can be spawned.
+- Renamed `occupancy_viewer.py` to `occupancy_images.py`. Moved the script from `tests/` to `util/`. The script now saves an image of each occupancy map.
+
 ## 0.6.3
 
 ### Frontend

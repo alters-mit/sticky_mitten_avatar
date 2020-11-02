@@ -1,10 +1,10 @@
 from typing import List
 from sticky_mitten_avatar import Arm
-from sticky_mitten_avatar.test_controller import TestController
+from sticky_mitten_avatar import StickyMittenAvatarController
 from sticky_mitten_avatar.task_status import TaskStatus
 
 
-class MittenCollisionTest(TestController):
+class MittenCollisionTest(StickyMittenAvatarController):
     """
     Test whether a collision between a mitten and an object stops arm-bending motion.
     """
@@ -13,7 +13,7 @@ class MittenCollisionTest(TestController):
         self.o_id = 0
         super().__init__(port=port, launch_build=False, id_pass=False)
 
-    def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
+    def _get_scene_init_commands(self, scene: str = None, layout: int = None, room:int = -1) -> List[dict]:
         # Place an object on a table.
         commands = super()._get_scene_init_commands()
         commands.extend(self._add_object(model_name="trunck", position={"x": 0, "y": 0, "z": 0.66},

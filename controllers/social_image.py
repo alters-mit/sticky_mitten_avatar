@@ -12,11 +12,11 @@ class SocialImage(StickyMittenAvatarController):
     """
 
     def __init__(self):
-        super().__init__(launch_build=True, id_pass=False, demo=True, screen_width=1280, screen_height=640)
+        super().__init__(launch_build=True, id_pass=False, demo=True, screen_width=1024, screen_height=1024)
         self.container_id = 0
 
-    def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
-        commands = super()._get_scene_init_commands(scene=scene, layout=layout)
+    def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
+        commands = super()._get_scene_init_commands(scene=scene, layout=layout, room=room)
         # Add a container to the scene.
         self.container_id, container_commands = self._add_object("basket_18inx18inx12iin_plastic_lattice",
                                                                  scale={"x": 0.4, "y": 0.4, "z": 0.4},
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     c.init_scene(scene="2a", layout=1, room=1)
 
     # Add a third-person camera.
-    c.add_overhead_camera({"x": -9.39, "y": 0.65, "z": 3.18}, target_object="a", images="cam")
+    c.add_overhead_camera({"x": -9.39, "y": 0.65, "z": 2.18}, target_object="a", images="cam")
 
     # Grasp and pick up the container.
     c.grasp_object(object_id=c.container_id, arm=Arm.right)

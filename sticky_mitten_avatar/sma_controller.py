@@ -14,10 +14,11 @@ from tdw.object_init_data import AudioInitData
 from tdw.release.pypi import PyPi
 from sticky_mitten_avatar.avatars import Arm, Baby
 from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
-from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, get_angle_between, FORWARD, \
-    OCCUPANCY_CELL_SIZE
+from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, OCCUPANCY_CELL_SIZE, \
+    TARGET_OBJECT_MASS, CONTAINER_MASS, CONTAINER_SCALE
 from sticky_mitten_avatar.paths import SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, \
-    ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, TARGET_OBJECTS_PATH, COMPOSITE_OBJECT_AUDIO_PATH, SURFACE_MAP_DIRECTORY
+    ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, TARGET_OBJECTS_PATH, COMPOSITE_OBJECT_AUDIO_PATH, SURFACE_MAP_DIRECTORY, \
+    TARGET_OBJECT_MATERIALS_PATH, OBJECT_SPAWN_MAP_DIRECTORY
 from sticky_mitten_avatar.static_object_info import StaticObjectInfo
 from sticky_mitten_avatar.frame_data import FrameData
 from sticky_mitten_avatar.task_status import TaskStatus
@@ -81,7 +82,7 @@ class StickyMittenAvatarController(FloorplanController):
     # etc.
     ```
 
-    - `static_object_data`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
+    - `static_object_info`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
 
     ```python
     # Get the segmentation color of an object.
@@ -98,7 +99,7 @@ class StickyMittenAvatarController(FloorplanController):
     
       To convert an RGB array to a hashable integer, see: [`TDWUtils.color_to_hashable()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/tdw_utils.md).
 
-    - `static_avatar_data` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API. Key = body part ID.
+    - `static_avatar_info` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API. Key = body part ID.
 
     ```python
     for body_part_id in c.static_avatar_data:
@@ -114,6 +115,11 @@ class StickyMittenAvatarController(FloorplanController):
        A position is occupied if there is an object (such as a table) or environment obstacle (such as a wall) within 0.25 meters of the position.
 
        This is static data for the _initial_ scene occupancy_maps. It won't update if an object's position changes.
+
+       This is _not_ a navigation map. If there is a gap between positions, the avatar might still be able to go from one to the other.
+
+       Images of each occupancy map can be found in: `images/occupancy_maps`
+       Key: Red = Free position. Blue = Free position where a target object or container can be placed.
 
        Convert from the coordinates in the array to an actual position using `get_occupancy_position()`.
 
@@ -146,19 +152,19 @@ class StickyMittenAvatarController(FloorplanController):
     _STOP_DRAG = 1000
 
     def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True,
-                 audio: bool = False, screen_width: int = 256, screen_height: int = 256):
+                 screen_width: int = 256, screen_height: int = 256, debug: bool = False):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build.
-        :param demo: If True, this is a demo controller. The build will play back audio and set a slower framerate and physics time step.
+        :param demo: If True, this is a demo controller. All frames will be rendered.
         :param id_pass: If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run somewhat slower.
-        :param audio: If True, include audio data in the FrameData.
         :param screen_width: The width of the screen in pixels.
         :param screen_height: The height of the screen in pixels.
+        :param debug: If True, debug mode will be enabled.
         """
 
+        self._debug = debug
         self._id_pass = id_pass
-        self._audio = audio
 
         self._container_shapes = loads(Path(resource_filename(__name__, "object_data/container_shapes.json")).
                                        read_text(encoding="utf-8"))
@@ -198,23 +204,15 @@ class StickyMittenAvatarController(FloorplanController):
                     {"$type": "set_render_quality",
                      "render_quality": 5},
                     {"$type": "set_physics_solver_iterations",
-                     "iterations": 32},
+                     "iterations": 16},
                     {"$type": "set_vignette",
                      "enabled": False},
                     {"$type": "set_shadow_strength",
                      "strength": 1.0},
-                    {"$type": "set_sleep_threshold",
-                     "sleep_threshold": 0.1},
                     {"$type": "set_screen_size",
                      "width": screen_width,
                      "height": screen_height},
                     {"$type": "send_version"}]
-        # Set the frame rate and timestep for audio.
-        if self._demo:
-            commands.extend([{"$type": "set_target_framerate",
-                             "framerate": 30},
-                             {"$type": "set_time_step",
-                              "time_step": 0.02}])
         resp = self.communicate(commands)
 
         # Make sure that the build is the correct version.
@@ -223,7 +221,7 @@ class StickyMittenAvatarController(FloorplanController):
             build_version = version.get_tdw_version()
             python_version = PyPi.get_installed_tdw_version(truncate=True)
             if build_version != python_version:
-                print(f"Your installed version of tdw ({python_version} doesn't match the version of the build "
+                print(f"Your installed version of tdw ({python_version}) doesn't match the version of the build "
                       f"{build_version}. This might cause errors!")
 
     def init_scene(self, scene: str = None, layout: int = None, room: int = -1) -> None:
@@ -272,44 +270,15 @@ class StickyMittenAvatarController(FloorplanController):
         self._avatar_commands: List[dict] = []
         self._audio_values: Dict[int, ObjectInfo] = dict()
         self.static_object_info: Dict[int, StaticObjectInfo] = dict()
-        self.static_avatar_info: Dict[int, BodyPartStatic] = dict()
         self.segmentation_color_to_id: Dict[int, int] = dict()
         self._cam_commands: Optional[list] = None
 
         # Initialize the scene.
-        self.communicate(self._get_scene_init_commands(scene=scene, layout=layout))
+        resp = self.communicate(self._get_scene_init_commands(scene=scene, layout=layout, room=room))
+        self._avatar = Baby(debug=self._debug, resp=resp)
+        # Cache the avatar.
+        self.static_avatar_info = self._avatar.body_parts_static
 
-        # Create the avatar.
-        self._init_avatar()
-
-        commands = [{"$type": "send_collisions",
-                     "enter": True,
-                     "stay": False,
-                     "exit": False,
-                     "collision_types": ["obj", "env"]},
-                    {"$type": "send_segmentation_colors",
-                     "frequency": "once"},
-                    {"$type": "send_composite_objects",
-                     "frequency": "once"},
-                    {"$type": "send_rigidbodies",
-                     "frequency": "once"},
-                    {"$type": "send_transforms",
-                     "frequency": "once"},
-                    {"$type": "send_bounds",
-                     "frequency": "once"}]
-
-        # Teleport the avatar to a room.
-        if scene is not None and layout is not None and room is not None:
-            rooms = loads(SPAWN_POSITIONS_PATH.read_text())[scene[0]][str(layout)]
-            if room == -1:
-                room = random.randint(0, len(rooms) - 1)
-            assert 0 <= room < len(rooms), f"Invalid room: {room}"
-            commands.append({"$type": "teleport_avatar_to",
-                             "avatar_id": "a",
-                             "position": rooms[room]})
-
-        # Request SegmentationColors and CompositeObjects for this frame only.
-        resp = self.communicate(commands)
         # Parse composite object audio data.
         segmentation_colors = get_data(resp=resp, d_type=SegmentationColors)
         # Get the name of each object.
@@ -342,13 +311,14 @@ class StickyMittenAvatarController(FloorplanController):
         bounds = get_data(resp=resp, d_type=Bounds)
         for i in range(segmentation_colors.get_num()):
             object_id = segmentation_colors.get_object_id(i)
+            object_name = segmentation_colors.get_object_name(i).lower()
             # Add audio data for either the root object or a sub-object.
             if object_id in composite_object_audio:
                 object_audio = composite_object_audio[object_id]
             elif object_id in self._audio_values:
                 object_audio = self._audio_values[object_id]
             else:
-                object_audio = self._default_audio_values[segmentation_colors.get_object_name(i).lower()]
+                object_audio = self._default_audio_values[object_name]
 
             static_object = StaticObjectInfo(object_id=object_id,
                                              segmentation_colors=segmentation_colors,
@@ -357,21 +327,26 @@ class StickyMittenAvatarController(FloorplanController):
                                              bounds=bounds,
                                              target_object=object_id in self._target_object_ids)
             self.static_object_info[static_object.object_id] = static_object
-        # Fill the segmentation color dictionary.
+
+        # Fill the segmentation color dictionary and carve into the NavMesh.
         for object_id in self.static_object_info:
             hashable_color = TDWUtils.color_to_hashable(self.static_object_info[object_id].segmentation_color)
             self.segmentation_color_to_id[hashable_color] = object_id
 
         self._end_task()
 
-    def _end_task(self) -> None:
+    def _end_task(self, enable_sensor: bool = True) -> None:
         """
         End the task and update the frame data.
+
+        :param enable_sensor: If True, enable the image sensor.
         """
 
-        commands = []
-        if not self._demo:
-            commands.append({"$type": "toggle_image_sensor",
+        commands = [self._avatar.get_default_sticky_mitten_profile()]
+
+        if enable_sensor:
+            commands.append({"$type": "enable_image_sensor",
+                             "enable": True,
                              "sensor_name": "SensorContainer",
                              "avatar_id": self._avatar.id})
         # Request output data to update the frame data.
@@ -386,95 +361,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         resp = self.communicate(commands)
         # Update the frame data.
-        self.frame = FrameData(resp=resp, objects=self.static_object_info, avatar=self._avatar, audio=self._audio)
-
-    def _create_avatar(self, avatar_type: str = "baby", avatar_id: str = "a", position: Dict[str, float] = None,
-                       rotation: float = 0, debug: bool = False) -> None:
-        """
-        Create an avatar. Set default values for the avatar. Cache its static data (segmentation colors, etc.)
-
-        :param avatar_type: The type of avatar. Options: "baby", "adult"
-        :param avatar_id: The unique ID of the avatar.
-        :param position: The initial position of the avatar.
-        :param rotation: The initial rotation of the avatar in degrees.
-        :param debug: If true, print debug messages when the avatar moves.
-        """
-
-        if avatar_type == "baby":
-            avatar_type = "A_StickyMitten_Baby"
-        elif avatar_type == "adult":
-            avatar_type = "A_StickyMitten_Adult"
-        else:
-            raise Exception(f'Avatar type not found: {avatar_type}\nOptions: "baby", "adult"')
-
-        if position is None:
-            position = {"x": 0, "y": 0, "z": 0}
-
-        commands = TDWUtils.create_avatar(avatar_type=avatar_type,
-                                          avatar_id=avatar_id,
-                                          position=position)[:]
-
-        if self._id_pass:
-            pass_masks = ["_img", "_id", "_depth"]
-        else:
-            pass_masks = ["_img", "_depth"]
-        # Rotate the avatar.
-        # Request segmentation colors, body part names, and dynamic avatar data.
-        # Turn off the follow camera.
-        # Set the palms to sticky.
-        # Enable image capture.
-        commands.extend([{"$type": "rotate_avatar_by",
-                          "angle": rotation,
-                          "axis": "yaw",
-                          "is_world": True,
-                          "avatar_id": avatar_id},
-                         {"$type": "send_avatar_segmentation_colors",
-                          "frequency": "once",
-                          "ids": [avatar_id]},
-                         {"$type": "send_avatars",
-                          "frequency": "always"},
-                         {"$type": "set_avatar_drag",
-                          "drag": self._STOP_DRAG,
-                          "angular_drag": self._STOP_DRAG,
-                          "avatar_id": avatar_id},
-                         {"$type": "set_pass_masks",
-                          "pass_masks": pass_masks,
-                          "avatar_id": avatar_id},
-                         {"$type": "toggle_image_sensor",
-                          "sensor_name": "FollowCamera",
-                          "avatar_id": avatar_id}])
-        if not self._demo:
-            commands.append({"$type": "toggle_image_sensor",
-                             "sensor_name": "SensorContainer",
-                             "avatar_id": avatar_id})
-        # Set all sides of both mittens to be sticky.
-        for sub_mitten in ["palm", "back", "side"]:
-            for is_left in [True, False]:
-                commands.append({"$type": "set_stickiness",
-                                 "sub_mitten": sub_mitten,
-                                 "sticky": True,
-                                 "is_left": is_left,
-                                 "avatar_id": avatar_id,
-                                 "show": False})
-
-        if self._demo:
-            commands.append({"$type": "add_audio_sensor",
-                             "avatar_id": avatar_id})
-
-        # Send the commands. Get a response.
-        resp = self.communicate(commands)
-        # Create the avatar.
-        if avatar_type == "A_StickyMitten_Baby":
-            avatar = Baby(avatar_id=avatar_id, debug=debug, resp=resp)
-        else:
-            raise Exception(f"Avatar not defined: {avatar_type}")
-        # Cache the avatar.
-        self._avatar = avatar
-
-        # Set the joint values profile.
-        commands.append(self._avatar.get_default_sticky_mitten_profile())
-
-        self.static_avatar_info = self._avatar.body_parts_static
+        self.frame = FrameData(resp=resp, avatar=self._avatar)
 
     def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
         """
@@ -498,9 +385,6 @@ class StickyMittenAvatarController(FloorplanController):
 
         # Clear avatar commands.
         self._avatar_commands.clear()
-
-        # Add audio commands.
-        commands.extend(self._get_audio_commands())
 
         # Send the commands and get a response.
         resp = super().communicate(commands)
@@ -542,7 +426,7 @@ class StickyMittenAvatarController(FloorplanController):
 
     def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True,
                          check_if_possible: bool = True, stop_on_mitten_collision: bool = True,
-                         precision: float = 0.05) -> TaskStatus:
+                         precision: float = 0.05, absolute: bool = False) -> TaskStatus:
         """
         Bend an arm joints of an avatar to reach for a target position.
 
@@ -556,11 +440,12 @@ class StickyMittenAvatarController(FloorplanController):
         - `mitten_collision` (If `stop_if_mitten_collision == True`)
 
         :param arm: The arm (left or right).
-        :param target: The target position for the mitten relative to the avatar.
+        :param target: The target position for the mitten.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
         :param stop_on_mitten_collision: If true, the arm will stop bending if the mitten collides with an object other than the target object.
         :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
         :param precision: The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`.
+        :param absolute: If True, `target` is in absolute world coordinates. If False, `target` is in coordinates relative to the avatar's position and rotation.
 
         :return: A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
         """
@@ -568,6 +453,10 @@ class StickyMittenAvatarController(FloorplanController):
         self._start_task()
 
         target = TDWUtils.vector3_to_array(target)
+
+        # Convert to relative coordinates.
+        if absolute:
+            target = self._avatar.get_rotated_target(target=target)
 
         # Check if it is possible for the avatar to reach the target.
         if check_if_possible:
@@ -613,6 +502,9 @@ class StickyMittenAvatarController(FloorplanController):
         :return: A `TaskStatus` indicating whether the avatar picked up the object and if not, why.
         """
 
+        if self._avatar.is_holding(object_id)[0]:
+            return TaskStatus.success
+
         self._start_task()
 
         # Get the mitten's position.
@@ -648,7 +540,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         # Return whether the avatar picked up the object.
         self._avatar.status = TaskStatus.idle
-        if self._avatar.is_holding(object_id=object_id):
+        if self._avatar.is_holding(object_id=object_id)[0]:
             self._end_task()
             return TaskStatus.success
         else:
@@ -682,7 +574,8 @@ class StickyMittenAvatarController(FloorplanController):
 
         Possible [return values](task_status.md):
 
-        - `success` (The avatar's arm reset.)
+        - `success` (The arm reset to very close to its initial position.)
+        - `no_longer_bending` (The arm stopped bending before it reset, possibly due to an obstacle in the way.)
 
         :param arm: The arm that will be reset.
         :param do_motion: If True, advance simulation frames until the pick-up motion is done.
@@ -694,7 +587,7 @@ class StickyMittenAvatarController(FloorplanController):
         if do_motion:
             self._do_joint_motion()
         self._end_task()
-        return TaskStatus.success
+        return self._avatar.status
 
     def _do_joint_motion(self) -> None:
         """
@@ -712,20 +605,23 @@ class StickyMittenAvatarController(FloorplanController):
             if not done:
                 self.communicate([])
 
-    def _stop_avatar(self) -> None:
+    def _stop_avatar(self, enable_sensor: bool) -> None:
         """
         Advance 1 frame and stop the avatar's movement and turning.
+
+        :param enable_sensor: If True, enable the image sensor.
         """
 
         self.communicate({"$type": "set_avatar_drag",
                           "drag": self._STOP_DRAG,
                           "angular_drag": self._STOP_DRAG,
                           "avatar_id": self._avatar.id})
-        self._end_task()
+        self._end_task(enable_sensor=enable_sensor)
         self._avatar.status = TaskStatus.idle
 
     def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000,
-                stopping_threshold: float = 0.15, num_attempts: int = 200) -> TaskStatus:
+                stopping_threshold: float = 0.15, num_attempts: int = 200,
+                enable_sensor_on_finish: bool = True) -> TaskStatus:
         """
         Turn the avatar to face a target position or object.
 
@@ -738,6 +634,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param stopping_threshold: Stop when the avatar is within this many degrees of the target.
         :param num_attempts: The avatar will apply more angular force this many times to complete the turn before giving up.
+        :param enable_sensor_on_finish: Enable the camera upon completing the task. This is for internal use only.
 
         :return: A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
         """
@@ -777,20 +674,16 @@ class StickyMittenAvatarController(FloorplanController):
 
         self._avatar.status = TaskStatus.ongoing
 
-        # Set a low drag.
-        self.communicate({"$type": "set_avatar_drag",
-                          "drag": 0,
-                          "angular_drag": 0.05,
-                          "avatar_id": self._avatar.id})
-
-        turn_command = {"$type": "turn_avatar_by",
-                        "torque": force * direction,
-                        "avatar_id": self._avatar.id}
-
-        # Begin to turn.
-        self.communicate(turn_command)
         i = 0
         while i < num_attempts:
+            self.communicate([{"$type": "set_avatar_drag",
+                               "drag": 0,
+                               "angular_drag": 0.05,
+                               "avatar_id": self._avatar.id},
+                              self._avatar.get_rotation_sticky_mitten_profile(),
+                              {"$type": "turn_avatar_by",
+                               "torque": force * direction,
+                               "avatar_id": self._avatar.id}])
             # Coast to a stop.
             coasting = True
             while coasting:
@@ -798,27 +691,26 @@ class StickyMittenAvatarController(FloorplanController):
                 state, previous_angle = _get_turn_state()
                 # The turn succeeded!
                 if state == TaskStatus.success:
-                    self._stop_avatar()
+                    self._stop_avatar(enable_sensor_on_finish)
                     return state
                 # The turn failed.
                 elif state != TaskStatus.ongoing:
-                    self._stop_avatar()
+                    self._stop_avatar(enable_sensor_on_finish)
                     return state
                 self.communicate([])
 
             # Turn.
-            self.communicate(turn_command)
             state, previous_angle = _get_turn_state()
             # The turn succeeded!
             if state == TaskStatus.success:
-                self._stop_avatar()
+                self._stop_avatar(enable_sensor_on_finish)
                 return state
             # The turn failed.
             elif state != TaskStatus.ongoing:
-                self._stop_avatar()
+                self._stop_avatar(enable_sensor_on_finish)
                 return state
             i += 1
-        self._stop_avatar()
+        self._stop_avatar(enable_sensor_on_finish)
         return TaskStatus.too_long
 
     def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200) -> \
@@ -886,7 +778,7 @@ class StickyMittenAvatarController(FloorplanController):
                         if collidee_mass >= 90:
                             return TaskStatus.collided_with_something_heavy
                 # If the avatar's body collided with the environment (e.g. a wall), stop movement.
-                for self._avatar.base_id in self._avatar.env_collisions:
+                if self._avatar.base_id in self._avatar.env_collisions:
                     return TaskStatus.collided_with_environment
 
             p = np.array(self._avatar.frame.get_position())
@@ -910,8 +802,6 @@ class StickyMittenAvatarController(FloorplanController):
         elif isinstance(target, dict):
             target = TDWUtils.vector3_to_array(target)
 
-        self._start_task()
-
         initial_position = self._avatar.frame.get_position()
 
         # Get the distance to the target.
@@ -920,43 +810,43 @@ class StickyMittenAvatarController(FloorplanController):
         if turn:
             # Turn to the target.
             status = self.turn_to(target=TDWUtils.array_to_vector3(target), force=turn_force,
-                                  stopping_threshold=turn_stopping_threshold, num_attempts=num_attempts)
+                                  stopping_threshold=turn_stopping_threshold, num_attempts=num_attempts,
+                                  enable_sensor_on_finish=False)
             if status != TaskStatus.success:
-                self._stop_avatar()
+                self._stop_avatar(True)
                 return status
-
+        self._start_task()
         self._avatar.status = TaskStatus.ongoing
-
-        # Go to the target.
-        self.communicate({"$type": "set_avatar_drag",
-                          "drag": 0.1,
-                          "angular_drag": 100,
-                          "avatar_id": self._avatar.id})
         i = 0
         while i < num_attempts:
             # Start gliding.
-            self.communicate({"$type": "move_avatar_forward_by",
-                              "magnitude": move_force,
-                              "avatar_id": self._avatar.id})
+            self.communicate([{"$type": "move_avatar_forward_by",
+                               "magnitude": move_force,
+                               "avatar_id": self._avatar.id},
+                              {"$type": "set_avatar_drag",
+                               "drag": 0.1,
+                               "angular_drag": 100,
+                               "avatar_id": self._avatar.id},
+                              self._avatar.get_movement_sticky_mitten_profile()])
             t = _get_state()
             if t == TaskStatus.success:
-                self._stop_avatar()
+                self._stop_avatar(True)
                 return t
             elif t != TaskStatus.ongoing:
-                self._stop_avatar()
+                self._stop_avatar(True)
                 return t
             # Glide.
             while np.linalg.norm(self._avatar.frame.get_velocity()) > 0.1:
                 self.communicate([])
                 t = _get_state()
                 if t == TaskStatus.success:
-                    self._stop_avatar()
+                    self._stop_avatar(True)
                     return t
                 elif t != TaskStatus.ongoing:
-                    self._stop_avatar()
+                    self._stop_avatar(True)
                     return t
             i += 1
-        self._stop_avatar()
+        self._stop_avatar(True)
         return TaskStatus.too_long
 
     def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35,
@@ -1007,8 +897,6 @@ class StickyMittenAvatarController(FloorplanController):
         :return: A `TaskStatus` indicating whether the avatar shook the joint and if not, why.
         """
 
-        self._start_task()
-
         # Check if the joint and axis are valid.
         joint: Optional[Joint] = None
         for j in Avatar.JOINTS:
@@ -1018,19 +906,13 @@ class StickyMittenAvatarController(FloorplanController):
         if joint is None:
             return TaskStatus.bad_joint
 
+        self._start_task()
+
         force = random.uniform(force[0], force[1])
         damper = 200
         # Increase the force of the joint.
-        self.communicate([{"$type": "adjust_joint_force_by",
-                           "delta": force,
-                           "joint": joint.joint,
-                           "axis": joint.axis,
-                           "avatar_id": self._avatar.id},
-                          {"$type": "adjust_joint_damper_by",
-                           "delta": -damper,
-                           "joint": joint.joint,
-                           "axis": joint.axis,
-                           "avatar_id": self._avatar.id}])
+        self.communicate(self._avatar.get_start_bend_sticky_mitten_profile(
+            arm=Arm.left if "_left" in joint_name else Arm.right))
         # Do each iteration.
         for i in range(random.randint(num_shakes[0], num_shakes[1])):
             a = random.uniform(angle[0], angle[1])
@@ -1069,11 +951,14 @@ class StickyMittenAvatarController(FloorplanController):
     def put_in_container(self, object_id: int, container_id: int, arm: Arm) -> TaskStatus:
         """
         Try to put an object in a container.
-        Combines the following functions:
 
-        1. `grasp_object(object_id, arm`) if the avatar isn't already grasping the object.
-        2. `reach_for_target(position, arm)` where `position` is a point above the container.
-        3. `drop(arm)`
+        1. The avatar will grasp the object and a container via `grasp_object()` if it isn't holding them already.
+        2. The avatar will lift the object up.
+        3. The container and its contents will be teleported to be in front of the avatar.
+        4. The avatar will move the object over the container and drop it.
+        5. The avatar will pick up the container again.
+
+        The container will be teleport to
 
         Possible [return values](task_status.md):
 
@@ -1087,6 +972,7 @@ class StickyMittenAvatarController(FloorplanController):
         - `mitten_collision` (Only while trying to grasp the object.)
         - `not_in_container`
         - `not_a_container`
+        - `full_container`
 
         :param object_id: The ID of the object that the avatar will try to put in the container.
         :param container_id: The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container')(static_object_info.md).
@@ -1098,123 +984,182 @@ class StickyMittenAvatarController(FloorplanController):
         if not self.static_object_info[container_id].container:
             return TaskStatus.not_a_container
 
-        self._start_task()
+        container_id = int(container_id)
+
+        self._stop_avatar(enable_sensor=False)
+
+        # A "full" container has too many objects such that physics might glitch.
+        overlap_ids = self._get_objects_in_container(container_id=container_id)
+        if len(overlap_ids) > 3:
+            self._end_task()
+            return TaskStatus.full_container
 
         # Grasp the object.
         if object_id not in self.frame.held_objects[arm]:
             status = self.grasp_object(object_id=object_id, arm=arm)
             if status != TaskStatus.success:
-                self._end_task()
+                self._end_task(enable_sensor=False)
                 return status
-        # Lift the container.
-        self.reach_for_target(target={"x": 0.05 if arm == Arm.right else -0.05, "y": 0.15, "z": 0.32},
-                              arm=Arm.left if arm == Arm.right else Arm.right,
-                              check_if_possible=False,
-                              stop_on_mitten_collision=False)
+        container_arm = Arm.left if arm == Arm.right else Arm.right
+
         # Lift up the object.
-        self.reach_for_target(target={"x": 0.2 if arm == Arm.right else -0.2, "y": 0.45, "z": 0.2},
+        self.reach_for_target(target={"x": 0.35 if arm == Arm.right else -0.35, "y": 0.3, "z": 0.36},
+                              arm=arm,
+                              check_if_possible=False,
+                              stop_on_mitten_collision=False,
+                              precision=0.2)
+
+        # Let the container fall to the ground.
+        self.drop(arm=container_arm)
+        self.reset_arm(arm=container_arm)
+
+        # Try to nudge the container to be directly in front of the avatar.
+        new_container_position = self.frame.avatar_transform.position + np.array([-0.215 if arm == Arm.right else 0.215,
+                                                                                  0, 0.341])
+        new_container_angle = get_angle(forward=self.frame.avatar_transform.forward,
+                                        origin=self.frame.avatar_transform.position,
+                                        position=new_container_position)
+        new_container_position = rotate_point_around(point=new_container_position,
+                                                     origin=self.frame.avatar_transform.position,
+                                                     angle=new_container_angle)
+
+        self.communicate([{"$type": "rotate_object_to",
+                           "rotation": TDWUtils.array_to_vector4(self.frame.avatar_transform.rotation),
+                           "id": container_id,
+                           "physics": True},
+                          {"$type": "teleport_object",
+                           "position": TDWUtils.array_to_vector3(new_container_position),
+                           "id": container_id,
+                           "physics": True},
+                          {"$type": "set_avatar_rigidbody_constraints",
+                           "rotate": False,
+                           "translate": False}])
+
+        self._wait_for_objects_to_stop(object_ids=[container_id])
+        self._end_task()
+
+        # Lift the arm away.
+        self.reach_for_target(target={"x": 0.25 if arm == Arm.right else -0.25, "y": 0.6, "z": 0.3},
                               arm=arm,
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
-
-        # Get the up directional vector.
-        up = np.array(QuaternionUtils.get_up_direction(q=tuple(self.frame.object_transforms[container_id].rotation)))
-        # Get the height of the container.
-        height = self.static_object_info[container_id].size[1]
-        # Get a position above the base of the container.
-        pos = self.frame.object_transforms[container_id].position
-
-        target = pos + (up * height)
-        reachable_target = self._avatar.get_rotated_target(target=target)
-
-        # Raise the target towards the mitten until the avatar can reach it.
-        direction_to_mitten = self.frame.avatar_body_part_transforms[self._avatar.mitten_ids[arm]].position - pos
-        direction_to_mitten /= np.linalg.norm(direction_to_mitten)
-        d = 0
-        delta_d = 0.025
-        status = self._avatar.can_reach_target(target=reachable_target, arm=arm)
-        while status != TaskStatus.success and d < 0.5 and target[1] < 0.5:
-            status = self._avatar.can_reach_target(target=reachable_target, arm=arm)
-            d += delta_d
-            target += direction_to_mitten * delta_d
-            reachable_target = self._avatar.get_rotated_target(target=target)
-        if status != TaskStatus.success:
-            self._end_task()
-            return status
-        # Reach for the target.
-        self.reach_for_target(target=TDWUtils.array_to_vector3(reachable_target),
-                              arm=arm,
+        aim_position = self.frame.object_transforms[container_id].position
+        aim_position[1] = 0.3
+        self.reach_for_target(arm=arm,
+                              target={"x": 0, "y": 0.306, "z": 0.392},
                               stop_on_mitten_collision=False,
                               check_if_possible=False)
+
+        self._end_task(enable_sensor=False)
 
         # Drop the object.
         self.drop(arm=arm, reset_arm=False, do_motion=False)
 
-        # Loop until the object hits something.
-        self.communicate({"$type": "send_rigidbodies",
-                          "frequency": "always"})
-        sleeping = False
-        while not sleeping:
-            # Advance one frame.
-            resp = self.communicate([])
-            rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
-            # Check if the object stopped moving.
-            for i in range(rigidbodies.get_num()):
-                if rigidbodies.get_id(i) == object_id:
-                    sleeping = rigidbodies.get_sleeping(i) or np.linalg.norm(rigidbodies.get_velocity(i)) < 0.01
-                    break
-        # Get the current position of the container.
-        resp = self.communicate([{"$type": "send_rigidbodies",
-                                  "frequency": "never"},
-                                 {"$type": "send_transforms",
-                                  "frequency": "once"}])
-        tr = get_data(resp=resp, d_type=Transforms)
-        rot: Optional[np.array] = None
-        pos: Optional[np.array] = None
-        for i in range(tr.get_num()):
-            if tr.get_id(i) == container_id:
-                rot = np.array(tr.get_rotation(i))
-                pos = np.array(tr.get_position(i))
+        # Lift the arm away.
+        self.reach_for_target(target={"x": 0.25 if arm == Arm.right else -0.25, "y": 0.6, "z": 0.3},
+                              arm=arm,
+                              check_if_possible=False,
+                              stop_on_mitten_collision=False)
 
-        # If the container is upside-down, then the object is not in the container.
-        up = QuaternionUtils.get_up_direction(rot)
-        if up[1] < 0:
-            self._end_task()
+        self.reset_arm(arm=arm)
+        self._wait_for_objects_to_stop(object_ids=[object_id])
+
+        self.communicate({"$type": "set_avatar_rigidbody_constraints",
+                          "rotate": True,
+                          "translate": True})
+
+        if object_id not in self._get_objects_in_container(container_id=container_id):
+            print(self._get_objects_in_container(container_id=container_id))
             return TaskStatus.not_in_container
 
-        # Get the shape of the container.
-        name = self.static_object_info[container_id].model_name
-        shape = self._container_shapes[name]
+        # Connect the object to the container.
+        self.communicate({"$type": "add_fixed_joint",
+                          "id": object_id,
+                          "parent_id": container_id})
 
-        # Check the overlap of the container to see if the object is in that space. If so, it is in the container.
-        size = self.static_object_info[container_id].size
-        # Set the position to be in the center of the rotated object.
-        center = TDWUtils.array_to_vector3(pos + (up * size[1] / 2))
-        pos = TDWUtils.array_to_vector3(pos)
-        # Decide which overlap shape to use depending on the container shape.
-        if shape == "box":
-            resp = self.communicate({"$type": "send_overlap_box",
-                                     "position": center,
-                                     "rotation": TDWUtils.array_to_vector4(rot),
-                                     "half_extents": TDWUtils.array_to_vector3(size / 2)})
-        elif shape == "sphere":
-            resp = self.communicate({"$type": "send_overlap_sphere",
-                                     "position": center,
-                                     "radius": min(size)})
-        elif shape == "capsule":
-            resp = self.communicate({"$type": "send_overlap_capsule",
-                                     "position": pos,
-                                     "end": center,
-                                     "radius": min(size)})
+        self.reset_arm(arm=container_arm)
+
+        # Move the container and its objects in front of the mitten.
+        mitten_id = self._avatar.mitten_ids[container_arm]
+        new_container_position = self.frame.avatar_body_part_transforms[mitten_id].position + self.frame.\
+            avatar_transform.forward * 0.3
+        delta_position = new_container_position - self.frame.object_transforms[container_id].position
+        teleport_commands = [{"$type": "teleport_object",
+                              "id": container_id,
+                              "position": TDWUtils.array_to_vector3(new_container_position),
+                              "physics": True}]
+        for overlap_id in overlap_ids:
+            teleport_position = self.frame.object_transforms[overlap_id].position + delta_position
+            teleport_position[1] += 0.03
+            teleport_commands.append({"$type": "teleport_object",
+                                      "id": overlap_id,
+                                      "position": TDWUtils.array_to_vector3(teleport_position),
+                                      "physics": True})
+
+        self.communicate(teleport_commands)
+
+        self._wait_for_objects_to_stop(object_ids=[object_id])
+
+        # Pick up the container again.
+        return self.grasp_object(object_id=container_id, arm=container_arm, check_if_possible=False)
+
+    def pour_out_container(self, arm: Arm) -> TaskStatus:
+        """
+        Pour out the contents of a container held by the arm.
+        Assuming that the arm is holding a container, its wrist will twist and the arm will lift.
+        If after doing this there are still objects in the container, the avatar will shake the container.
+        This action continues until the arm and the objects in the container have stopped moving.
+
+        Possible [return values](task_status.md):
+
+        - `success` (The container held by the arm is now empty.)
+        - `not_a_container`
+        - `empty_container`
+        - `still_in_container`
+
+        :param arm: The arm holding the container.
+
+        :return: A `TaskStatus` indicating whether the avatar poured all objects out of the container and if not, why.
+        """
+
+        # Make sure that this arm is holding a container.
+        held = self._avatar.frame.get_held_left() if arm == Arm.left else self._avatar.frame.get_held_right()
+        container_id: Optional[int] = None
+        for o_id in held:
+            if self.static_object_info[o_id].container:
+                container_id = o_id
+                break
+        if container_id is None:
+            return TaskStatus.not_a_container
+
+        self._start_task()
+
+        # Don't try to pour out an empty container.
+        overlap_ids = self._get_objects_in_container(container_id=container_id)
+        if len(overlap_ids) == 0:
+            self._end_task()
+            return TaskStatus.empty_container
+
+        self._roll_wrist(arm=arm, angle=90)
+        # Lift the arm to tilt the container.
+        self.reach_for_target(arm=arm, target={"x": -0.3 if arm == Arm.left else 0.3, "y": 0.6, "z": 0.35},
+                              check_if_possible=False, stop_on_mitten_collision=False)
+        self._roll_wrist(arm=arm, angle=90)
+
+        self._wait_for_objects_to_stop(object_ids=overlap_ids)
+
+        # Get all of the objects in the container. If there aren't any, this task succeeded.
+        overlap_ids = self._get_objects_in_container(container_id=container_id)
+        if len(overlap_ids) == 0:
+            self._end_task()
+            return TaskStatus.success
+        # Try to shake objects out of the container.
         else:
-            raise Exception(f"Bad shape for {name}: {shape}")
-        overlap = get_data(resp=resp, d_type=Overlap)
-        overlap_ids = overlap.get_object_ids()
-        if container_id not in overlap_ids or object_id not in overlap_ids:
+            self.shake(joint_name=f"elbow_{arm.name}", num_shakes=(2, 2))
+            self._wait_for_objects_to_stop(object_ids=overlap_ids)
+            overlap_ids = self._get_objects_in_container(container_id=container_id)
             self._end_task()
-            return TaskStatus.not_in_container
-        self._end_task()
-        return TaskStatus.success
+            return TaskStatus.success if len(overlap_ids) == 0 else TaskStatus.still_in_container
 
     def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None:
         """
@@ -1290,7 +1235,8 @@ class StickyMittenAvatarController(FloorplanController):
                              "avatar_id": cam_id})
         if images == "cam":
             # Disable avatar cameras.
-            commands.append({"$type": "toggle_image_sensor",
+            commands.append({"$type": "enable_image_sensor",
+                             "enable": False,
                              "sensor_name": "SensorContainer"})
 
             commands.append({"$type": "send_images",
@@ -1299,7 +1245,58 @@ class StickyMittenAvatarController(FloorplanController):
         elif images == "all":
             commands.append({"$type": "send_images",
                              "frequency": "always"})
-        self.communicate(commands)
+        self._avatar_commands.extend(commands)
+
+    def _get_objects_in_container(self, container_id: int) -> np.array:
+        """
+        :param container_id: The ID of the container.
+
+        :return: A numpy array of the IDs of all objects in the container.
+        """
+
+        # Get the current position of the container.
+        resp = self.communicate([{"$type": "send_rigidbodies",
+                                  "frequency": "never"},
+                                 {"$type": "send_transforms",
+                                  "frequency": "once"}])
+        tr = get_data(resp=resp, d_type=Transforms)
+        rot: Optional[np.array] = None
+        pos: Optional[np.array] = None
+        for i in range(tr.get_num()):
+            if tr.get_id(i) == container_id:
+                rot = np.array(tr.get_rotation(i))
+                pos = np.array(tr.get_position(i))
+
+        up = QuaternionUtils.get_up_direction(rot)
+
+        # Get the shape of the container.
+        name = self.static_object_info[container_id].model_name
+        shape = self._container_shapes[name]
+
+        # Check the overlap of the container to see if the object is in that space. If so, it is in the container.
+        size = self.static_object_info[container_id].size
+        # Set the position to be in the center of the rotated object.
+        center = TDWUtils.array_to_vector3(pos + (up * size[1] * 0.5))
+        pos = TDWUtils.array_to_vector3(pos)
+        # Decide which overlap shape to use depending on the container shape.
+        if shape == "box":
+            resp = self.communicate({"$type": "send_overlap_box",
+                                     "position": pos,
+                                     "rotation": TDWUtils.array_to_vector4(rot),
+                                     "half_extents": TDWUtils.array_to_vector3(size)})
+        elif shape == "sphere":
+            resp = self.communicate({"$type": "send_overlap_sphere",
+                                     "position": pos,
+                                     "radius": min(size)})
+        elif shape == "capsule":
+            resp = self.communicate({"$type": "send_overlap_capsule",
+                                     "position": pos,
+                                     "end": center,
+                                     "radius": min(size)})
+        else:
+            raise Exception(f"Bad shape for {name}: {shape}")
+        overlap = get_data(resp=resp, d_type=Overlap)
+        return [int(o_id) for o_id in overlap.get_object_ids() if int(o_id) != container_id]
 
     def _destroy_avatar(self, avatar_id: str) -> None:
         """
@@ -1315,69 +1312,6 @@ class StickyMittenAvatarController(FloorplanController):
                                  (cmd["avatar_id"] != avatar_id)]
         self.communicate({"$type": "destroy_avatar",
                           "avatar_id": avatar_id})
-
-    def _tap(self, object_id: int, arm: Arm) -> TaskStatus:
-        """
-        Try to tap an object.
-
-        Possible [return values](task_status.md):
-
-        - `success` (The avatar tapped the object.)
-        - `too_close_to_reach`
-        - `too_far_to_reach`
-        - `behind_avatar`
-        - `no_longer_bending`
-        - `bad_raycast`
-        - `failed_to_tap`
-
-        :param object_id: The ID of the object.
-        :param arm: The arm.
-
-        :return: A `TaskStatus` indicating whether the avatar tapped the object and if not, why.
-        """
-
-        self._start_task()
-
-        # Get the origin of the raycast.
-        if arm == Arm.left:
-            origin = np.array(self._avatar.frame.get_mitten_center_left_position())
-        else:
-            origin = self._avatar.frame.get_mitten_center_right_position()
-
-        success, target = self._get_raycast_point(object_id=object_id, origin=np.array(origin), forward=0.01)
-
-        # The raycast didn't hit the target.
-        if not success:
-            return TaskStatus.bad_raycast
-
-        angle = get_angle_between(v1=FORWARD, v2=self._avatar.frame.get_forward())
-        target = rotate_point_around(point=target - self._avatar.frame.get_position(), angle=-angle)
-
-        # Couldn't bend the arm to the target.
-        reach_status = self.reach_for_target(target=TDWUtils.array_to_vector3(target), arm=arm)
-        if reach_status != TaskStatus.success:
-            return reach_status
-
-        # Tap the object.
-        p = target + np.array(self._avatar.frame.get_forward()) * 1.1
-        self.reach_for_target(target=TDWUtils.array_to_vector3(p), arm=arm, check_if_possible=False, do_motion=False)
-        # Get the mitten ID.
-        mitten_id = self._avatar.mitten_ids[arm]
-        # Let the arm bend until the mitten collides with the object.
-        mitten_collision = False
-        count = 0
-        while not mitten_collision and count < 200:
-            self.communicate([])
-            if object_id in self._avatar.collisions[mitten_id]:
-                mitten_collision = True
-                break
-            count += 1
-        self.reset_arm(arm=arm)
-        self._avatar.status = TaskStatus.idle
-        if mitten_collision:
-            return TaskStatus.success
-        else:
-            return TaskStatus.failed_to_tap
 
     def end(self) -> None:
         """
@@ -1428,138 +1362,224 @@ class StickyMittenAvatarController(FloorplanController):
         point = np.array(raycast.get_point())
         return raycast.get_hit() and raycast.get_object_id() is not None and raycast.get_object_id() == object_id, point
 
-    def _get_audio_commands(self) -> List[dict]:
+    def _roll_wrist(self, arm: Arm, angle: float, precision: float = 0.02) -> None:
         """
-        :return: A list of audio commands generated from `self.frame_data`
+        Roll the wrist to a target angle.
+
+        :param arm: The arm.
+        :param angle: The target angle.
+        :param precision: Precision of the movement (the threshold at which the angle is considered equal).
         """
 
-        commands = []
-        if not self._demo:
-            return commands
-        elif self.frame is None:
-            return commands
-        # Get audio per collision.
-        for audio, object_id in self.frame.audio:
-            if audio is None:
-                continue
-            commands.append({"$type": "play_audio_data",
-                             "id": object_id,
-                             "num_frames": audio.length,
-                             "num_channels": 1,
-                             "frame_rate": 44100,
-                             "wav_data": audio.wav_str,
-                             "y_pos_offset": 0.1})
-        return commands
+        # Begin rotation.
+        self.communicate([self._avatar.get_roll_wrist_sticky_mitten_profile(arm=arm),
+                          {"$type": "bend_arm_joint_to",
+                           "angle": angle,
+                           "joint": f"wrist_{arm.name}",
+                           "axis": "roll",
+                           "avatar_id": self._avatar.id}])
+        # Wait for the motion to finish.
+        a0 = self._avatar.frame.get_angles_left()[-2] if arm == Arm.left else \
+            self._avatar.frame.get_angles_right()[-2]
+        done_twisting_wrist = False
+        while not done_twisting_wrist:
+            self.communicate([])
+            # Get the angle of the wrist.
+            a1 = self._avatar.frame.get_angles_left()[-2] if arm == Arm.left else \
+                self._avatar.frame.get_angles_right()[-2]
+            done_twisting_wrist = np.abs(a1 - a0) < precision
+            a0 = a1
 
-    def _get_scene_init_commands(self, scene: str = None, layout: int = None) -> List[dict]:
+    def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
         """
         Get commands to initialize the scene before adding avatars.
 
         :param scene: The name of the scene. Can be None.
         :param layout: The layout index. Can be None.
+        :param room: The room number. If -1, the room is chosen randomly.
 
         :return: A list of commands to initialize the scene. Override this function for a different "scene recipe".
         """
 
-        if scene is not None and layout is not None:
+        if scene is None or layout is None:
+            commands = [{"$type": "load_scene",
+                         "scene_name": "ProcGenScene"},
+                        TDWUtils.create_empty_room(12, 12)]
+            avatar_position = TDWUtils.VECTOR3_ZERO
+        else:
             commands = self.get_scene_init_commands(scene=scene, layout=layout, audio=True)
 
-            self.occupancy_map = np.load(
-                str(OCCUPANCY_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
             self._scene_bounds = loads(SCENE_BOUNDS_PATH.read_text())[scene[0]]
+            room_map = np.load(str(ROOM_MAP_DIRECTORY.joinpath(f"{scene[0]}.npy").resolve()))
+            map_filename = f"{scene[0]}_{layout}.npy"
+            self.occupancy_map = np.load(
+                str(OCCUPANCY_MAP_DIRECTORY.joinpath(map_filename).resolve()))
+            ys_map = np.load(str(Y_MAP_DIRECTORY.joinpath(map_filename).resolve()))
+            object_spawn_map = np.load(str(OBJECT_SPAWN_MAP_DIRECTORY.joinpath(map_filename).resolve()))
 
-            # Procedurally add containers and target objects.
-            if scene is not None and layout is not None:
-                room_map = np.load(str(ROOM_MAP_DIRECTORY.joinpath(f"{scene[0]}.npy").resolve()))
-                ys_map = np.load(str(Y_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.npy").resolve()))
+            # Get all "placeable" positions in the room.
+            rooms: Dict[int, List[Tuple[int, int]]] = dict()
+            for i in range(0, np.amax(room_map)):
+                # Get all free positions in the room.
+                placeable_positions: List[Tuple[int, int]] = list()
+                for ix, iy in np.ndindex(room_map.shape):
+                    if room_map[ix][iy] == i:
+                        # If this is a spawnable position, add it.
+                        if object_spawn_map[ix][iy]:
+                            placeable_positions.append((ix, iy))
+                if len(placeable_positions) > 0:
+                    rooms[i] = placeable_positions
 
-                # Get all "placeable" positions in the room.
-                rooms: Dict[int, List[Tuple[int, int]]] = dict()
-                for i in range(0, np.amax(room_map)):
-                    # Get all free positions in the room.
-                    placeable_positions: List[Tuple[int, int]] = list()
-                    for ix, iy in np.ndindex(room_map.shape):
-                        if room_map[ix][iy] == i:
-                            # If this is the floor, add the position.
-                            if self.occupancy_map[ix][iy] == 1:
-                                placeable_positions.append((ix, iy))
-                    if len(placeable_positions) > 0:
-                        rooms[i] = placeable_positions
+            # Add 0-1 containers per room.
+            for room_key in list(rooms.keys()):
+                # Maybe don't add a container in this room.
+                if random.random() < 0.25:
+                    continue
 
-                # Add 0-1 containers per room.
-                for room in list(rooms.keys()):
-                    # Maybe don't add a container in this room.
-                    if random.random() < 0.25:
-                        continue
+                proc_gen_positions = rooms[room_key][:]
+                random.shuffle(proc_gen_positions)
+                # Get a random position in the room.
+                ix, iy = random.choice(rooms[room_key])
 
-                    # Get a random position in the room.
-                    ix, iy = random.choice(rooms[room])
+                # Get the (x, z) coordinates for this position.
+                # The y coordinate is in `ys_map`.
+                x, z = self.get_occupancy_position(ix, iy)
+                container_name = random.choice(StaticObjectInfo.CONTAINERS)
+                container_id, container_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
+                                                                    rotation={"x": 0,
+                                                                              "y": random.uniform(-179, 179),
+                                                                              "z": z},
+                                                                    scale=CONTAINER_SCALE,
+                                                                    audio=self._default_audio_values[
+                                                                        container_name],
+                                                                    model_name=container_name)
+                commands.extend(container_commands)
+                # Make the container much lighter.
+                commands.append({"$type": "set_mass",
+                                 "id": container_id,
+                                 "mass": CONTAINER_MASS})
+                # Mark this space as occupied.
+                self.occupancy_map[ix][iy] = 0
 
-                    # Get the (x, z) coordinates for this position.
-                    # The y coordinate is in `ys_map`.
-                    x, z = self.get_occupancy_position(ix, iy)
-                    container_name = random.choice(StaticObjectInfo.CONTAINERS)
-                    commands.extend(self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
-                                                     rotation={"x": 0, "y": random.uniform(-179, 179), "z": z},
-                                                     scale={"x": 0.5, "y": 0.5, "z": 0.5},
-                                                     audio=self._default_audio_values[container_name],
-                                                     model_name=container_name)[1])
-                    # Mark this space as occupied.
-                    self.occupancy_map[ix][iy] = 0
+            # Pick a room to add target objects.
+            target_objects: Dict[str, float] = dict()
+            with open(str(TARGET_OBJECTS_PATH.resolve())) as csvfile:
+                reader = DictReader(csvfile)
+                for row in reader:
+                    target_objects[row["name"]] = float(row["scale"])
+            target_object_names = list(target_objects.keys())
 
-                # Pick a room to add target objects.
-                target_objects: Dict[str, float] = dict()
-                with open(str(TARGET_OBJECTS_PATH.resolve())) as csvfile:
-                    reader = DictReader(csvfile)
-                    for row in reader:
-                        target_objects[row["name"]] = float(row["scale"])
-                target_object_names = list(target_objects.keys())
+            # Load a list of visual materials for target objects.
+            target_object_materials = TARGET_OBJECT_MATERIALS_PATH.read_text(encoding="utf-8").split("\n")
 
-                # Get all positions in the room and shuffle the order.
-                target_room_positions = random.choice(list(rooms.values()))
-                random.shuffle(target_room_positions)
-                # Add the objects.
-                for i in range(random.randint(8, 12)):
-                    ix, iy = random.choice(target_room_positions)
-                    # Get the (x, z) coordinates for this position.
-                    # The y coordinate is in `ys_map`.
-                    x, z = self.get_occupancy_position(ix, iy)
-                    target_object_name = random.choice(target_object_names)
-                    # Set custom object info for the target objects.
-                    audio = ObjectInfo(name=target_object_name, mass=0.1, material=AudioMaterial.ceramic, resonance=0.6,
-                                       amp=0.01, library="models_core.json", bounciness=0.5)
-                    scale = target_objects[target_object_name]
-                    object_id, object_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
-                                                                  rotation={"x": 0, "y": random.uniform(-179, 179),
-                                                                            "z": z},
-                                                                  scale={"x": scale, "y": scale, "z": scale},
-                                                                  audio=audio,
-                                                                  model_name=target_object_name)
-                    self._target_object_ids.append(object_id)
-                    commands.extend(object_commands)
+            # Get all positions in the room and shuffle the order.
+            target_room_positions = random.choice(list(rooms.values()))
+            random.shuffle(target_room_positions)
+            # Add the objects.
+            for i in range(random.randint(8, 12)):
+                ix, iy = random.choice(target_room_positions)
+                # Get the (x, z) coordinates for this position.
+                # The y coordinate is in `ys_map`.
+                x, z = self.get_occupancy_position(ix, iy)
+                target_object_name = random.choice(target_object_names)
+                # Set custom object info for the target objects.
+                audio = ObjectInfo(name=target_object_name, mass=TARGET_OBJECT_MASS, material=AudioMaterial.ceramic,
+                                   resonance=0.6, amp=0.01, library="models_core.json", bounciness=0.5)
+                scale = target_objects[target_object_name]
+                object_id, object_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
+                                                              rotation={"x": 0, "y": random.uniform(-179, 179),
+                                                                        "z": z},
+                                                              scale={"x": scale, "y": scale, "z": scale},
+                                                              audio=audio,
+                                                              model_name=target_object_name)
+                self._target_object_ids.append(object_id)
+                commands.extend(object_commands)
 
-                    # Mark this space as occupied.
-                    self.occupancy_map[ix][iy] = 0
+                # Set a random visual material for each target object.
+                visual_material = random.choice(target_object_materials)
+                substructure = AudioInitData.LIBRARIES["models_core.json"].get_record(target_object_name). \
+                    substructure
+                commands.extend(TDWUtils.set_visual_material(substructure=substructure,
+                                                             material=visual_material,
+                                                             object_id=object_id,
+                                                             c=self))
 
-                # Set the goal positions.
-                goal_positions = loads(SURFACE_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.json").
-                                       read_text(encoding="utf-8"))
-                self.goal_positions = dict()
-                for k in goal_positions:
-                    self.goal_positions[int(k)] = goal_positions[k]
+                # Mark this space as occupied.
+                self.occupancy_map[ix][iy] = 0
 
-            return commands
+            # Set the goal positions.
+            goal_positions = loads(SURFACE_MAP_DIRECTORY.joinpath(f"{scene[0]}_{layout}.json").
+                                   read_text(encoding="utf-8"))
+            self.goal_positions = dict()
+            for k in goal_positions:
+                self.goal_positions[int(k)] = goal_positions[k]
 
-        return [{"$type": "load_scene",
-                 "scene_name": "ProcGenScene"},
-                TDWUtils.create_empty_room(12, 12)]
+            # Set the initial position of the avatar.
+            rooms = loads(SPAWN_POSITIONS_PATH.read_text())[scene[0]][str(layout)]
+            if room == -1:
+                room = random.randint(0, len(rooms) - 1)
+            assert 0 <= room < len(rooms), f"Invalid room: {room}"
+            avatar_position = rooms[room]
 
-    def _init_avatar(self) -> None:
-        """
-        Initialize the avatar.
-        """
+        # Create the avatar.
+        commands.extend(TDWUtils.create_avatar(avatar_type="A_StickyMitten_Baby", avatar_id="a"))
 
-        self._create_avatar(avatar_id="a")
+        if self._id_pass:
+            pass_masks = ["_img", "_id", "_depth"]
+        else:
+            pass_masks = ["_img", "_depth"]
+
+        # Request segmentation colors, body part names, and dynamic avatar data.
+        # Turn off the follow camera.
+        # Set the palms to sticky.
+        # Enable image capture.
+        # Teleport the avatar to its initial position.
+        # Set the initial joint values.
+        commands.extend([{"$type": "send_avatar_segmentation_colors"},
+                         {"$type": "send_avatars",
+                          "frequency": "always"},
+                         {"$type": "set_avatar_drag",
+                          "drag": self._STOP_DRAG,
+                          "angular_drag": self._STOP_DRAG},
+                         {"$type": "set_pass_masks",
+                          "pass_masks": pass_masks},
+                         {"$type": "enable_image_sensor",
+                          "enable": False,
+                          "sensor_name": "FollowCamera"},
+                         {"$type": "teleport_avatar_to",
+                          "avatar_id": "a",
+                          "position": avatar_position}])
+        if not self._demo:
+            commands.append({"$type": "enable_image_sensor",
+                             "enable": False,
+                             "sensor_name": "SensorContainer"})
+        # Set all sides of both mittens to be sticky.
+        for sub_mitten in ["palm", "back", "side"]:
+            for is_left in [True, False]:
+                commands.append({"$type": "set_stickiness",
+                                 "sub_mitten": sub_mitten,
+                                 "sticky": True,
+                                 "is_left": is_left,
+                                 "show": False})
+
+        # Request initial output data.
+        commands.extend([{"$type": "send_collisions",
+                          "enter": True,
+                          "stay": False,
+                          "exit": False,
+                          "collision_types": ["obj", "env"]},
+                         {"$type": "send_segmentation_colors",
+                          "frequency": "once"},
+                         {"$type": "send_composite_objects",
+                          "frequency": "once"},
+                         {"$type": "send_rigidbodies",
+                          "frequency": "once"},
+                         {"$type": "send_transforms",
+                          "frequency": "once"},
+                         {"$type": "send_bounds",
+                          "frequency": "once"}])
+
+        return commands
 
     def _get_avatar_status(self) -> TaskStatus:
         """
@@ -1580,6 +1600,33 @@ class StickyMittenAvatarController(FloorplanController):
         if self._demo or self._avatar is None:
             return
 
-        self.communicate({"$type": "toggle_image_sensor",
-                          "sensor_name": "SensorContainer",
-                          "avatar_id": self._avatar.id})
+        self._avatar_commands.append({"$type": "enable_image_sensor",
+                                      "enable": False,
+                                      "sensor_name": "SensorContainer",
+                                      "avatar_id": self._avatar.id})
+
+    def _wait_for_objects_to_stop(self, object_ids: List[int]) -> None:
+        """
+        Wait for some objects to stop moving.
+
+        :param object_ids: A list of object IDs.
+        """
+
+        # Request rigidbody data per frame for each of the objects.
+        resp = self.communicate({"$type": "send_rigidbodies",
+                                 "frequency": "always",
+                                 "ids": object_ids})
+        sleeping = False
+        while not sleeping:
+            sleeping = True
+            # Advance one frame.
+            rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
+            # Check if the object stopped moving.
+            for i in range(rigidbodies.get_num()):
+                # Check if this object is moving.
+                if np.linalg.norm(rigidbodies.get_velocity(i)) > 0.1:
+                    sleeping = False
+                    break
+            resp = self.communicate([])
+
+        self._end_task(enable_sensor=False)
