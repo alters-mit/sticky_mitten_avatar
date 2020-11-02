@@ -112,7 +112,7 @@ Utility scripts are located in `util/`
 | `room_positions.py` | Cache which positions of each occupancy map are in each room. |
 | `occupancy_images.py`      | Create an image of each occupancy map per scene per layout.  |
 
-## Troubleshooting and debugging common problems 
+## Troubleshooting and debugging
 
 ### "I got an error"
 
@@ -146,7 +146,7 @@ c.init_scene(scene="1a", layout=0)
 ### "The simulation is too slow"
 
 - Make sure you're using a GPU.
-- Make sure the `demo` parameter in the constructor is `False` (the default value) and that you don't have an overhead camera Both will render far more frames than you'll need in an actual simulation; rendering is by far the biggest factor in framerate.
+- Make sure the `demo` parameter in the constructor is `False` (the default value) and that you don't have an overhead camera. Both will render far more frames than you'll need in an actual simulation; rendering is by far the biggest factor in framerate.
 - [Check the player log for Open GL errors](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/debug_tdw.md).
 
 ### "Images are grainy or very dark"
@@ -163,6 +163,14 @@ This simulation is 100% physics-driven. *Every task will sometimes fail.* Possib
 
 *You* will need to develop solutions to handle cases like this. You can use the [`TaskStatus`](Documentation/task_status.md) return values to figure out why a task failed and [`FrameData`](Documentation/frame_data.md) to get the current state of the simulation.
 
+### "Objects are flying away / The avatar's mitten clipped through a held object / Physics is acting weird in general"
+
+These should be very rare but they tend to be glitches in the Unity physics engine that we can mitigate but not eliminate. If you encounter a severe glitch (such as objects falling through the floor), please create a GitHub issue and attach your controller code if possible.
+
+### "The simulation behaves differently on different machines / Physics aren't deterministic"
+
+We can't fix this because this is how the Unity physics engine works.
+
 ### "I can't navigate through the scene"
 
 There is no built-in navigation system in this API. You'll have to write one yourself.
@@ -173,7 +181,7 @@ The occupancy map isn't a navigation map; some "free" positions aren't navigable
 
 ### "I have a problem not listed here"
 
-- For low-level issues, check the [`tdw` documentation](https://github.com/threedworld-mit/tdw).
+Create a GitHub Issue on this repo. Describe the problem and include steps to reproduce the bug. Please include your controller code if possible.
 
 ## Changelog
 
