@@ -165,7 +165,7 @@ This simulation is 100% physics-driven. *Every task will sometimes fail.* Possib
 
 ### "Objects are flying away / The avatar's mitten clipped through a held object / Physics is acting weird in general"
 
-These should be very rare but they tend to be glitches in the Unity physics engine that we can mitigate but not eliminate. If you encounter a severe glitch (such as objects falling through the floor), please create a GitHub issue and attach your controller code if possible.
+Physics glitches should be very rare but when they do occur, they're usually problems with the Unity physics engine that we can mitigate but not necessarily fix. If you encounter a severe glitch (such as objects falling through the floor), please create a GitHub issue and attach your controller code if possible.
 
 ### "The simulation behaves differently on different machines / Physics aren't deterministic"
 
