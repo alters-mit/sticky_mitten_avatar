@@ -6,12 +6,11 @@ from sticky_mitten_avatar.util import CONTAINER_MASS, TARGET_OBJECT_MASS, CONTAI
 
 class FillAndPour(StickyMittenAvatarController):
     """
-    Fill a container with objects and pour objects out when the container is full.
+    Fill a container with objects.
     This controller includes a very basic system for aligning the avatar with an object such it can be picked up.
 
     1. Create a scene with an avatar, a container, and several objects.
     2. Go to each object and put the object in the container.
-    3. If the container is full, pour out the contents and then try again to put the object in the container.
     """
 
     def __init__(self, port: int = 1071):
@@ -120,8 +119,5 @@ if __name__ == "__main__":
                        check_if_possible=False,
                        stop_on_mitten_collision=False)
     c.move_forward_by(0.8)
-    # Pour the contents out.
-    status = c.pour_out_container(arm=Arm.left)
-    assert status == TaskStatus.success, status
     # End the simulation.
     c.end()

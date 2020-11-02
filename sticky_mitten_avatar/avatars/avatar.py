@@ -4,22 +4,13 @@ import numpy as np
 from abc import ABC, abstractmethod
 from ikpy.chain import Chain
 from ikpy.utils import geometry
-from enum import Enum
 from tdw.output_data import OutputData, AvatarStickyMittenSegmentationColors, AvatarStickyMitten, Collision, \
     EnvironmentCollision
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar.util import get_angle_between, rotate_point_around, FORWARD
 from sticky_mitten_avatar.body_part_static import BodyPartStatic
 from sticky_mitten_avatar.task_status import TaskStatus
-
-
-class Arm(Enum):
-    """
-    The side that an arm is on.
-    """
-
-    left = 0,
-    right = 1
+from sticky_mitten_avatar.arm import Arm
 
 
 class Joint:

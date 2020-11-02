@@ -34,11 +34,7 @@ class TaskStatus(Enum):
     collided_with_something_heavy = 11  # The avatar stopped moving because collided with something heavy (mass > 90).
     collided_with_environment = 12  # The avatar stopped moving because it collided with the environment, e.g. a wall.
     bad_raycast = 13  # The avatar tried to cast array to the object but the ray was obstructed.
-    failed_to_tap = 14  # The avatar tried to tap the object but the mitten never collided with it.
-    mitten_collision = 15  # The avatar bent its arm but stopped part-way because the mitten collided with an object.
-    not_in_container = 16  # The avatar tried to drop an object in a container but the object isn't in the container.
-    bad_joint = 17  # This joint doesn't exist.
-    not_a_container = 18  # The avatar didn't try to put one object into another because the other object isn't a container.
-    empty_container = 19  # The avatar didn't try to pour a container because the container was empty.
-    still_in_container = 20  # The avatar tried to pour objects out of the container but there are still objects in it.
-    full_container = 21  # The container has too many objects. Adding more would result in physics glitches.
+    mitten_collision = 14  # The avatar bent its arm but stopped part-way because the mitten collided with an object.
+    not_in_container = 15  # The avatar tried to drop an object in a container but the object isn't in the container.
+    not_a_container = 16  # The avatar didn't try to put one object into another because the other object isn't a container.
+    full_container = 17  # The avatar didn't try to put an object in the container because the container has >3 objects.

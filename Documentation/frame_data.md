@@ -1,6 +1,4 @@
-# `frame_data.py`
-
-## `FrameData`
+# FrameData
 
 `from sticky_mitten_avatar.sticky_mitten_avatar.frame_data import FrameData`
 
@@ -95,13 +93,10 @@ print(c.frame.held_objects[Arm.left])
 
 **`def __init__(self, resp: List[bytes], avatar: Avatar)`**
 
-
 | Parameter | Description |
 | --- | --- |
 | resp | The response from the build. |
 | avatar | The avatar in the scene. |
-
-***
 
 #### save_images
 
@@ -116,8 +111,6 @@ The image pass is a jpg file and the other passes are png files.
 | --- | --- |
 | output_directory | The directory that the images will be saved to. |
 
-***
-
 #### get_pil_images
 
 **`def get_pil_images(self) -> dict`**
@@ -126,13 +119,9 @@ Convert each image pass to PIL images.
 
 _Returns:_  A dictionary of PIL images. Key = the name of the pass (img, id, depth)
 
-***
-
 #### get_depth_values
 
 **`def get_depth_values(self) -> np.array`**
 
 _Returns:_  A decoded depth pass as a numpy array of floats.
-
-***
 

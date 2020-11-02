@@ -47,6 +47,12 @@ class StickyMittenAvatarController(FloorplanController):
     c.end()
     ```
 
+    ***
+
+    ## Parameter types
+
+    #### Dict[str, float]
+
     All parameters of type `Dict[str, float]` are Vector3 dictionaries formatted like this:
 
     ```json
@@ -68,6 +74,18 @@ class StickyMittenAvatarController(FloorplanController):
     ```
 
     A parameter of type `Union[Dict[str, float], int]]` can be either a Vector3 or an integer (an object ID).
+
+    The types `Dict`, `Union`, and `List` are in the [`typing` module](https://docs.python.org/3/library/typing.html).
+
+    #### Arm
+
+    All parameters of type `Arm` require you to import the [Arm enum class](arm.md):
+
+    ```python
+    from sticky_mitten_avatar import Arm
+
+    print(Arm.left)
+    ```
 
     ***
 
@@ -253,10 +271,10 @@ class StickyMittenAvatarController(FloorplanController):
 
         | `scene` | `layout` | `room` |
         | --- | --- | --- |
-        | 1a, 1b, or 1c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6 |
-        | 2a, 2b, or 2c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7, 8 |
-        | 4a, 4b, or 4c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7 |
-        | 5a, 5b, or 5c | 0, 1, or 2 | 0, 1, 2, 3 |
+        | 1a, 1b, 1c | 0, 1, 2 | 0, 1, 2, 3, 4, 5, 6 |
+        | 2a, 2b, 2c | 0, 1, 2 | 0, 1, 2, 3, 4, 5, 6, 7, 8 |
+        | 4a, 4b, 4c | 0, 1, 2 | 0, 1, 2, 3, 4, 5, 6, 7 |
+        | 5a, 5b, 5c | 0, 1, 2 | 0, 1, 2, 3 |
 
         You can safely call `init_scene()` more than once to reset the simulation.
 
@@ -365,14 +383,13 @@ class StickyMittenAvatarController(FloorplanController):
 
     def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
         """
-        Overrides [`Controller.communicate()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md).
-        Before sending commands, append any automatically-added commands (such as arm-bending or arm-stopping).
-        If there is a third-person camera, append commands to look at a target (see `add_overhead_camera()`).
-        After receiving a response from the build, update the `frame` data.
+        Use this function to send low-level TDW API commands and receive low-level output data. See: [`Controller.communicate()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md)
 
-        :param commands: Commands to send to the build.
+        You shouldn't ever need to use this function, but you might see it in some of the example controllers because they might require a custom scene setup.
 
-        :return: The response from the build.
+        :param commands: Commands to send to the build. See: [Command API](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/command_api.md).
+
+        :return: The response from the build as a list of byte arrays. See: [Output Data](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md).
         """
         if not isinstance(commands, list):
             commands = [commands]
@@ -612,10 +629,13 @@ class StickyMittenAvatarController(FloorplanController):
         :param enable_sensor: If True, enable the image sensor.
         """
 
-        self.communicate({"$type": "set_avatar_drag",
-                          "drag": self._STOP_DRAG,
-                          "angular_drag": self._STOP_DRAG,
-                          "avatar_id": self._avatar.id})
+        self.communicate([{"$type": "set_avatar_drag",
+                           "drag": self._STOP_DRAG,
+                           "angular_drag": self._STOP_DRAG,
+                           "avatar_id": self._avatar.id},
+                          {"$type": "set_avatar_rigidbody_constraints",
+                           "rotate": False,
+                           "translate": False}])
         self._end_task(enable_sensor=enable_sensor)
         self._avatar.status = TaskStatus.idle
 
@@ -676,7 +696,10 @@ class StickyMittenAvatarController(FloorplanController):
 
         i = 0
         while i < num_attempts:
-            self.communicate([{"$type": "set_avatar_drag",
+            self.communicate([{"$type": "set_avatar_rigidbody_constraints",
+                               "rotate": True,
+                               "translate": False},
+                              {"$type": "set_avatar_drag",
                                "drag": 0,
                                "angular_drag": 0.05,
                                "avatar_id": self._avatar.id},
@@ -820,7 +843,10 @@ class StickyMittenAvatarController(FloorplanController):
         i = 0
         while i < num_attempts:
             # Start gliding.
-            self.communicate([{"$type": "move_avatar_forward_by",
+            self.communicate([{"$type": "set_avatar_rigidbody_constraints",
+                               "rotate": False,
+                               "translate": True},
+                              {"$type": "move_avatar_forward_by",
                                "magnitude": move_force,
                                "avatar_id": self._avatar.id},
                               {"$type": "set_avatar_drag",
@@ -876,78 +902,6 @@ class StickyMittenAvatarController(FloorplanController):
         return self.go_to(target=target, move_force=move_force, move_stopping_threshold=move_stopping_threshold,
                           stop_on_collision=stop_on_collision, turn=False, num_attempts=num_attempts)
 
-    def shake(self, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30),
-              num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> TaskStatus:
-        """
-        Shake an avatar's arm for multiple iterations.
-        Per iteration, the joint will bend forward by an angle and then bend back by an angle.
-        The motion ends when all of the avatar's joints have stopped moving.
-
-        Possible [return values](task_status.md):
-
-        - `success`
-        - `bad_joint`
-
-        :param joint_name: The name of the joint.
-        :param axis: The axis of the joint's rotation.
-        :param angle: Each shake will bend the joint by a angle in degrees within this range.
-        :param num_shakes: The avatar will shake the joint a number of times within this range.
-        :param force: The avatar will add strength to the joint by a value within this range.
-
-        :return: A `TaskStatus` indicating whether the avatar shook the joint and if not, why.
-        """
-
-        # Check if the joint and axis are valid.
-        joint: Optional[Joint] = None
-        for j in Avatar.JOINTS:
-            if j.joint == joint_name and j.axis == axis:
-                joint = j
-                break
-        if joint is None:
-            return TaskStatus.bad_joint
-
-        self._start_task()
-
-        force = random.uniform(force[0], force[1])
-        damper = 200
-        # Increase the force of the joint.
-        self.communicate(self._avatar.get_start_bend_sticky_mitten_profile(
-            arm=Arm.left if "_left" in joint_name else Arm.right))
-        # Do each iteration.
-        for i in range(random.randint(num_shakes[0], num_shakes[1])):
-            a = random.uniform(angle[0], angle[1])
-            # Start the shake.
-            self.communicate({"$type": "bend_arm_joint_by",
-                              "angle": a,
-                              "joint": joint.joint,
-                              "axis": joint.axis,
-                              "avatar_id": self._avatar.id})
-            for j in range(10):
-                self.communicate([])
-            # Bend the arm back.
-            self.communicate({"$type": "bend_arm_joint_by",
-                              "angle": -(a / 2),
-                              "joint": joint.joint,
-                              "axis": joint.axis,
-                              "avatar_id": self._avatar.id})
-            for j in range(50):
-                self.communicate([])
-            # Apply the motion.
-            self._do_joint_motion()
-        # Reset the force of the joint.
-        self.communicate([{"$type": "adjust_joint_force_by",
-                           "delta": -force,
-                           "joint": joint.joint,
-                           "axis": joint.axis,
-                           "avatar_id": self._avatar.id},
-                          {"$type": "adjust_joint_damper_by",
-                           "delta": damper,
-                           "joint": joint.joint,
-                           "axis": joint.axis,
-                           "avatar_id": self._avatar.id}])
-        self._end_task()
-        return TaskStatus.success
-
     def put_in_container(self, object_id: int, container_id: int, arm: Arm) -> TaskStatus:
         """
         Try to put an object in a container.
@@ -958,7 +912,8 @@ class StickyMittenAvatarController(FloorplanController):
         4. The avatar will move the object over the container and drop it.
         5. The avatar will pick up the container again.
 
-        The container will be teleport to
+        Once an object is placed in a container, _it can not be removed again_.
+        The object will be permanently attached to the container.
 
         Possible [return values](task_status.md):
 
@@ -1064,10 +1019,6 @@ class StickyMittenAvatarController(FloorplanController):
         self.reset_arm(arm=arm)
         self._wait_for_objects_to_stop(object_ids=[object_id])
 
-        self.communicate({"$type": "set_avatar_rigidbody_constraints",
-                          "rotate": True,
-                          "translate": True})
-
         if object_id not in self._get_objects_in_container(container_id=container_id):
             print(self._get_objects_in_container(container_id=container_id))
             return TaskStatus.not_in_container
@@ -1089,6 +1040,8 @@ class StickyMittenAvatarController(FloorplanController):
                               "position": TDWUtils.array_to_vector3(new_container_position),
                               "physics": True}]
         for overlap_id in overlap_ids:
+            if overlap_id not in self.frame.object_transforms:
+                continue
             teleport_position = self.frame.object_transforms[overlap_id].position + delta_position
             teleport_position[1] += 0.03
             teleport_commands.append({"$type": "teleport_object",
@@ -1103,69 +1056,9 @@ class StickyMittenAvatarController(FloorplanController):
         # Pick up the container again.
         return self.grasp_object(object_id=container_id, arm=container_arm, check_if_possible=False)
 
-    def pour_out_container(self, arm: Arm) -> TaskStatus:
-        """
-        Pour out the contents of a container held by the arm.
-        Assuming that the arm is holding a container, its wrist will twist and the arm will lift.
-        If after doing this there are still objects in the container, the avatar will shake the container.
-        This action continues until the arm and the objects in the container have stopped moving.
-
-        Possible [return values](task_status.md):
-
-        - `success` (The container held by the arm is now empty.)
-        - `not_a_container`
-        - `empty_container`
-        - `still_in_container`
-
-        :param arm: The arm holding the container.
-
-        :return: A `TaskStatus` indicating whether the avatar poured all objects out of the container and if not, why.
-        """
-
-        # Make sure that this arm is holding a container.
-        held = self._avatar.frame.get_held_left() if arm == Arm.left else self._avatar.frame.get_held_right()
-        container_id: Optional[int] = None
-        for o_id in held:
-            if self.static_object_info[o_id].container:
-                container_id = o_id
-                break
-        if container_id is None:
-            return TaskStatus.not_a_container
-
-        self._start_task()
-
-        # Don't try to pour out an empty container.
-        overlap_ids = self._get_objects_in_container(container_id=container_id)
-        if len(overlap_ids) == 0:
-            self._end_task()
-            return TaskStatus.empty_container
-
-        self._roll_wrist(arm=arm, angle=90)
-        # Lift the arm to tilt the container.
-        self.reach_for_target(arm=arm, target={"x": -0.3 if arm == Arm.left else 0.3, "y": 0.6, "z": 0.35},
-                              check_if_possible=False, stop_on_mitten_collision=False)
-        self._roll_wrist(arm=arm, angle=90)
-
-        self._wait_for_objects_to_stop(object_ids=overlap_ids)
-
-        # Get all of the objects in the container. If there aren't any, this task succeeded.
-        overlap_ids = self._get_objects_in_container(container_id=container_id)
-        if len(overlap_ids) == 0:
-            self._end_task()
-            return TaskStatus.success
-        # Try to shake objects out of the container.
-        else:
-            self.shake(joint_name=f"elbow_{arm.name}", num_shakes=(2, 2))
-            self._wait_for_objects_to_stop(object_ids=overlap_ids)
-            overlap_ids = self._get_objects_in_container(container_id=container_id)
-            self._end_task()
-            return TaskStatus.success if len(overlap_ids) == 0 else TaskStatus.still_in_container
-
     def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None:
         """
-        Rotate an avatar's camera around each axis.
-        The head of the avatar won't visually rotate, as this could put the avatar off-balance.
-        Advances the simulation by 1 frame.
+        Rotate an avatar's camera around each axis. The head of the avatar won't visually rotate, as this could put the avatar off-balance.
 
         :param pitch: Pitch (nod your head "yes") the camera by this angle, in degrees.
         :param yaw: Yaw (shake your head "no") the camera by this angle, in degrees.
@@ -1185,7 +1078,6 @@ class StickyMittenAvatarController(FloorplanController):
     def reset_camera_rotation(self) -> None:
         """
         Reset the rotation of the avatar's camera.
-        Advances the simulation by 1 frame.
         """
 
         self._start_task()

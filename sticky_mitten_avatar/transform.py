@@ -6,7 +6,7 @@ class Transform:
     Transform data for an object, avatar, body part, etc.
 
     ```python
-    from sticky_mitten_avatar import StickyMittenAvatarController, Arm
+    from sticky_mitten_avatar import StickyMittenAvatarController
 
     c = StickyMittenAvatarController()
     c.init_scene()

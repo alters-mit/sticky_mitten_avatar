@@ -1,6 +1,4 @@
-# `sma_controller.py`
-
-## `StickyMittenAvatarController(FloorplanController)`
+# StickyMittenAvatarController
 
 `from sticky_mitten_avatar import StickyMittenAvatarController`
 
@@ -25,6 +23,12 @@ segmentation_colors = c.frame.id_pass
 c.end()
 ```
 
+***
+
+## Parameter types
+
+#### Dict[str, float]
+
 All parameters of type `Dict[str, float]` are Vector3 dictionaries formatted like this:
 
 ```json
@@ -46,6 +50,18 @@ print(target) # {'x': 1.0, 'y': 0.0, 'z': 0.0}
 ```
 
 A parameter of type `Union[Dict[str, float], int]]` can be either a Vector3 or an integer (an object ID).
+
+The types `Dict`, `Union`, and `List` are in the [`typing` module](https://docs.python.org/3/library/typing.html).
+
+#### Arm
+
+All parameters of type `Arm` require you to import the [Arm enum class](arm.md):
+
+```python
+from sticky_mitten_avatar import Arm
+
+print(Arm.left)
+```
 
 ***
 
@@ -130,7 +146,6 @@ for room in c.goal_positions:
 
 **`def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True, screen_width: int = 256, screen_height: int = 256, debug: bool = False)`**
 
-
 | Parameter | Description |
 | --- | --- |
 | port | The port number. |
@@ -141,34 +156,42 @@ for room in c.goal_positions:
 | screen_height | The height of the screen in pixels. |
 | debug | If True, debug mode will be enabled. |
 
-***
-
 #### init_scene
 
 **`def init_scene(self, scene: str = None, layout: int = None, room: int = -1) -> None`**
 
 Initialize a scene, populate it with objects, and add the avatar.
+
 **Always call this function before any other API calls.**
+
 The controller by default will load a simple empty room:
+
 ```python
 from sticky_mitten_avatar import StickyMittenAvatarController
+
 c = StickyMittenAvatarController()
 c.init_scene()
 ```
+
 Set the `scene` and `layout` parameters in `init_scene()` to load an interior scene with furniture and props.
 Set the `room` to spawn the avatar in the center of a room.
+
 ```python
 from sticky_mitten_avatar import StickyMittenAvatarController
+
 c = StickyMittenAvatarController()
 c.init_scene(scene="2b", layout=0, room=1)
 ```
+
 Valid scenes, layouts, and rooms:
+
 | `scene` | `layout` | `room` |
 | --- | --- | --- |
-| 1a, 1b, or 1c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6 |
-| 2a, 2b, or 2c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7, 8 |
-| 4a, 4b, or 4c | 0, 1, or 2 | 0, 1, 2, 3, 4, 5, 6, 7 |
-| 5a, 5b, or 5c | 0, 1, or 2 | 0, 1, 2, 3 |
+| 1a, 1b, 1c | 0, 1, 2 | 0, 1, 2, 3, 4, 5, 6 |
+| 2a, 2b, 2c | 0, 1, 2 | 0, 1, 2, 3, 4, 5, 6, 7, 8 |
+| 4a, 4b, 4c | 0, 1, 2 | 0, 1, 2, 3, 4, 5, 6, 7 |
+| 5a, 5b, 5c | 0, 1, 2 | 0, 1, 2, 3 |
+
 You can safely call `init_scene()` more than once to reset the simulation.
 
 | Parameter | Description |
@@ -177,37 +200,36 @@ You can safely call `init_scene()` more than once to reset the simulation.
 | layout | The furniture layout of the floorplan. If None, the controller will load a simple empty room. |
 | room | The index of the room that the avatar will spawn in the center of. If `scene` or `layout` is None, the avatar will spawn in at (0, 0, 0). If `room == -1` the room will be chosen randomly. |
 
-***
-
 #### communicate
 
 **`def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]`**
 
-Overrides [`Controller.communicate()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md).
-Before sending commands, append any automatically-added commands (such as arm-bending or arm-stopping).
-If there is a third-person camera, append commands to look at a target (see `add_overhead_camera()`).
-After receiving a response from the build, update the `frame` data.
+Use this function to send low-level TDW API commands and receive low-level output data. See: [`Controller.communicate()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md)
+
+You shouldn't ever need to use this function, but you might see it in some of the example controllers because they might require a custom scene setup.
+
 
 | Parameter | Description |
 | --- | --- |
-| commands | Commands to send to the build. |
+| commands | Commands to send to the build. See: [Command API](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/command_api.md). |
 
-_Returns:_  The response from the build.
-
-***
+_Returns:_  The response from the build as a list of byte arrays. See: [Output Data](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md).
 
 #### reach_for_target
 
 **`def reach_for_target(self, arm: Arm, target: Dict[str, float], do_motion: bool = True, check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05, absolute: bool = False) -> TaskStatus`**
 
 Bend an arm joints of an avatar to reach for a target position.
+
 Possible [return values](task_status.md):
+
 - `success` (The avatar's arm's mitten reached the target position.)
 - `too_close_to_reach`
 - `too_far_to_reach`
 - `behind_avatar`
 - `no_longer_bending`
 - `mitten_collision` (If `stop_if_mitten_collision == True`)
+
 
 | Parameter | Description |
 | --- | --- |
@@ -221,8 +243,6 @@ Possible [return values](task_status.md):
 
 _Returns:_  A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
 
-***
-
 #### grasp_object
 
 **`def grasp_object(self, object_id: int, arm: Arm, do_motion: bool = True, check_if_possible: bool = True, stop_on_mitten_collision: bool = True) -> TaskStatus`**
@@ -230,7 +250,9 @@ _Returns:_  A `TaskStatus` indicating whether the avatar can reach the target an
 The avatar's arm will reach for the object. Per frame, the arm's mitten will try to "grasp" the object.
 A grasped object is attached to the avatar's mitten and its ID will be in [`FrameData.held_objects`](frame_data.md). There may be some empty space between a mitten and a grasped object.
 This task ends when the avatar grasps the object (at which point it will stop bending its arm), or if it fails to grasp the object (see below).
+
 Possible [return values](task_status.md):
+
 - `success` (The avatar picked up the object.)
 - `too_close_to_reach`
 - `too_far_to_reach`
@@ -239,6 +261,7 @@ Possible [return values](task_status.md):
 - `failed_to_pick_up`
 - `bad_raycast`
 - `mitten_collision` (If `stop_if_mitten_collision == True`)
+
 
 | Parameter | Description |
 | --- | --- |
@@ -250,14 +273,14 @@ Possible [return values](task_status.md):
 
 _Returns:_  A `TaskStatus` indicating whether the avatar picked up the object and if not, why.
 
-***
-
 #### drop
 
 **`def drop(self, arm: Arm, reset_arm: bool = True, do_motion: bool = True) -> TaskStatus`**
 
 Drop any held objects held by the arm. Reset the arm to its neutral position.
+
 Possible [return values](task_status.md):
+
 - `success` (The avatar's arm dropped all objects held by the arm.)
 
 | Parameter | Description |
@@ -266,14 +289,14 @@ Possible [return values](task_status.md):
 | reset_arm | If True, reset the arm's positions to "neutral". |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
 
-***
-
 #### reset_arm
 
 **`def reset_arm(self, arm: Arm, do_motion: bool = True) -> TaskStatus`**
 
 Reset an avatar's arm to its neutral positions.
+
 Possible [return values](task_status.md):
+
 - `success` (The arm reset to very close to its initial position.)
 - `no_longer_bending` (The arm stopped bending before it reset, possibly due to an obstacle in the way.)
 
@@ -282,16 +305,17 @@ Possible [return values](task_status.md):
 | arm | The arm that will be reset. |
 | do_motion | If True, advance simulation frames until the pick-up motion is done. |
 
-***
-
 #### turn_to
 
 **`def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200, enable_sensor_on_finish: bool = True) -> TaskStatus`**
 
 Turn the avatar to face a target position or object.
+
 Possible [return values](task_status.md):
+
 - `success` (The avatar turned to face the target.)
 - `too_long` (The avatar made more attempts to turn than `num_attempts`.)
+
 
 | Parameter | Description |
 | --- | --- |
@@ -303,16 +327,17 @@ Possible [return values](task_status.md):
 
 _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
 
-***
-
 #### turn_by
 
 **`def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200) -> TaskStatus`**
 
 Turn the avatar by an angle.
+
 Possible [return values](task_status.md):
+
 - `success` (The avatar turned by the angle.)
 - `too_long` (The avatar made more attempts to turn than `num_attempts`.)
+
 
 | Parameter | Description |
 | --- | --- |
@@ -323,19 +348,20 @@ Possible [return values](task_status.md):
 
 _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
 
-***
-
 #### go_to
 
 **`def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80, turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35, stop_on_collision: bool = True, turn: bool = True, num_attempts: int = 200) -> TaskStatus`**
 
 Move the avatar to a target position or object.
+
 Possible [return values](task_status.md):
+
 - `success` (The avatar arrived at the target.)
 - `too_long` (The avatar made more attempts to move or to turn than `num_attempts`.)
 - `overshot`
 - `collided_with_something_heavy` (if `stop_on_collision == True`)
 - `collided_with_environment` (if `stop_on_collision == True`)
+
 
 | Parameter | Description |
 | --- | --- |
@@ -350,19 +376,20 @@ Possible [return values](task_status.md):
 
 _Returns:_   A `TaskStatus` indicating whether the avatar arrived at the target and if not, why.
 
-***
-
 #### move_forward_by
 
 **`def move_forward_by(self, distance: float, move_force: float = 80, move_stopping_threshold: float = 0.35, stop_on_collision: bool = True, num_attempts: int = 200) -> TaskStatus`**
 
 Move the avatar forward by a distance along the avatar's current forward directional vector.
+
 Possible [return values](task_status.md):
+
 - `success` (The avatar moved forward by the distance.)
 - `too_long` (The avatar made more attempts to move than `num_attempts`.)
 - `overshot`
 - `collided_with_something_heavy` (if `stop_on_collision == True`)
 - `collided_with_environment` (if `stop_on_collision == True`)
+
 
 | Parameter | Description |
 | --- | --- |
@@ -374,43 +401,23 @@ Possible [return values](task_status.md):
 
 _Returns:_  A `TaskStatus` indicating whether the avatar moved forward by the distance and if not, why.
 
-***
-
-#### shake
-
-**`def shake(self, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30), num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> TaskStatus`**
-
-Shake an avatar's arm for multiple iterations.
-Per iteration, the joint will bend forward by an angle and then bend back by an angle.
-The motion ends when all of the avatar's joints have stopped moving.
-Possible [return values](task_status.md):
-- `success`
-- `bad_joint`
-
-| Parameter | Description |
-| --- | --- |
-| joint_name | The name of the joint. |
-| axis | The axis of the joint's rotation. |
-| angle | Each shake will bend the joint by a angle in degrees within this range. |
-| num_shakes | The avatar will shake the joint a number of times within this range. |
-| force | The avatar will add strength to the joint by a value within this range. |
-
-_Returns:_  A `TaskStatus` indicating whether the avatar shook the joint and if not, why.
-
-***
-
 #### put_in_container
 
 **`def put_in_container(self, object_id: int, container_id: int, arm: Arm) -> TaskStatus`**
 
 Try to put an object in a container.
+
 1. The avatar will grasp the object and a container via `grasp_object()` if it isn't holding them already.
 2. The avatar will lift the object up.
 3. The container and its contents will be teleported to be in front of the avatar.
 4. The avatar will move the object over the container and drop it.
 5. The avatar will pick up the container again.
-The container will be teleport to
+
+Once an object is placed in a container, _it can not be removed again_.
+The object will be permanently attached to the container.
+
 Possible [return values](task_status.md):
+
 - `success` (The avatar put the object in the container.)
 - `too_close_to_reach` (Either the object or the container is too close.)
 - `too_far_to_reach` (Either the object or the container is too far away.)
@@ -423,6 +430,7 @@ Possible [return values](task_status.md):
 - `not_a_container`
 - `full_container`
 
+
 | Parameter | Description |
 | --- | --- |
 | object_id | The ID of the object that the avatar will try to put in the container. |
@@ -431,63 +439,32 @@ Possible [return values](task_status.md):
 
 _Returns:_  A `TaskStatus` indicating whether the avatar put the object in the container and if not, why.
 
-***
-
-#### pour_out_container
-
-**`def pour_out_container(self, arm: Arm) -> TaskStatus`**
-
-Pour out the contents of a container held by the arm.
-Assuming that the arm is holding a container, its wrist will twist and the arm will lift.
-If after doing this there are still objects in the container, the avatar will shake the container.
-This action continues until the arm and the objects in the container have stopped moving.
-Possible [return values](task_status.md):
-- `success` (The container held by the arm is now empty.)
-- `not_a_container`
-- `empty_container`
-- `still_in_container`
-
-| Parameter | Description |
-| --- | --- |
-| arm | The arm holding the container. |
-
-_Returns:_  A `TaskStatus` indicating whether the avatar poured all objects out of the container and if not, why.
-
-***
-
 #### rotate_camera_by
 
 **`def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None`**
 
-Rotate an avatar's camera around each axis.
-The head of the avatar won't visually rotate, as this could put the avatar off-balance.
-Advances the simulation by 1 frame.
+Rotate an avatar's camera around each axis. The head of the avatar won't visually rotate, as this could put the avatar off-balance.
 
 | Parameter | Description |
 | --- | --- |
 | pitch | Pitch (nod your head "yes") the camera by this angle, in degrees. |
 | yaw | Yaw (shake your head "no") the camera by this angle, in degrees. |
 
-***
-
 #### reset_camera_rotation
 
 **`def reset_camera_rotation(self) -> None`**
 
 Reset the rotation of the avatar's camera.
-Advances the simulation by 1 frame.
-
-***
 
 #### add_overhead_camera
 
 **`def add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c", images: str = "all") -> None`**
 
 Add an overhead third-person camera to the scene.
+
 1. `"cam"` (only this camera captures images)
 2. `"all"` (avatars currently in the scene and this camera capture images)
 3. `"avatars"` (only the avatars currently in the scene capture images)
-
 | Parameter | Description |
 | --- | --- |
 | cam_id | The ID of the camera. |
@@ -495,15 +472,11 @@ Add an overhead third-person camera to the scene.
 | position | The position of the camera. |
 | images | Image capture behavior. Choices: |
 
-***
-
 #### end
 
 **`def end(self) -> None`**
 
 End the simulation. Terminate the build process.
-
-***
 
 #### get_occupancy_position
 
@@ -511,12 +484,11 @@ End the simulation. Terminate the build process.
 
 Converts the position (i, j) in the occupancy map to (x, z) coordinates.
 
+
 | Parameter | Description |
 | --- | --- |
 | i | The i coordinate in the occupancy map. |
 | j | The j coordinate in the occupancy map. |
 
 _Returns:_  Tuple: x coordinate; z coordinate.
-
-***
 

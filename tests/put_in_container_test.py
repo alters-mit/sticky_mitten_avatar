@@ -285,6 +285,8 @@ class PutInContainerTest(StickyMittenAvatarController):
             success = self.grasp_and_lift(object_id=container_id, arm=container_arm)
         else:
             success = True
+            # Remove the object from the options of what can be picked up.
+            self.object_ids.remove(target_object_id)
 
         return TaskStatus.success if success else TaskStatus.failed_to_pick_up
 
