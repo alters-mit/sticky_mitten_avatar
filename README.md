@@ -1,12 +1,18 @@
 # Sticky Mitten Avatar API
 
-A high-level API for [TDW's](https://github.com/threedworld-mit/tdw/) [Sticky Mitten Avatar](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/sticky_mitten_avatar.md). 
+A high-level API for [TDW's](https://github.com/threedworld-mit/tdw/) [Sticky Mitten Avatar](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/sticky_mitten_avatar.md). Try to gather objects and put them at a target goal area as fast as possible!
+
+<img src="social.jpg" style="zoom:50%;" />
+
+- Generate indoor environments with realistic rigidbody physics and visual rendering that are populated by objects. Some objects are procedurally placed, others are not.
+- Use the Sticky Mitten Avatar to interact with objects. The Sticky Mitten Avatar is driven entirely by physics in a robotics-esque fashion. Its mittens can attach to objects in the scene. This API adds high-level functionality to the Sticky Mitten Avatar, such as a physics-driven IK system.
+- The Sticky Mitten Avatar can place objects in containers and then pick up the container to efficiently gather objects in the scene.
 
 ## Installation
 
-1. [Install TDW](https://github.com/threedworld-mit/tdw/) (make sure you are using the latest version)
-2. Clone this repo
-3. `cd path/to/sticky_mitten_avatar` (replace `path/to` with the actual path)
+1. [Install TDW](https://github.com/threedworld-mit/tdw/). Make sure you are using the latest version.
+2. Clone this repo.
+3. `cd path/to/sticky_mitten_avatar` (replace `path/to` with the actual path).
 4. Install the local `sticky_mitten_avatar` pip module:
 
 | Windows                    | OS X and Linux      |
