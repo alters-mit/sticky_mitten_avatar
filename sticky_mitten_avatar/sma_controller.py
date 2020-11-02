@@ -13,8 +13,8 @@ from tdw.py_impact import AudioMaterial, PyImpact, ObjectInfo
 from tdw.object_init_data import AudioInitData
 from tdw.release.pypi import PyPi
 from sticky_mitten_avatar.avatars import Arm, Baby
-from sticky_mitten_avatar.avatars.avatar import Avatar, Joint, BodyPartStatic
-from sticky_mitten_avatar.util import get_data, get_angle, rotate_point_around, OCCUPANCY_CELL_SIZE, \
+from sticky_mitten_avatar.avatars.avatar import Avatar, BodyPartStatic
+from sticky_mitten_avatar.util import get_data, OCCUPANCY_CELL_SIZE, \
     TARGET_OBJECT_MASS, CONTAINER_MASS, CONTAINER_SCALE
 from sticky_mitten_avatar.paths import SPAWN_POSITIONS_PATH, OCCUPANCY_MAP_DIRECTORY, SCENE_BOUNDS_PATH, \
     ROOM_MAP_DIRECTORY, Y_MAP_DIRECTORY, TARGET_OBJECTS_PATH, COMPOSITE_OBJECT_AUDIO_PATH, SURFACE_MAP_DIRECTORY, \
@@ -664,9 +664,9 @@ class StickyMittenAvatarController(FloorplanController):
             :return: Whether avatar succeed, failed, or is presently turning and the current angle.
             """
 
-            angle = get_angle(origin=np.array(self._avatar.frame.get_position()),
-                              forward=np.array(self._avatar.frame.get_forward()),
-                              position=target)
+            angle = TDWUtils.get_angle(origin=np.array(self._avatar.frame.get_position()),
+                                       forward=np.array(self._avatar.frame.get_forward()),
+                                       position=target)
             # Arrived at the correct alignment.
             if np.abs(angle) < stopping_threshold or ((initial_angle < 0 and angle > 0) or
                                                       (initial_angle > 0 and angle < 0)):
@@ -683,9 +683,9 @@ class StickyMittenAvatarController(FloorplanController):
         self._start_task()
 
         # Get the angle to the target.
-        initial_angle = get_angle(origin=np.array(self._avatar.frame.get_position()),
-                                  forward=np.array(self._avatar.frame.get_forward()),
-                                  position=target)
+        initial_angle = TDWUtils.get_angle(origin=np.array(self._avatar.frame.get_position()),
+                                           forward=np.array(self._avatar.frame.get_forward()),
+                                           position=target)
         # Decide the shortest way to turn.
         if initial_angle > 0:
             direction = -1
@@ -756,7 +756,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         # Rotate the forward directional vector.
         p0 = self._avatar.frame.get_forward()
-        p1 = rotate_point_around(origin=np.array([0, 0, 0]), point=p0, angle=angle)
+        p1 = TDWUtils.rotate_position_around(origin=np.array([0, 0, 0]), position=p0, angle=angle)
         # Get a point to look at.
         p1 = np.array(self._avatar.frame.get_position()) + (p1 * 1000)
         return self.turn_to(target=TDWUtils.array_to_vector3(p1), force=force, stopping_threshold=stopping_threshold,
@@ -971,12 +971,12 @@ class StickyMittenAvatarController(FloorplanController):
         # Try to nudge the container to be directly in front of the avatar.
         new_container_position = self.frame.avatar_transform.position + np.array([-0.215 if arm == Arm.right else 0.215,
                                                                                   0, 0.341])
-        new_container_angle = get_angle(forward=self.frame.avatar_transform.forward,
-                                        origin=self.frame.avatar_transform.position,
-                                        position=new_container_position)
-        new_container_position = rotate_point_around(point=new_container_position,
-                                                     origin=self.frame.avatar_transform.position,
-                                                     angle=new_container_angle)
+        new_container_angle = TDWUtils.get_angle(forward=self.frame.avatar_transform.forward,
+                                                 origin=self.frame.avatar_transform.position,
+                                                 position=new_container_position)
+        new_container_position = TDWUtils.rotate_position_around(position=new_container_position,
+                                                                 origin=self.frame.avatar_transform.position,
+                                                                 angle=new_container_angle)
 
         self.communicate([{"$type": "rotate_object_to",
                            "rotation": TDWUtils.array_to_vector4(self.frame.avatar_transform.rotation),

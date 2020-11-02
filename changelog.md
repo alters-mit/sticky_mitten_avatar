@@ -27,6 +27,7 @@
 
 - Added: `util/api_categories.json` Used for organizing function calls into categories in the documentation.
 - Added code to `doc_gen.py` to format documentation better and organize function calls by category.
+- Moved most of the functions in `util.py` to `TDWUtils`.
 
 ## 0.7.0
 

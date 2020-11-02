@@ -4,7 +4,7 @@ from typing import Tuple, Optional, List
 from tdw.tdw_utils import TDWUtils
 from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 from sticky_mitten_avatar.task_status import TaskStatus
-from sticky_mitten_avatar.util import rotate_point_around, CONTAINER_SCALE, TARGET_OBJECT_MASS, CONTAINER_MASS
+from sticky_mitten_avatar.util import CONTAINER_SCALE, TARGET_OBJECT_MASS, CONTAINER_MASS
 
 
 class PutInContainerTest(StickyMittenAvatarController):
@@ -36,7 +36,7 @@ class PutInContainerTest(StickyMittenAvatarController):
         pos = np.array([3.5, 0, 0])
         origin = np.array([0, 0, 0])
         for i in range(num_containers):
-            container_position = rotate_point_around(origin=origin, point=pos, angle=theta)
+            container_position = TDWUtils.rotate_position_around(origin=origin, position=pos, angle=theta)
             container_id, container_commands = self._add_object("basket_18inx18inx12iin",
                                                                 scale=CONTAINER_SCALE,
                                                                 position=TDWUtils.array_to_vector3(container_position),
@@ -55,7 +55,7 @@ class PutInContainerTest(StickyMittenAvatarController):
         pos = np.array([2, 0, 0])
         scale = {"x": 0.5, "y": 0.5, "z": 0.5}
         for i in range(num_objects):
-            object_position = rotate_point_around(origin=origin, point=pos, angle=theta)
+            object_position = TDWUtils.rotate_position_around(origin=origin, position=pos, angle=theta)
             object_id, object_commands = self._add_object("jug05",
                                                           scale=scale,
                                                           position=TDWUtils.array_to_vector3(object_position),
