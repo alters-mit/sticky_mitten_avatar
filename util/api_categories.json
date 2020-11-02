@@ -4,7 +4,7 @@
     "Constructor": ["__init__"],
     "Scene Setup": ["init_scene", "add_overhead_camera"],
     "Movement": ["turn_to", "turn_by", "go_to", "move_forward_by"],
-    "Arm Articulation": ["reach_for_target", "grasp_object", "drop", "reset_arm", "put_in_container", "shake"],
+    "Arm Articulation": ["reach_for_target", "grasp_object", "drop", "reset_arm", "put_in_container"],
     "Camera": ["rotate_camera_by", "reset_camera_rotation"],
     "Misc.": ["end", "get_occupancy_position", "communicate"]
   }

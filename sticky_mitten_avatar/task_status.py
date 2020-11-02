@@ -36,6 +36,5 @@ class TaskStatus(Enum):
     bad_raycast = 13  # The avatar tried to cast array to the object but the ray was obstructed.
     mitten_collision = 14  # The avatar bent its arm but stopped part-way because the mitten collided with an object.
     not_in_container = 15  # The avatar tried to drop an object in a container but the object isn't in the container.
-    bad_joint = 16  # This joint doesn't exist.
-    not_a_container = 17  # The avatar didn't try to put one object into another because the other object isn't a container.
-    full_container = 18  # The avatar didn't try to put an object in the container because the container has >3 objects.
+    not_a_container = 16  # The avatar didn't try to put one object into another because the other object isn't a container.
+    full_container = 17  # The avatar didn't try to put an object in the container because the container has >3 objects.

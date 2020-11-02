@@ -884,78 +884,6 @@ class StickyMittenAvatarController(FloorplanController):
         return self.go_to(target=target, move_force=move_force, move_stopping_threshold=move_stopping_threshold,
                           stop_on_collision=stop_on_collision, turn=False, num_attempts=num_attempts)
 
-    def shake(self, joint_name: str = "elbow_left", axis: str = "pitch", angle: Tuple[float, float] = (20, 30),
-              num_shakes: Tuple[int, int] = (3, 5), force: Tuple[float, float] = (900, 1000)) -> TaskStatus:
-        """
-        Shake an avatar's arm for multiple iterations.
-        Per iteration, the joint will bend forward by an angle and then bend back by an angle.
-        The motion ends when all of the avatar's joints have stopped moving.
-
-        Possible [return values](task_status.md):
-
-        - `success`
-        - `bad_joint`
-
-        :param joint_name: The name of the joint.
-        :param axis: The axis of the joint's rotation.
-        :param angle: Each shake will bend the joint by a angle in degrees within this range.
-        :param num_shakes: The avatar will shake the joint a number of times within this range.
-        :param force: The avatar will add strength to the joint by a value within this range.
-
-        :return: A `TaskStatus` indicating whether the avatar shook the joint and if not, why.
-        """
-
-        # Check if the joint and axis are valid.
-        joint: Optional[Joint] = None
-        for j in Avatar.JOINTS:
-            if j.joint == joint_name and j.axis == axis:
-                joint = j
-                break
-        if joint is None:
-            return TaskStatus.bad_joint
-
-        self._start_task()
-
-        force = random.uniform(force[0], force[1])
-        damper = 200
-        # Increase the force of the joint.
-        self.communicate(self._avatar.get_start_bend_sticky_mitten_profile(
-            arm=Arm.left if "_left" in joint_name else Arm.right))
-        # Do each iteration.
-        for i in range(random.randint(num_shakes[0], num_shakes[1])):
-            a = random.uniform(angle[0], angle[1])
-            # Start the shake.
-            self.communicate({"$type": "bend_arm_joint_by",
-                              "angle": a,
-                              "joint": joint.joint,
-                              "axis": joint.axis,
-                              "avatar_id": self._avatar.id})
-            for j in range(10):
-                self.communicate([])
-            # Bend the arm back.
-            self.communicate({"$type": "bend_arm_joint_by",
-                              "angle": -(a / 2),
-                              "joint": joint.joint,
-                              "axis": joint.axis,
-                              "avatar_id": self._avatar.id})
-            for j in range(50):
-                self.communicate([])
-            # Apply the motion.
-            self._do_joint_motion()
-        # Reset the force of the joint.
-        self.communicate([{"$type": "adjust_joint_force_by",
-                           "delta": -force,
-                           "joint": joint.joint,
-                           "axis": joint.axis,
-                           "avatar_id": self._avatar.id},
-                          {"$type": "adjust_joint_damper_by",
-                           "delta": damper,
-                           "joint": joint.joint,
-                           "axis": joint.axis,
-                           "avatar_id": self._avatar.id}])
-        self._end_task()
-        return TaskStatus.success
-
     def put_in_container(self, object_id: int, container_id: int, arm: Arm) -> TaskStatus:
         """
         Try to put an object in a container.
@@ -965,6 +893,9 @@ class StickyMittenAvatarController(FloorplanController):
         3. The container and its contents will be teleported to be in front of the avatar.
         4. The avatar will move the object over the container and drop it.
         5. The avatar will pick up the container again.
+
+        Once an object is placed in a container, _it can not be removed again_.
+        The object will be permanently attached to the container.
 
         Possible [return values](task_status.md):
 
