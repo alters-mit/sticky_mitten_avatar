@@ -47,6 +47,12 @@ class StickyMittenAvatarController(FloorplanController):
     c.end()
     ```
 
+    ***
+
+    ## Parameter types
+
+    #### Dict[str, float]
+
     All parameters of type `Dict[str, float]` are Vector3 dictionaries formatted like this:
 
     ```json
@@ -68,6 +74,18 @@ class StickyMittenAvatarController(FloorplanController):
     ```
 
     A parameter of type `Union[Dict[str, float], int]]` can be either a Vector3 or an integer (an object ID).
+
+    The types `Dict`, `Union`, and `List` are in the [`typing` module](https://docs.python.org/3/library/typing.html).
+
+    #### Arm
+
+    All parameters of type `Arm` require you to import the [Arm enum class](arm.md):
+
+    ```python
+    from sticky_mitten_avatar import Arm
+
+    print(Arm.left)
+    ```
 
     ***
 
