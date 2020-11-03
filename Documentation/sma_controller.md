@@ -156,6 +156,10 @@ for room in c.goal_positions:
 | screen_height | The height of the screen in pixels. |
 | debug | If True, debug mode will be enabled. |
 
+***
+
+### Scene Setup
+
 #### init_scene
 
 **`def init_scene(self, scene: str = None, layout: int = None, room: int = -1) -> None`**
@@ -196,115 +200,29 @@ You can safely call `init_scene()` more than once to reset the simulation.
 
 | Parameter | Description |
 | --- | --- |
-| scene | The name of an interior floorplan scene. If None, the controller will load a simple empty room. |
-| layout | The furniture layout of the floorplan. If None, the controller will load a simple empty room. |
+| scene | The name of an interior floorplan scene. If None, the controller will load a simple empty room. Each number (1, 2, etc.) has a different shape, different rooms, etc. Each letter (a, b, c) is a cosmetically distinct variant with the same floorplan. |
+| layout | The furniture layout of the floorplan. Each number (0, 1, 2) will populate the floorplan with different furniture in different positions. If None, the controller will load a simple empty room. |
 | room | The index of the room that the avatar will spawn in the center of. If `scene` or `layout` is None, the avatar will spawn in at (0, 0, 0). If `room == -1` the room will be chosen randomly. |
 
-#### communicate
+#### add_overhead_camera
 
-**`def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]`**
+**`def add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c", images: str = "all") -> None`**
 
-Use this function to send low-level TDW API commands and receive low-level output data. See: [`Controller.communicate()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md)
+Add an overhead third-person camera to the scene.
 
-You shouldn't ever need to use this function, but you might see it in some of the example controllers because they might require a custom scene setup.
-
-
+1. `"cam"` (only this camera captures images)
+2. `"all"` (avatars currently in the scene and this camera capture images)
+3. `"avatars"` (only the avatars currently in the scene capture images)
 | Parameter | Description |
 | --- | --- |
-| commands | Commands to send to the build. See: [Command API](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/command_api.md). |
+| cam_id | The ID of the camera. |
+| target_object | Always point the camera at this object or avatar. |
+| position | The position of the camera. |
+| images | Image capture behavior. Choices: |
 
-_Returns:_  The response from the build as a list of byte arrays. See: [Output Data](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md).
+***
 
-#### reach_for_target
-
-**`def reach_for_target(self, arm: Arm, target: Dict[str, float], check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05, absolute: bool = False) -> TaskStatus`**
-
-Bend an arm joints of an avatar to reach for a target position.
-By default, the target is relative to the avatar's position and rotation.
-
-Possible [return values](task_status.md):
-
-- `success` (The avatar's arm's mitten reached the target position.)
-- `too_close_to_reach`
-- `too_far_to_reach`
-- `behind_avatar`
-- `no_longer_bending`
-- `mitten_collision` (If `stop_if_mitten_collision == True`)
-
-
-| Parameter | Description |
-| --- | --- |
-| arm | The arm (left or right). |
-| target | The target position for the mitten. |
-| stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object other than the target object. |
-| check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
-| precision | The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. |
-| absolute | If True, `target` is in absolute world coordinates. If False, `target` is in coordinates relative to the avatar's position and rotation. |
-
-_Returns:_  A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
-
-#### grasp_object
-
-**`def grasp_object(self, object_id: int, arm: Arm, check_if_possible: bool = True, stop_on_mitten_collision: bool = True) -> TaskStatus`**
-
-The avatar's arm will reach for the object and continuously try to grasp the object.
-If it grasps the object, the simultation will attach the object to the avatar's mitten with an invisible joint. There may be some empty space between a mitten and a grasped object.
-This joint can be broken with sufficient force and torque.
-
-The grasped object's ID will be listed in [`FrameData.held_objects`](frame_data.md).
-
-This task ends when the avatar grasps the object (at which point it will stop bending its arm), or if it fails to grasp the object (see below).
-
-Possible [return values](task_status.md):
-
-- `success` (The avatar picked up the object.)
-- `too_close_to_reach`
-- `too_far_to_reach`
-- `behind_avatar`
-- `no_longer_bending`
-- `failed_to_pick_up`
-- `bad_raycast`
-- `mitten_collision` (If `stop_if_mitten_collision == True`)
-
-
-| Parameter | Description |
-| --- | --- |
-| object_id | The ID of the target object. |
-| arm | The arm of the mitten that will try to grasp the object. |
-| stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object. |
-| check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
-
-_Returns:_  A `TaskStatus` indicating whether the avatar picked up the object and if not, why.
-
-#### drop
-
-**`def drop(self, arm: Arm, reset_arm: bool = True) -> TaskStatus`**
-
-Drop any held objects held by the arm. Reset the arm to its neutral position.
-
-Possible [return values](task_status.md):
-
-- `success` (The avatar's arm dropped all objects held by the arm.)
-
-| Parameter | Description |
-| --- | --- |
-| arm | The arm that will drop any held objects. |
-| reset_arm | If True, reset the arm's positions to "neutral". |
-
-#### reset_arm
-
-**`def reset_arm(self, arm: Arm) -> TaskStatus`**
-
-Reset an avatar's arm to its neutral positions.
-
-Possible [return values](task_status.md):
-
-- `success` (The arm reset to very close to its initial position.)
-- `no_longer_bending` (The arm stopped bending before it reset, possibly due to an obstacle in the way.)
-
-| Parameter | Description |
-| --- | --- |
-| arm | The arm that will be reset. |
+### Movement
 
 #### turn_to
 
@@ -402,6 +320,101 @@ Possible [return values](task_status.md):
 
 _Returns:_  A `TaskStatus` indicating whether the avatar moved forward by the distance and if not, why.
 
+***
+
+### Arm Articulation
+
+#### reach_for_target
+
+**`def reach_for_target(self, arm: Arm, target: Dict[str, float], check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05, absolute: bool = False) -> TaskStatus`**
+
+Bend an arm joints of an avatar to reach for a target position.
+By default, the target is relative to the avatar's position and rotation.
+
+Possible [return values](task_status.md):
+
+- `success` (The avatar's arm's mitten reached the target position.)
+- `too_close_to_reach`
+- `too_far_to_reach`
+- `behind_avatar`
+- `no_longer_bending`
+- `mitten_collision` (If `stop_if_mitten_collision == True`)
+
+
+| Parameter | Description |
+| --- | --- |
+| arm | The arm (left or right). |
+| target | The target position for the mitten. |
+| stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object other than the target object. |
+| check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
+| precision | The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. |
+| absolute | If True, `target` is in absolute world coordinates. If False, `target` is in coordinates relative to the avatar's position and rotation. |
+
+_Returns:_  A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
+
+#### grasp_object
+
+**`def grasp_object(self, object_id: int, arm: Arm, check_if_possible: bool = True, stop_on_mitten_collision: bool = True) -> TaskStatus`**
+
+The avatar's arm will reach for the object and continuously try to grasp the object.
+If it grasps the object, the simultation will attach the object to the avatar's mitten with an invisible joint. There may be some empty space between a mitten and a grasped object.
+This joint can be broken with sufficient force and torque.
+
+The grasped object's ID will be listed in [`FrameData.held_objects`](frame_data.md).
+
+This task ends when the avatar grasps the object (at which point it will stop bending its arm), or if it fails to grasp the object (see below).
+
+Possible [return values](task_status.md):
+
+- `success` (The avatar picked up the object.)
+- `too_close_to_reach`
+- `too_far_to_reach`
+- `behind_avatar`
+- `no_longer_bending`
+- `failed_to_pick_up`
+- `bad_raycast`
+- `mitten_collision` (If `stop_if_mitten_collision == True`)
+
+
+| Parameter | Description |
+| --- | --- |
+| object_id | The ID of the target object. |
+| arm | The arm of the mitten that will try to grasp the object. |
+| stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object. |
+| check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
+
+_Returns:_  A `TaskStatus` indicating whether the avatar picked up the object and if not, why.
+
+#### drop
+
+**`def drop(self, arm: Arm, reset_arm: bool = True) -> TaskStatus`**
+
+Drop any held objects held by the arm. Reset the arm to its neutral position.
+
+Possible [return values](task_status.md):
+
+- `success` (The avatar's arm dropped all objects held by the arm.)
+
+| Parameter | Description |
+| --- | --- |
+| arm | The arm that will drop any held objects. |
+| reset_arm | If True, reset the arm's positions to "neutral". |
+
+#### reset_arm
+
+**`def reset_arm(self, arm: Arm) -> TaskStatus`**
+
+Reset an avatar's arm to its neutral positions.
+
+Possible [return values](task_status.md):
+
+- `success` (The arm reset to very close to its initial position.)
+- `no_longer_bending` (The arm stopped bending before it reset, possibly due to an obstacle in the way.)
+
+| Parameter | Description |
+| --- | --- |
+| arm | The arm that will be reset. |
+
 #### put_in_container
 
 **`def put_in_container(self, object_id: int, container_id: int, arm: Arm) -> TaskStatus`**
@@ -440,6 +453,10 @@ Possible [return values](task_status.md):
 
 _Returns:_  A `TaskStatus` indicating whether the avatar put the object in the container and if not, why.
 
+***
+
+### Camera
+
 #### rotate_camera_by
 
 **`def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None`**
@@ -457,21 +474,24 @@ Rotate an avatar's camera. The head of the avatar won't visually rotate because 
 
 Reset the rotation of the avatar's camera.
 
-#### add_overhead_camera
+***
 
-**`def add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c", images: str = "all") -> None`**
+### Misc.
 
-Add an overhead third-person camera to the scene.
+#### communicate
 
-1. `"cam"` (only this camera captures images)
-2. `"all"` (avatars currently in the scene and this camera capture images)
-3. `"avatars"` (only the avatars currently in the scene capture images)
+**`def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]`**
+
+Use this function to send low-level TDW API commands and receive low-level output data. See: [`Controller.communicate()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md)
+
+You shouldn't ever need to use this function, but you might see it in some of the example controllers because they might require a custom scene setup.
+
+
 | Parameter | Description |
 | --- | --- |
-| cam_id | The ID of the camera. |
-| target_object | Always point the camera at this object or avatar. |
-| position | The position of the camera. |
-| images | Image capture behavior. Choices: |
+| commands | Commands to send to the build. See: [Command API](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/command_api.md). |
+
+_Returns:_  The response from the build as a list of byte arrays. See: [Output Data](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md).
 
 #### end
 
@@ -492,4 +512,6 @@ Converts the position (i, j) in the occupancy map to (x, z) coordinates.
 | j | The j coordinate in the occupancy map. |
 
 _Returns:_  Tuple: x coordinate; z coordinate.
+
+***
 

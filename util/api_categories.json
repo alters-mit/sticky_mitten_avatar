@@ -1,5 +1,5 @@
 {
-  "StickyMittenAvatarController":
+  "StickyMittenAvatarController(FloorplanController)":
   {
     "Constructor": ["__init__"],
     "Scene Setup": ["init_scene", "add_overhead_camera"],

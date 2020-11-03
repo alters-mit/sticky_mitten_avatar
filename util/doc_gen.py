@@ -77,7 +77,6 @@ class PyDocGen:
                     if function_category not in functions_by_categories:
                         functions_by_categories[function_category] = list()
                     functions_by_categories[function_category].append(function_documentation)
-
         if class_name in api_categories:
             for category in api_categories[class_name]:
                 if category != "Constructor":

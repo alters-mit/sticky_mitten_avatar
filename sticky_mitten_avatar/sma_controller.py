@@ -278,8 +278,8 @@ class StickyMittenAvatarController(FloorplanController):
 
         You can safely call `init_scene()` more than once to reset the simulation.
 
-        :param scene: The name of an interior floorplan scene. If None, the controller will load a simple empty room.
-        :param layout: The furniture layout of the floorplan. If None, the controller will load a simple empty room.
+        :param scene: The name of an interior floorplan scene. If None, the controller will load a simple empty room. Each number (1, 2, etc.) has a different shape, different rooms, etc. Each letter (a, b, c) is a cosmetically distinct variant with the same floorplan.
+        :param layout: The furniture layout of the floorplan. Each number (0, 1, 2) will populate the floorplan with different furniture in different positions. If None, the controller will load a simple empty room.
         :param room: The index of the room that the avatar will spawn in the center of. If `scene` or `layout` is None, the avatar will spawn in at (0, 0, 0). If `room == -1` the room will be chosen randomly.
         """
 

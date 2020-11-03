@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.1
+
+### Frontend
+
+- Documentation:
+  - `StickyMittenAvatarController`
+    - Added category headers.
+    - Clarified the meaning of `init_scene()` parameters.
+
 ## 0.8.0
 
 ### Frontend
