@@ -4,6 +4,8 @@
 
 ### Frontend
 
+- `StickyMittenAvatarController`:
+  - Fixed: Chairs are included as valid goal positions.
 - Documentation:
   - `StickyMittenAvatarController`
     - Added category headers.
