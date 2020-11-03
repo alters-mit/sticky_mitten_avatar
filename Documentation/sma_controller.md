@@ -208,7 +208,7 @@ You can safely call `init_scene()` more than once to reset the simulation.
 
 **`def add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c", images: str = "all") -> None`**
 
-Add an overhead third-person camera to the scene.
+Add an overhead third-person camera to the scene. This is meant only for demo or debugging purposes, _not_ for gathering multiple image passes.
 
 | Parameter | Description |
 | --- | --- |

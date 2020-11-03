@@ -1087,7 +1087,7 @@ class StickyMittenAvatarController(FloorplanController):
     def add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c",
                             images: str = "all") -> None:
         """
-        Add an overhead third-person camera to the scene.
+        Add an overhead third-person camera to the scene. This is meant only for demo or debugging purposes, _not_ for gathering multiple image passes.
 
         :param cam_id: The ID of the camera.
         :param target_object: Always point the camera at this object or avatar.
