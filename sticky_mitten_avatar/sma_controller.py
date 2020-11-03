@@ -157,9 +157,9 @@ class StickyMittenAvatarController(FloorplanController):
     c = StickyMittenAvatarController()
     c.init_scene(scene="2a", layout=1)
     for room in c.goal_positions:
-        print(f"Room {room}:") # Room 1:
-        for model_name in c.goal_positions[room]:
-            print(model_name, c.goal_positions[room][model_name]) # ligne_roset_armchair [[4, 10]]
+        print(f"Room {room}")
+        for furniture in c.goal_positions[room]:
+            print(furniture, c.goal_positions[room][furniture]) # sofa [[3, 31]]
     ```
 
     ## Functions
