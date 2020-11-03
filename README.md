@@ -75,8 +75,6 @@ if __name__ == "__main__":
     c.end()
 ```
 
-To do something per-frame, regardless of whether the avatar is in the middle of an action, override the `communicate()` function. See [this controller](https://github.com/alters-mit/sticky_mitten_avatar/blob/master/controllers/put_object_in_container.py), which overrides `communicate()` in order to save an image every frame.
-
 ## Examples
 
 All example controllers can be found in: `controllers/`
