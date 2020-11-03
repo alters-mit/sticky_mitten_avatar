@@ -210,15 +210,12 @@ You can safely call `init_scene()` more than once to reset the simulation.
 
 Add an overhead third-person camera to the scene.
 
-1. `"cam"` (only this camera captures images)
-2. `"all"` (avatars currently in the scene and this camera capture images)
-3. `"avatars"` (only the avatars currently in the scene capture images)
 | Parameter | Description |
 | --- | --- |
 | cam_id | The ID of the camera. |
 | target_object | Always point the camera at this object or avatar. |
 | position | The position of the camera. |
-| images | Image capture behavior. Choices: |
+| images | Image capture behavior. Choices: `"cam"` (only this camera captures images); `"all"` (avatars currently in the scene and this camera capture images); `"avatars"` (only the avatars currently in the scene capture images) |
 
 ***
 

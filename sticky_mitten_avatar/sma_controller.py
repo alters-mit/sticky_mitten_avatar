@@ -1092,10 +1092,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param cam_id: The ID of the camera.
         :param target_object: Always point the camera at this object or avatar.
         :param position: The position of the camera.
-        :param images: Image capture behavior. Choices:
-                       1. `"cam"` (only this camera captures images)
-                       2. `"all"` (avatars currently in the scene and this camera capture images)
-                       3. `"avatars"` (only the avatars currently in the scene capture images)
+        :param images: Image capture behavior. Choices: `"cam"` (only this camera captures images); `"all"` (avatars currently in the scene and this camera capture images); `"avatars"` (only the avatars currently in the scene capture images)
         """
 
         self._start_task()
@@ -1119,6 +1116,9 @@ class StickyMittenAvatarController(FloorplanController):
                                        "object_id": target_object,
                                        "avatar_id": cam_id,
                                        "use_centroid": True}]
+        self._cam_commands.append({"$type": "enable_image_sensor",
+                                   "enable": False,
+                                   "sensor_name": "SensorContainer"})
         if images != "avatars":
             commands.append({"$type": "set_pass_masks",
                              "pass_masks": ["_img"],
