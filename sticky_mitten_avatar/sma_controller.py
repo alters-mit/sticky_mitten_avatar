@@ -928,7 +928,7 @@ class StickyMittenAvatarController(FloorplanController):
         - `full_container`
 
         :param object_id: The ID of the object that the avatar will try to put in the container.
-        :param container_id: The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container')(static_object_info.md).
+        :param container_id: The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container`](static_object_info.md).
         :param arm: The arm that will try to pick up the object.
 
         :return: A `TaskStatus` indicating whether the avatar put the object in the container and if not, why.
@@ -1070,7 +1070,7 @@ class StickyMittenAvatarController(FloorplanController):
                              "axis": axis,
                              "angle": angle,
                              "avatar_id": self._avatar.id})
-        self.communicate(commands)
+        self._avatar_commands.extend(commands)
         self._end_task()
 
     def reset_camera_rotation(self) -> None:
@@ -1080,8 +1080,8 @@ class StickyMittenAvatarController(FloorplanController):
 
         self._start_task()
 
-        self.communicate({"$type": "reset_sensor_container_rotation",
-                          "avatar_id": self._avatar.id})
+        self._avatar_commands.append({"$type": "reset_sensor_container_rotation",
+                                      "avatar_id": self._avatar.id})
         self._end_task()
 
     def add_overhead_camera(self, position: Dict[str, float], target_object: Union[str, int] = None, cam_id: str = "c",
@@ -1138,6 +1138,7 @@ class StickyMittenAvatarController(FloorplanController):
             commands.append({"$type": "send_images",
                              "frequency": "always"})
         self._avatar_commands.extend(commands)
+        self._end_task()
 
     def _get_objects_in_container(self, container_id: int) -> np.array:
         """

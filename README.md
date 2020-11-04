@@ -130,6 +130,10 @@ from sticky_mitten_avatar import StickyMittenAvatarController
 c = StickyMittenAvatarController(launch_build=False)
 ```
 
+### "Images are grainy / very dark / obviously glitchy"
+
+- [Check the player log for Open GL errors](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/debug_tdw.md).
+
 ### "I can only initialize a blank white room"
 
 To initialize a realistic indoor environment populated with objects, explicitly set the `scene` and `layout` parameters of [`init_scene()`](Documentation/sma_controller.md#init_scene).
@@ -147,9 +151,10 @@ c.init_scene(scene="1a", layout=0)
 - Make sure the `demo` parameter in the constructor is `False` (the default value) and that you don't have an overhead camera. Both will render far more frames than you'll need in an actual simulation; rendering is by far the biggest factor in framerate.
 - [Check the player log for Open GL errors](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/debug_tdw.md).
 
-### "Images are grainy or very dark"
+### "Some actions are slow"
 
-- [Check the player log for Open GL errors](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/debug_tdw.md).
+- Some actions will take longer to complete than others. For example, `move_forward_by(2)` will take more time to complete than `move_forward_by(1)` because the distance is longer.
+- Sometimes, the avatar's interaction with objects and the environment will cause the action to take a long time. For example, if the arm of the avatar catches on a chair while the avatar is trying to move forward, it will move slower because of the chair's additional mass, friction, etc.
 
 ### "Sometimes a task fails unexpectedly / The avatar's movements are inaccurate"
 

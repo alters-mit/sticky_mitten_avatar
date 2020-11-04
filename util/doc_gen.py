@@ -65,7 +65,7 @@ class PyDocGen:
                 function_category = ""
                 if class_name in api_categories:
                     for category in api_categories[class_name]:
-                        if function_name in api_categories[class_name][category]:
+                        if function_name in api_categories[class_name][category]["functions"]:
                             function_category = category
                             break
                     if function_category == "":
@@ -81,6 +81,8 @@ class PyDocGen:
             for category in api_categories[class_name]:
                 if category != "Constructor":
                     doc += f"### {category}\n\n"
+                    if api_categories[class_name][category]["description"] != "":
+                        doc += f'_{api_categories[class_name][category]["description"]}_\n\n'
                 for function in functions_by_categories[category]:
                     doc += function
                 doc += "***\n\n"

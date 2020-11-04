@@ -160,6 +160,8 @@ for room in c.goal_positions:
 
 ### Scene Setup
 
+_These functions should be sent at the start of the simulation. They advance the simulation by 1 frame and `StickyMittenAvatarController.frame` will reflect the state of that frame._
+
 #### init_scene
 
 **`def init_scene(self, scene: str = None, layout: int = None, room: int = -1) -> None`**
@@ -220,6 +222,8 @@ Add an overhead third-person camera to the scene. This is meant only for demo or
 ***
 
 ### Movement
+
+_These functions move or turn the avatar. These functions advance the simulation by many frames, depending on the nature of the action. `StickyMittenAvatarController.frame` will reflect the simulation state at the final frame._
 
 #### turn_to
 
@@ -320,6 +324,8 @@ _Returns:_  A `TaskStatus` indicating whether the avatar moved forward by the di
 ***
 
 ### Arm Articulation
+
+_These functions move and bend the joints of the avatar's arms. These functions advance the simulation by many frames, depending on the nature of the action. `StickyMittenAvatarController.frame` will reflect the simulation state at the final frame._
 
 #### reach_for_target
 
@@ -445,7 +451,7 @@ Possible [return values](task_status.md):
 | Parameter | Description |
 | --- | --- |
 | object_id | The ID of the object that the avatar will try to put in the container. |
-| container_id | The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container')(static_object_info.md). |
+| container_id | The ID of the container. To determine if an object is a container, see [`StaticObjectInfo.container`](static_object_info.md). |
 | arm | The arm that will try to pick up the object. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar put the object in the container and if not, why.
@@ -453,6 +459,8 @@ _Returns:_  A `TaskStatus` indicating whether the avatar put the object in the c
 ***
 
 ### Camera
+
+_These functions adjust the avatar's camera orientation. They advance the simulation by 1 frame and `StickyMittenAvatarController.frame` will reflect the state of that frame._
 
 #### rotate_camera_by
 
@@ -475,20 +483,7 @@ Reset the rotation of the avatar's camera.
 
 ### Misc.
 
-#### communicate
-
-**`def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]`**
-
-Use this function to send low-level TDW API commands and receive low-level output data. See: [`Controller.communicate()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md)
-
-You shouldn't ever need to use this function, but you might see it in some of the example controllers because they might require a custom scene setup.
-
-
-| Parameter | Description |
-| --- | --- |
-| commands | Commands to send to the build. See: [Command API](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/command_api.md). |
-
-_Returns:_  The response from the build as a list of byte arrays. See: [Output Data](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md).
+_These are utility functions that won't advance the simulation by any frames._
 
 #### end
 
@@ -509,6 +504,27 @@ Converts the position (i, j) in the occupancy map to (x, z) coordinates.
 | j | The j coordinate in the occupancy map. |
 
 _Returns:_  Tuple: x coordinate; z coordinate.
+
+***
+
+### Low-level
+
+_These are low-level functions that you are unlikely to ever need to use._
+
+#### communicate
+
+**`def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]`**
+
+Use this function to send low-level TDW API commands and receive low-level output data. See: [`Controller.communicate()`](https://github.com/threedworld-mit/tdw/blob/master/Documentation/python/controller.md)
+
+You shouldn't ever need to use this function, but you might see it in some of the example controllers because they might require a custom scene setup.
+
+
+| Parameter | Description |
+| --- | --- |
+| commands | Commands to send to the build. See: [Command API](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/command_api.md). |
+
+_Returns:_  The response from the build as a list of byte arrays. See: [Output Data](https://github.com/threedworld-mit/tdw/blob/master/Documentation/api/output_data.md).
 
 ***
 

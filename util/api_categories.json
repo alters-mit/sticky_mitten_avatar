@@ -1,11 +1,33 @@
 {
   "StickyMittenAvatarController(FloorplanController)":
   {
-    "Constructor": ["__init__"],
-    "Scene Setup": ["init_scene", "add_overhead_camera"],
-    "Movement": ["turn_to", "turn_by", "go_to", "move_forward_by"],
-    "Arm Articulation": ["reach_for_target", "grasp_object", "drop", "reset_arm", "put_in_container"],
-    "Camera": ["rotate_camera_by", "reset_camera_rotation"],
-    "Misc.": ["end", "get_occupancy_position", "communicate"]
+    "Constructor": {
+      "description": "",
+      "functions": ["__init__"]
+    },
+    "Scene Setup": {
+      "description": "These functions should be sent at the start of the simulation. They advance the simulation by 1 frame and `StickyMittenAvatarController.frame` will reflect the state of that frame.",
+      "functions": ["init_scene", "add_overhead_camera"]
+    },
+    "Movement": {
+      "description": "These functions move or turn the avatar. These functions advance the simulation by many frames, depending on the nature of the action. `StickyMittenAvatarController.frame` will reflect the simulation state at the final frame.",
+      "functions": ["turn_to", "turn_by", "go_to", "move_forward_by"]
+    },
+    "Arm Articulation": {
+      "description": "These functions move and bend the joints of the avatar's arms. These functions advance the simulation by many frames, depending on the nature of the action. `StickyMittenAvatarController.frame` will reflect the simulation state at the final frame.",
+      "functions": ["reach_for_target", "grasp_object", "drop", "reset_arm", "put_in_container"]
+    },
+    "Camera": {
+      "description": "These functions adjust the avatar's camera orientation. They advance the simulation by 1 frame and `StickyMittenAvatarController.frame` will reflect the state of that frame.",
+      "functions": ["rotate_camera_by", "reset_camera_rotation"]
+    },
+    "Misc.": {
+      "description": "These are utility functions that won't advance the simulation by any frames.",
+      "functions": ["get_occupancy_position", "end"]
+    },
+    "Low-level": {
+      "description": "These are low-level functions that you are unlikely to ever need to use.",
+      "functions": ["communicate"]
+    }
   }
 }

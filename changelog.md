@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.2
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Fixed: `rotate_camera_by()`, `reset_camera_rotation()` and `add_overhead_camera()` advance the simulation an extra frame.
+- Added descriptions to each category in the`StickyMittenAvatarController`  documentation.
+- Added a section in the README about why actions might sometimes take a long time to complete.""
+
 ## 0.8.1
 
 ### Frontend
