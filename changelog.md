@@ -6,6 +6,7 @@
 
 - `StickyMittenAvatarController`:
   - Fixed: `rotate_camera_by()`, `reset_camera_rotation()` and `add_overhead_camera()` advance the simulation an extra frame.
+  - Fixed: Sometimes, `put_in_container()` never finishes.
 - Added descriptions to each category in the`StickyMittenAvatarController`  documentation.
 - Added a section in the README about why actions might sometimes take a long time to complete.
 

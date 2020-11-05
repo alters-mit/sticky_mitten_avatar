@@ -1502,20 +1502,36 @@ class StickyMittenAvatarController(FloorplanController):
         """
 
         # Request rigidbody data per frame for each of the objects.
-        resp = self.communicate({"$type": "send_rigidbodies",
-                                 "frequency": "always",
-                                 "ids": object_ids})
+        resp = self.communicate([{"$type": "send_rigidbodies",
+                                  "frequency": "always",
+                                  "ids": object_ids},
+                                 {"$type": "send_transforms",
+                                  "frequency": "always",
+                                  "ids": object_ids}])
         sleeping = False
-        while not sleeping:
+        # Set a maximum number of frames to prevent an infinite loop.
+        num_frames = 0
+        while not sleeping and num_frames < 200:
             sleeping = True
             # Advance one frame.
             rigidbodies = get_data(resp=resp, d_type=Rigidbodies)
+            # Get all objects below the floor.
+            transforms = get_data(resp=resp, d_type=Transforms)
+            below_floor: List[int] = list()
+            for i in range(transforms.get_num()):
+                if transforms.get_position(i)[1] < -1:
+                    below_floor.append(transforms.get_id(i))
+
             # Check if the object stopped moving.
             for i in range(rigidbodies.get_num()):
+                # Ignore objects that are perpectually falling.
+                if rigidbodies.get_id(i) in below_floor:
+                    continue
                 # Check if this object is moving.
                 if np.linalg.norm(rigidbodies.get_velocity(i)) > 0.1:
                     sleeping = False
                     break
             resp = self.communicate([])
+            num_frames += 1
 
         self._end_task(enable_sensor=False)
