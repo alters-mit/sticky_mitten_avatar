@@ -463,7 +463,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param target: The target position for the mitten.
         :param stop_on_mitten_collision: If true, the arm will stop bending if the mitten collides with an object other than the target object.
         :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
-        :param precision: The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`.
+        :param precision: The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. A greater value means a less precise motion, which means the action might end sooner.
         :param absolute: If True, `target` is in absolute world coordinates. If False, `target` is in coordinates relative to the avatar's position and rotation.
         :param sub_action: If True, this is a sub action and is being called from another API call. Sub-actions won't render images. Frontend users should always set this to False (the default value).
 
@@ -521,7 +521,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param arm: The arm of the mitten that will try to grasp the object.
         :param stop_on_mitten_collision: If true, the arm will stop bending if the mitten collides with an object.
         :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
-        :param precision: The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`.
+        :param precision: The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. A greater value means a less precise motion, which means the action might end sooner.
         :param sub_action: If True, this is a sub-action and is being called from another API call. Sub-actions won't render images.Frontend users should always set this to False (the default value).
 
         :return: A `TaskStatus` indicating whether the avatar picked up the object and if not, why.
@@ -585,7 +585,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         :param arm: The arm that will drop any held objects.
         :param reset_arm: If True, reset the arm's positions to "neutral".
-        :param precision: The precision of the action. If the angles of each joint are less than this value, the action returns `success`.
+        :param precision: The precision of the action. If the angles of each joint are less than this value, the action returns `success`. A greater value means a less precise motion, which means the action might end sooner.
         :param sub_action: If True, this is a sub-action and is being called from another API call. Sub-actions won't render images. Frontend users should always set this to False (the default value).
 
         :return: A `TaskStatus` indicating whether the avatar dropped all objects held by the arm and reset the arm (if applicable).
@@ -608,7 +608,7 @@ class StickyMittenAvatarController(FloorplanController):
         - `no_longer_bending` (The arm stopped bending before it reset, possibly due to an obstacle in the way.)
 
         :param arm: The arm that will be reset.
-        :param precision: The precision of the action. If the angles of each joint are less than this value, the action returns `success`.
+        :param precision: The precision of the action. If the angles of each joint are less than this value, the action returns `success`. A greater value means a less precise motion, which means the action might end sooner.
         :param sub_action: If True, this is a sub-action and is being called from another API call. Sub-actions won't render images. Frontend users should always set this to False (the default value).
         """
 

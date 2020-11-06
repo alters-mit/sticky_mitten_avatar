@@ -350,7 +350,7 @@ Possible [return values](task_status.md):
 | target | The target position for the mitten. |
 | stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object other than the target object. |
 | check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
-| precision | The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. |
+| precision | The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. A greater value means a less precise motion, which means the action might end sooner. |
 | absolute | If True, `target` is in absolute world coordinates. If False, `target` is in coordinates relative to the avatar's position and rotation. |
 | sub_action | If True, this is a sub action and is being called from another API call. Sub-actions won't render images. Frontend users should always set this to False (the default value). |
 
@@ -386,7 +386,7 @@ Possible [return values](task_status.md):
 | arm | The arm of the mitten that will try to grasp the object. |
 | stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object. |
 | check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
-| precision | The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. |
+| precision | The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. A greater value means a less precise motion, which means the action might end sooner. |
 | sub_action | If True, this is a sub-action and is being called from another API call. Sub-actions won't render images.Frontend users should always set this to False (the default value). |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar picked up the object and if not, why.
@@ -407,7 +407,7 @@ Possible [return values](task_status.md):
 | --- | --- |
 | arm | The arm that will drop any held objects. |
 | reset_arm | If True, reset the arm's positions to "neutral". |
-| precision | The precision of the action. If the angles of each joint are less than this value, the action returns `success`. |
+| precision | The precision of the action. If the angles of each joint are less than this value, the action returns `success`. A greater value means a less precise motion, which means the action might end sooner. |
 | sub_action | If True, this is a sub-action and is being called from another API call. Sub-actions won't render images. Frontend users should always set this to False (the default value). |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar dropped all objects held by the arm and reset the arm (if applicable).
@@ -426,7 +426,7 @@ Possible [return values](task_status.md):
 | Parameter | Description |
 | --- | --- |
 | arm | The arm that will be reset. |
-| precision | The precision of the action. If the angles of each joint are less than this value, the action returns `success`. |
+| precision | The precision of the action. If the angles of each joint are less than this value, the action returns `success`. A greater value means a less precise motion, which means the action might end sooner. |
 | sub_action | If True, this is a sub-action and is being called from another API call. Sub-actions won't render images. Frontend users should always set this to False (the default value). |
 
 #### put_in_container
