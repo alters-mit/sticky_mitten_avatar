@@ -519,12 +519,13 @@ class Avatar(ABC):
 
         return self._ik_goals[Arm.left] is None and self._ik_goals[Arm.right] is None
 
-    def drop(self, arm: Arm, reset: bool = True) -> List[dict]:
+    def drop(self, arm: Arm, reset: bool = True, precision: float = 0.1) -> List[dict]:
         """
         Drop all objects held by an arm.
 
         :param arm: The arm that will drop all held objects.
         :param reset: If True, reset the arm's positions to "neutral".
+        :param precision: The precision of the action.
 
         :return: A list of commands to put down the object.
         """
@@ -534,12 +535,13 @@ class Avatar(ABC):
                      "is_left": True if arm == Arm.left else False,
                      "avatar_id": self.id}]
         if reset:
-            commands.extend(self.reset_arm(arm=arm))
+            commands.extend(self.reset_arm(arm=arm, precision=precision))
         return commands
 
-    def reset_arm(self, arm: Arm) -> List[dict]:
+    def reset_arm(self, arm: Arm, precision: float = 0.1) -> List[dict]:
         """
         :param arm: The arm that will be reset.
+        :param precision: The precision of the action.
 
         :return: A list of commands to drop arms to their starting positions.
         """
@@ -558,7 +560,7 @@ class Avatar(ABC):
         for c in self._arms[arm].links[1:-1]:
             rotations[c.name] = 0
         # Set the IK goal.
-        self._ik_goals[arm] = _IKGoal(rotations=rotations, precision=0.1)
+        self._ik_goals[arm] = _IKGoal(rotations=rotations, precision=precision)
         return commands
 
     def is_holding(self, object_id: int) -> (bool, Arm):

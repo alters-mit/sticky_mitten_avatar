@@ -227,7 +227,7 @@ _These functions move or turn the avatar. These functions advance the simulation
 
 #### turn_to
 
-**`def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200, enable_sensor_on_finish: bool = True) -> TaskStatus`**
+**`def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200, sub_action: bool = False) -> TaskStatus`**
 
 Turn the avatar to face a target position or object.
 
@@ -243,7 +243,7 @@ Possible [return values](task_status.md):
 | force | The force at which the avatar will turn. More force = faster, but might overshoot the target. |
 | stopping_threshold | Stop when the avatar is within this many degrees of the target. |
 | num_attempts | The avatar will apply more angular force this many times to complete the turn before giving up. |
-| enable_sensor_on_finish | Enable the camera upon completing the task. This should only be set to False in the backend code. |
+| sub_action | If True, this is a sub-action and is being called from another API call. Sub-actions won't render images. Frontend users should always set this to False (the default value). |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
 
@@ -329,7 +329,7 @@ _These functions move and bend the joints of the avatar's arms. These functions 
 
 #### reach_for_target
 
-**`def reach_for_target(self, arm: Arm, target: Dict[str, float], check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05, absolute: bool = False) -> TaskStatus`**
+**`def reach_for_target(self, arm: Arm, target: Dict[str, float], check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05, absolute: bool = False, sub_action: bool = False) -> TaskStatus`**
 
 Bend an arm joints of an avatar to reach for a target position.
 By default, the target is relative to the avatar's position and rotation.
@@ -352,12 +352,13 @@ Possible [return values](task_status.md):
 | check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
 | precision | The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. |
 | absolute | If True, `target` is in absolute world coordinates. If False, `target` is in coordinates relative to the avatar's position and rotation. |
+| sub_action | If True, this is a sub action and is being called from another API call. Sub-actions won't render images. Frontend users should always set this to False (the default value). |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar can reach the target and if not, why.
 
 #### grasp_object
 
-**`def grasp_object(self, object_id: int, arm: Arm, check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05) -> TaskStatus`**
+**`def grasp_object(self, object_id: int, arm: Arm, check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05, sub_action: bool = False) -> TaskStatus`**
 
 The avatar's arm will reach for the object and continuously try to grasp the object.
 If it grasps the object, the simultation will attach the object to the avatar's mitten with an invisible joint. There may be some empty space between a mitten and a grasped object.
@@ -386,27 +387,34 @@ Possible [return values](task_status.md):
 | stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object. |
 | check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
 | precision | The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. |
+| sub_action | If True, this is a sub-action and is being called from another API call. Sub-actions won't render images.Frontend users should always set this to False (the default value). |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar picked up the object and if not, why.
 
 #### drop
 
-**`def drop(self, arm: Arm, reset_arm: bool = True) -> TaskStatus`**
+**`def drop(self, arm: Arm, reset_arm: bool = True, precision: float = 0.1, sub_action: bool = False) -> TaskStatus`**
 
 Drop any held objects held by the arm. Reset the arm to its neutral position.
 
 Possible [return values](task_status.md):
 
-- `success` (The avatar's arm dropped all objects held by the arm.)
+- `success` (The avatar's arm dropped all objects held by the arm (this will be `success` even if there were no objects) asnd if the avatar's arm reset (if applicable).
+- `no_longer_bending` (The arm stopped bending before it reset, possibly due to an obstacle in the way.)
+
 
 | Parameter | Description |
 | --- | --- |
 | arm | The arm that will drop any held objects. |
 | reset_arm | If True, reset the arm's positions to "neutral". |
+| precision | The precision of the action. If the angles of each joint are less than this value, the action returns `success`. |
+| sub_action | If True, this is a sub-action and is being called from another API call. Sub-actions won't render images. Frontend users should always set this to False (the default value). |
+
+_Returns:_  A `TaskStatus` indicating whether the avatar dropped all objects held by the arm and reset the arm (if applicable).
 
 #### reset_arm
 
-**`def reset_arm(self, arm: Arm) -> TaskStatus`**
+**`def reset_arm(self, arm: Arm, precision: float = 0.1, sub_action: bool = False) -> TaskStatus`**
 
 Reset an avatar's arm to its neutral positions.
 
@@ -418,6 +426,8 @@ Possible [return values](task_status.md):
 | Parameter | Description |
 | --- | --- |
 | arm | The arm that will be reset. |
+| precision | The precision of the action. If the angles of each joint are less than this value, the action returns `success`. |
+| sub_action | If True, this is a sub-action and is being called from another API call. Sub-actions won't render images. Frontend users should always set this to False (the default value). |
 
 #### put_in_container
 

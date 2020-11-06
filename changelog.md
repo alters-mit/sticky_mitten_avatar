@@ -5,7 +5,15 @@
 ### Frontend
 
 - `StickyMittenAvatarController`:
-  - Added optional parameter `precision` to `grasp_object()`.
+  - Minor speed improvement.
+  - Added optional parameter `precision` to `grasp_object()`
+  - Added optional parameter `precision` to `reset_arm()`
+  - Added optional parameter `precision` to `drop()`
+  - Added optional parameter `sub_action` to `reach_for_target()`
+  - Added optional parameter `sub_action` to `drop()`
+  - Added optional parameter `sub_action` to `turn_to()` 
+  - Removed parameter `enable_sensor_on_finish` from `turn_to()` (replaced with `sub_action`)
+  - Fixed: `drop()` returns `success` when the arm doesn't finish resetting.
 
 ## 0.8.2
 
