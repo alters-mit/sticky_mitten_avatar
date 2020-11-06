@@ -14,6 +14,8 @@
   - Added optional parameter `sub_action` to `turn_to()` 
   - Removed parameter `enable_sensor_on_finish` from `turn_to()` (replaced with `sub_action`)
   - Fixed: `drop()` returns `success` when the arm doesn't finish resetting.
+- Documentation:
+  - Improved the code examples in the API documentation and fixed some typos.
 
 ## 0.8.2
 

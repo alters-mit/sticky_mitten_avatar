@@ -31,7 +31,7 @@ print(task_status) # TaskStatus.success
 c.end()
 ```
 
-### API
+## API
 
 **[Read this document.](Documentation/sma_controller.md)** 
 
@@ -40,7 +40,7 @@ c.end()
 - After calling each function, the controller updates its [FrameData](Documentation/frame_data.md). This data can be used to decide what the avatar's next action will be (pick up an object, navigate around a room, etc.)
 - Most complex tasks, such as navigation/pathfinding are not implemented in this API because the problem is too unbounded for a simple algorithm. However, given the output data (static object info, static avatar info, and FrameData), an agent equipped with ML data can be trained to do any of these tasks successfully.
 
-### API (low-level)
+#### API (low-level)
 
 - For more information regarding TDW, see the [TDW repo](https://github.com/threedworld-mit/tdw/).
 - For more information regarding TDW's low-level Sticky Mitten Avatar API, [read this](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/sticky_mitten_avatar.md).

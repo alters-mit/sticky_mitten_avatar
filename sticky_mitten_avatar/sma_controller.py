@@ -103,8 +103,10 @@ class StickyMittenAvatarController(FloorplanController):
     - `static_object_info`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
 
     ```python
-    # Get the segmentation color of an object.
-    segmentation_color = c.static_object_info[object_id].segmentation_color
+    # Print each object ID and segmentation color.
+    for object_id in c.static_object_info:
+        object_info = c.static_object_info(object_id)
+        print(object_id, object_info.segmentation_color)
     ```
 
     - `segmentation_color_to_id` A dictionary. Key = a hashable representation of the object's segmentation color.
@@ -120,11 +122,10 @@ class StickyMittenAvatarController(FloorplanController):
     - `static_avatar_info` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API. Key = body part ID.
 
     ```python
+    # Print each body part ID and segmentation color.
     for body_part_id in c.static_avatar_data:
         body_part = c.static_avatar_data[body_part_id]
-        print(body_part.object_id) # The object ID of the body part (matches body_part_id).
-        print(body_part.color) # The segmentation color.
-        print(body_part.name) # The name of the body part.
+        print(body_part_id, body_part.segmentation_color).
     ```
 
     - `occupancy_map` A numpy array of positions in the scene and whether they are occupied.

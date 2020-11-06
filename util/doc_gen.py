@@ -41,7 +41,7 @@ class PyDocGen:
 
                 import_name = re.sub(r"(.*)\((.*)\)", r'\1', class_name)
                 if import_name in ["StickyMittenAvatarController", "Arm"]:
-                    class_example = f"`from sticky_mitten_avatar import "
+                    class_example = f"`from sticky_mitten_avatar import {import_name}`"
                 else:
                     class_example = f"`from sticky_mitten_avatar.{filename[:-3].replace('/', '.')} import "
                 class_example += import_name + "`"

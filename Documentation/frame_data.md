@@ -67,7 +67,7 @@ avatar_position = c.frame.avatar_transform.position
 # Get the position and segmentation color of each body part.
 for body_part_id in c.frame.avatar_body_part_transforms:
     position = c.frame.avatar_body_part_transforms[body_part_id]
-    segmentation_color = c.static_avatar_data[body_part_id]
+    segmentation_color = c.static_avatar_data[body_part_id].segmentation_color
 ```
 
 - `held_objects` A dictionary of IDs of objects held in each mitten. Key = arm:
