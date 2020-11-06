@@ -113,8 +113,8 @@ for body_part_id in c.static_avatar_data:
 
    This is _not_ a navigation map. If there is a gap between positions, the avatar might still be able to go from one to the other.
 
-   Images of each occupancy map can be found in: `images/occupancy_maps`
-   Key: Red = Free position. Blue = Free position where a target object or container can be placed.
+   Images of each occupancy map can be found [here](https://github.com/alters-mit/sticky_mitten_avatar/tree/master/images/occupancy_maps). Key: Red = Free position. Blue = Free position where a target object or container can be placed.
+   The files are named `<scene>_<layout>` (the lettered variants of each scene are different only visually, so the occupancy maps of `scene 1a, layout 0`, `scene 1b, layout 0`, and `scene 1c, layout 0` are exactly the same, but the occupancy map of `scene 1a, layout 1` is different.
 
    Convert from the coordinates in the array to an actual position using `get_occupancy_position()`.
 

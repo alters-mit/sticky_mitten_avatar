@@ -137,8 +137,8 @@ class StickyMittenAvatarController(FloorplanController):
 
        This is _not_ a navigation map. If there is a gap between positions, the avatar might still be able to go from one to the other.
 
-       Images of each occupancy map can be found in: `images/occupancy_maps`
-       Key: Red = Free position. Blue = Free position where a target object or container can be placed.
+       Images of each occupancy map can be found [here](https://github.com/alters-mit/sticky_mitten_avatar/tree/master/images/occupancy_maps). Key: Red = Free position. Blue = Free position where a target object or container can be placed.
+       The files are named `<scene>_<layout>` (the lettered variants of each scene are different only visually, so the occupancy maps of `scene 1a, layout 0`, `scene 1b, layout 0`, and `scene 1c, layout 0` are exactly the same, but the occupancy map of `scene 1a, layout 1` is different.
 
        Convert from the coordinates in the array to an actual position using `get_occupancy_position()`.
 
@@ -276,6 +276,8 @@ class StickyMittenAvatarController(FloorplanController):
         | 2a, 2b, 2c | 0, 1, 2 | 0, 1, 2, 3, 4, 5, 6, 7, 8 |
         | 4a, 4b, 4c | 0, 1, 2 | 0, 1, 2, 3, 4, 5, 6, 7 |
         | 5a, 5b, 5c | 0, 1, 2 | 0, 1, 2, 3 |
+
+        Images of each scene+layout combination can be found [here](https://github.com/alters-mit/sticky_mitten_avatar/tree/master/Documentation/images/floorplans).
 
         You can safely call `init_scene()` more than once to reset the simulation.
 

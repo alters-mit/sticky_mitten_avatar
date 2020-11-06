@@ -180,6 +180,12 @@ Usually this is because you called `grasp_object()` without an additional `reach
 
 The avatar will lose its grip on objects if it encounters a sufficiently powerful force, such as swinging the object into a wall or dragging it on the floor.
 
+### "I need to know what each scene and layout looks like"
+
+Images of each scene+layout combination are [here](https://github.com/alters-mit/sticky_mitten_avatar/tree/master/Documentation/images/floorplans).
+
+Occupancy map images are [here](https://github.com/alters-mit/sticky_mitten_avatar/tree/master/images/occupancy_maps).
+
 ### "I can't navigate through the scene"
 
 There is no built-in navigation system in this API. You'll have to write one yourself.

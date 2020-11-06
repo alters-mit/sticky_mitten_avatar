@@ -15,7 +15,17 @@
   - Removed parameter `enable_sensor_on_finish` from `turn_to()` (replaced with `sub_action`)
   - Fixed: `drop()` returns `success` when the arm doesn't finish resetting.
 - Documentation:
+  
   - Improved the code examples in the API documentation and fixed some typos.
+  
+  - Added links in the documentation to occupancy map images and floorplan images.
+  
+    - Converted occupancy map images from png to jpg
+    - Added floorplan images: `Documentation/images/floorplans`
+
+### Backend
+
+- Added optional command line arg `--floorplan` to `occupancy_images.py` to generate floorplan images instead of occupancy images.
 
 ## 0.8.2
 
