@@ -1085,14 +1085,14 @@ class StickyMittenAvatarController(FloorplanController):
         """
 
         self._start_task()
-
-        commands = []
-        for angle, axis in zip([pitch, yaw], ["pitch", "yaw"]):
-            commands.append({"$type": "rotate_sensor_container_by",
-                             "axis": axis,
-                             "angle": angle,
-                             "avatar_id": self._avatar.id})
-        self._avatar_commands.extend(commands)
+        self._avatar_commands.extend([{"$type": "rotate_sensor_container_by",
+                                       "axis": "pitch",
+                                       "angle": pitch,
+                                       "avatar_id": self._avatar.id},
+                                      {"$type": "rotate_sensor_container_by",
+                                       "axis": "yaw",
+                                       "angle": yaw,
+                                       "avatar_id": self._avatar.id}])
         self._end_task()
 
     def reset_camera_rotation(self) -> None:
