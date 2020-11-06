@@ -368,13 +368,15 @@ class StickyMittenAvatarController(FloorplanController):
                               "sensor_name": "SensorContainer",
                               "avatar_id": self._avatar.id},
                              {"$type": "send_images",
-                              "frequency": "once"}])
+                              "frequency": "once",
+                              "avatar_id": self._avatar.id},
+                             {"$type": "send_camera_matrices",
+                              "frequency": "once",
+                              "avatar_id": self._avatar.id}])
         # Request output data to update the frame data.
         commands.extend([{"$type": "send_rigidbodies",
                           "frequency": "once"},
                          {"$type": "send_transforms",
-                          "frequency": "once"},
-                         {"$type": "send_camera_matrices",
                           "frequency": "once"}])
 
         resp = self.communicate(commands)
