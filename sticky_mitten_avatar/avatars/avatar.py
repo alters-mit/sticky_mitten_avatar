@@ -275,7 +275,8 @@ class Avatar(ABC):
                               "avatar_id": self.id}])
         return commands
 
-    def grasp_object(self, object_id: int, target: np.array, arm: Arm, stop_on_mitten_collision: bool) -> List[dict]:
+    def grasp_object(self, object_id: int, target: np.array, arm: Arm, stop_on_mitten_collision: bool,
+                     precision: float = 0.05) -> List[dict]:
         """
         Begin to try to grasp an object with a mitten. Get an IK solution to a target position.
 
@@ -283,6 +284,7 @@ class Avatar(ABC):
         :param target: Target position to for the IK solution.
         :param arm: The arm that will try to grasp the object.
         :param stop_on_mitten_collision: If true, stop moving when the mitten collides with something.
+        :param precision: The distance threshold to the target position.
 
         :return: A list of commands.
         """
@@ -298,7 +300,7 @@ class Avatar(ABC):
         target = self.get_rotated_target(target=target)
 
         commands = self.reach_for_target(arm=arm, target=target, target_orientation=target_orientation,
-                                         stop_on_mitten_collision=stop_on_mitten_collision)
+                                         stop_on_mitten_collision=stop_on_mitten_collision, precision=precision)
         self._ik_goals[arm].pick_up_id = object_id
         return commands
 

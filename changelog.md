@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.3
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Added optional parameter `precision` to `grasp_object()`.
+
 ## 0.8.2
 
 ### Frontend

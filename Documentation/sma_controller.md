@@ -357,7 +357,7 @@ _Returns:_  A `TaskStatus` indicating whether the avatar can reach the target an
 
 #### grasp_object
 
-**`def grasp_object(self, object_id: int, arm: Arm, check_if_possible: bool = True, stop_on_mitten_collision: bool = True) -> TaskStatus`**
+**`def grasp_object(self, object_id: int, arm: Arm, check_if_possible: bool = True, stop_on_mitten_collision: bool = True, precision: float = 0.05) -> TaskStatus`**
 
 The avatar's arm will reach for the object and continuously try to grasp the object.
 If it grasps the object, the simultation will attach the object to the avatar's mitten with an invisible joint. There may be some empty space between a mitten and a grasped object.
@@ -385,6 +385,7 @@ Possible [return values](task_status.md):
 | arm | The arm of the mitten that will try to grasp the object. |
 | stop_on_mitten_collision | If true, the arm will stop bending if the mitten collides with an object. |
 | check_if_possible | If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm. |
+| precision | The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar picked up the object and if not, why.
 

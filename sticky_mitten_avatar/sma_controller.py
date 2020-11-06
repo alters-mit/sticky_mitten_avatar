@@ -494,7 +494,7 @@ class StickyMittenAvatarController(FloorplanController):
         return self._get_avatar_status()
 
     def grasp_object(self, object_id: int, arm: Arm, check_if_possible: bool = True,
-                     stop_on_mitten_collision: bool = True) -> TaskStatus:
+                     stop_on_mitten_collision: bool = True, precision: float = 0.05) -> TaskStatus:
         """
         The avatar's arm will reach for the object and continuously try to grasp the object.
         If it grasps the object, the simultation will attach the object to the avatar's mitten with an invisible joint. There may be some empty space between a mitten and a grasped object.
@@ -519,6 +519,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param arm: The arm of the mitten that will try to grasp the object.
         :param stop_on_mitten_collision: If true, the arm will stop bending if the mitten collides with an object.
         :param check_if_possible: If True, before bending the arm, check if the mitten can reach the target assuming no obstructions; if not, don't try to bend the arm.
+        :param precision: The precision of the action. If the mitten is this distance or less away from the target position, the action returns `success`.
 
         :return: A `TaskStatus` indicating whether the avatar picked up the object and if not, why.
         """
@@ -547,8 +548,11 @@ class StickyMittenAvatarController(FloorplanController):
                 return status
 
         # Get commands to pick up the target.
-        commands = self._avatar.grasp_object(object_id=object_id, target=target, arm=arm,
-                                             stop_on_mitten_collision=stop_on_mitten_collision)
+        commands = self._avatar.grasp_object(object_id=object_id,
+                                             target=target,
+                                             arm=arm,
+                                             stop_on_mitten_collision=stop_on_mitten_collision,
+                                             precision=precision)
 
         self._avatar_commands.extend(commands)
         self._avatar.status = TaskStatus.ongoing
