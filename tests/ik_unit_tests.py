@@ -12,14 +12,32 @@ class IKUnitTests(StickyMittenAvatarController):
         super().__init__(port=port, launch_build=False, debug=True)
         self.id = "a"
 
+    def reach_left(self) -> TaskStatus:
+        """
+        Reach with the left arm.
+
+        :return: TaskStatus for `reach_for_target()`
+        """
+
+        return self.reach_for_target(target={"x": -0.2, "y": 0.4, "z": 0.385}, arm=Arm.left)
+
+    def reach_right(self) -> TaskStatus:
+        """
+        Reach with the right arm.
+
+        :return: TaskStatus for `reach_for_target()`
+        """
+
+        return self.reach_for_target(target={"x": 0.2, "y": 0.4, "z": 0.385}, arm=Arm.right)
+
     def symmetry(self) -> None:
         """
         Test: Both arms raise symmetrically.
         """
 
-        status = self.reach_for_target(target={"x": -0.2, "y": 0.4, "z": 0.385}, arm=Arm.left)
+        status = self.reach_left()
         assert status == TaskStatus.success, status
-        status = self.reach_for_target(target={"x": 0.2, "y": 0.4, "z": 0.385}, arm=Arm.right)
+        status = self.reach_right()
         assert status == TaskStatus.success, status
 
     def rotation(self) -> None:
@@ -36,14 +54,12 @@ class IKUnitTests(StickyMittenAvatarController):
                               "is_world": True,
                               "avatar_id": self.id})
 
-            status = self.reach_for_target(target={"x": -0.2, "y": 0.4, "z": 0.385}, arm=Arm.left)
+            status = self.reach_left()
             assert status == TaskStatus.success, status
-            status = self.reset_arm(arm=Arm.left)
+            self.reset_arm(arm=Arm.left)
+            status = self.reach_right()
             assert status == TaskStatus.success, status
-            status = self.reach_for_target(target={"x": 0.2, "y": 0.4, "z": 0.385}, arm=Arm.right)
-            assert status == TaskStatus.success, status
-            status = self.reset_arm(arm=Arm.right)
-            assert status == TaskStatus.success, status
+            self.reset_arm(arm=Arm.right)
             theta += d_theta
 
     def position(self) -> None:
@@ -54,7 +70,7 @@ class IKUnitTests(StickyMittenAvatarController):
         self.communicate({"$type": "teleport_avatar_to",
                           "position": {"x": 1.1, "y": 0.0, "z": 1},
                           "avatar_id": self.id})
-        status = self.reach_for_target(target={"x": -0.2, "y": 0.4, "z": 0.385}, arm=Arm.left)
+        status = self.reach_left()
         assert status == TaskStatus.success, status
 
     def pick_up_test(self) -> None:

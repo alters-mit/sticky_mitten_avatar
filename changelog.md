@@ -14,6 +14,8 @@
 ### Backend
 
 - Fixed: `tests/collision_test.py` doesn't work.
+- Fixed: `tests/composite_object_test.py` doesn't work.
+- Fixed: `tests/ik_unit_tests.py` doesn
 
 ## 0.8.3
 

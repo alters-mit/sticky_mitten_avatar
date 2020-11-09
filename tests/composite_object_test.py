@@ -19,7 +19,7 @@ if __name__ == "__main__":
     c = CompositeObjectTest(launch_build=False)
     c.init_scene()
     for q in c.static_object_info:
-        if c.static_object_info[q].model_name == "b03_triangle001":
+        if c.static_object_info[q].model_name == "puzzle_box_composite":
             result = c.grasp_object(object_id=q, arm=Arm.right)
             assert result == TaskStatus.success, result
             break
