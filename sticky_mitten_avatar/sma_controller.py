@@ -174,12 +174,12 @@ class StickyMittenAvatarController(FloorplanController):
                  screen_width: int = 256, screen_height: int = 256, debug: bool = False):
         """
         :param port: The port number.
-        :param launch_build: If True, automatically launch the build.
+        :param launch_build: If True, automatically launch the build. If False, you will need to launch the build yourself (for example, from a Docker container).
         :param demo: If True, this is a demo controller. All frames will be rendered.
         :param id_pass: If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run somewhat slower.
         :param screen_width: The width of the screen in pixels.
         :param screen_height: The height of the screen in pixels.
-        :param debug: If True, debug mode will be enabled.
+        :param debug: If True, debug mode will be enabled. The console will output print statements, the simulator will draw targets for the avatar's mittens, and the controller will generate image plots of arm movements.
         """
 
         self._debug = debug

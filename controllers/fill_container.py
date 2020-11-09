@@ -4,7 +4,7 @@ from sticky_mitten_avatar.task_status import TaskStatus
 from sticky_mitten_avatar.util import CONTAINER_MASS, TARGET_OBJECT_MASS, CONTAINER_SCALE
 
 
-class FillAndPour(StickyMittenAvatarController):
+class FillContainer(StickyMittenAvatarController):
     """
     Fill a container with objects.
     This controller includes a very basic system for aligning the avatar with an object such it can be picked up.
@@ -57,7 +57,7 @@ class FillAndPour(StickyMittenAvatarController):
 
 
 if __name__ == "__main__":
-    c = FillAndPour()
+    c = FillContainer()
     c.init_scene()
     # This will make the simulation run slower and should only be added for demoing or debugging.
     c.add_overhead_camera({"x": -0.99, "y": 1.25, "z": 1.41}, target_object="a", images="cam")

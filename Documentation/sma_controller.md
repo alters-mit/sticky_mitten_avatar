@@ -150,12 +150,12 @@ for room in c.goal_positions:
 | Parameter | Description |
 | --- | --- |
 | port | The port number. |
-| launch_build | If True, automatically launch the build. |
+| launch_build | If True, automatically launch the build. If False, you will need to launch the build yourself (for example, from a Docker container). |
 | demo | If True, this is a demo controller. All frames will be rendered. |
 | id_pass | If True, add the segmentation color pass to the [`FrameData`](frame_data.md). The simulation will run somewhat slower. |
 | screen_width | The width of the screen in pixels. |
 | screen_height | The height of the screen in pixels. |
-| debug | If True, debug mode will be enabled. |
+| debug | If True, debug mode will be enabled. The console will output print statements, the simulator will draw targets for the avatar's mittens, and the controller will generate image plots of arm movements. |
 
 ***
 
