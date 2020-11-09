@@ -127,8 +127,11 @@ class FrameData:
 
         # Get camera matrix data.
         matrices = get_data(resp=resp, d_type=CameraMatrices)
-        self.projection_matrix = matrices.get_projection_matrix()
-        self.camera_matrix = matrices.get_camera_matrix()
+        self.projection_matrix: Optional[np.array] = None
+        self.camera_matrix: Optional[np.array] = None
+        if matrices is not None:
+            self.projection_matrix = matrices.get_projection_matrix()
+            self.camera_matrix = matrices.get_camera_matrix()
 
         # Get the transform data of the avatar.
         self.avatar_transform = Transform(position=np.array(avatar.frame.get_position()),

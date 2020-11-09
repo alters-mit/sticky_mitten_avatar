@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.8.4
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Added optional parameter `stop_on_collision` to `turn_to()`
+  - Added optional parameter `stop_on_collision` to `turn_by()`
+  - Parameter `stop_on_collision` in `go_to()` is used for turning as well as movement (previously, was only for movement).
+- `FrameData`:
+  - Fixed: Crash during an sub-action due to non-existant camera matrices data.
+
+### Backend
+
+- Fixed: `tests/collision_test.py` doesn't work.
+
 ## 0.8.3
 
 ### Frontend

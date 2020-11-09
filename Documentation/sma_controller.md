@@ -199,6 +199,8 @@ Valid scenes, layouts, and rooms:
 | 4a, 4b, 4c | 0, 1, 2 | 0, 1, 2, 3, 4, 5, 6, 7 |
 | 5a, 5b, 5c | 0, 1, 2 | 0, 1, 2, 3 |
 
+Images of each scene+layout combination can be found [here](https://github.com/alters-mit/sticky_mitten_avatar/tree/master/Documentation/images/floorplans).
+
 You can safely call `init_scene()` more than once to reset the simulation.
 
 | Parameter | Description |
@@ -228,7 +230,7 @@ _These functions move or turn the avatar. These functions advance the simulation
 
 #### turn_to
 
-**`def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200, sub_action: bool = False) -> TaskStatus`**
+**`def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200, sub_action: bool = False, stop_on_collision: bool = True) -> TaskStatus`**
 
 Turn the avatar to face a target position or object.
 
@@ -236,6 +238,8 @@ Possible [return values](task_status.md):
 
 - `success` (The avatar turned to face the target.)
 - `too_long` (The avatar made more attempts to turn than `num_attempts`.)
+- `collided_with_something_heavy` (if `stop_on_collision == True`)
+- `collided_with_environment` (if `stop_on_collision == True`)
 
 
 | Parameter | Description |
@@ -244,13 +248,14 @@ Possible [return values](task_status.md):
 | force | The force at which the avatar will turn. More force = faster, but might overshoot the target. |
 | stopping_threshold | Stop when the avatar is within this many degrees of the target. |
 | num_attempts | The avatar will apply more angular force this many times to complete the turn before giving up. |
+| stop_on_collision | If True, stop turning when the avatar collides with a large object (mass > 90) or the environment (e.g. a wall). |
 | sub_action | If True, this is a sub-action and is being called from another API call. Sub-actions won't render images. Frontend users should always set this to False (the default value). |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
 
 #### turn_by
 
-**`def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200) -> TaskStatus`**
+**`def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200, stop_on_collision: bool = True) -> TaskStatus`**
 
 Turn the avatar by an angle.
 
@@ -258,6 +263,8 @@ Possible [return values](task_status.md):
 
 - `success` (The avatar turned by the angle.)
 - `too_long` (The avatar made more attempts to turn than `num_attempts`.)
+- `collided_with_something_heavy` (if `stop_on_collision == True`)
+- `collided_with_environment` (if `stop_on_collision == True`)
 
 
 | Parameter | Description |
@@ -265,6 +272,7 @@ Possible [return values](task_status.md):
 | angle | The angle to turn to in degrees. If > 0, turn clockwise; if < 0, turn counterclockwise. |
 | force | The force at which the avatar will turn. More force = faster, but might overshoot the target. |
 | stopping_threshold | Stop when the avatar is within this many degrees of the target. |
+| stop_on_collision | If True, stop turning when the avatar collides with a large object (mass > 90) or the environment (e.g. a wall). |
 | num_attempts | The avatar will apply more angular force this many times to complete the turn before giving up. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
@@ -291,7 +299,7 @@ Possible [return values](task_status.md):
 | turn_stopping_threshold | Stop when the avatar is within this many degrees of the target. |
 | move_force | The force at which the avatar will move. More force = faster, but might overshoot the target. |
 | move_stopping_threshold | Stop within this distance of the target. |
-| stop_on_collision | If True, stop moving when the object collides with a large object (mass > 90) or the environment (e.g. a wall). |
+| stop_on_collision | If True, stop moving when the avatar collides with a large object (mass > 90) or the environment (e.g. a wall). |
 | turn | If True, try turning to face the target before moving. |
 | num_attempts | The avatar will apply more force this many times to complete the turn before giving up. |
 
@@ -317,7 +325,7 @@ Possible [return values](task_status.md):
 | distance | The distance that the avatar will travel. If < 0, the avatar will move backwards. |
 | move_force | The force at which the avatar will move. More force = faster, but might overshoot the target. |
 | move_stopping_threshold | Stop within this distance of the target. |
-| stop_on_collision | If True, stop moving when the object collides with a large object (mass > 90) or the environment (e.g. a wall). |
+| stop_on_collision | If True, stop moving when the avatar collides with a large object (mass > 90) or the environment (e.g. a wall). |
 | num_attempts | The avatar will apply more force this many times to complete the turn before giving up. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar moved forward by the distance and if not, why.

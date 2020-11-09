@@ -658,7 +658,7 @@ class StickyMittenAvatarController(FloorplanController):
 
     def turn_to(self, target: Union[Dict[str, float], int], force: float = 1000,
                 stopping_threshold: float = 0.15, num_attempts: int = 200,
-                sub_action: bool = False) -> TaskStatus:
+                sub_action: bool = False, stop_on_collision: bool = True) -> TaskStatus:
         """
         Turn the avatar to face a target position or object.
 
@@ -666,11 +666,14 @@ class StickyMittenAvatarController(FloorplanController):
 
         - `success` (The avatar turned to face the target.)
         - `too_long` (The avatar made more attempts to turn than `num_attempts`.)
+        - `collided_with_something_heavy` (if `stop_on_collision == True`)
+        - `collided_with_environment` (if `stop_on_collision == True`)
 
         :param target: Either the target position or the ID of the target object.
         :param force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param stopping_threshold: Stop when the avatar is within this many degrees of the target.
         :param num_attempts: The avatar will apply more angular force this many times to complete the turn before giving up.
+        :param stop_on_collision: If True, stop turning when the avatar collides with a large object (mass > 90) or the environment (e.g. a wall).
         :param sub_action: If True, this is a sub-action and is being called from another API call. Sub-actions won't render images. Frontend users should always set this to False (the default value).
 
         :return: A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
@@ -688,6 +691,12 @@ class StickyMittenAvatarController(FloorplanController):
             if np.abs(angle) < stopping_threshold or ((initial_angle < 0 and angle > 0) or
                                                       (initial_angle > 0 and angle < 0)):
                 return TaskStatus.success, angle
+
+            # Check if the avatar collided with anything.
+            if stop_on_collision:
+                stop_status = self._is_avatar_collision()
+                if stop_status != TaskStatus.success:
+                    return stop_status, angle
 
             return TaskStatus.ongoing, angle
         # Set the target to the object's position.
@@ -753,7 +762,8 @@ class StickyMittenAvatarController(FloorplanController):
         self._stop_avatar(sub_action=sub_action)
         return TaskStatus.too_long
 
-    def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200) -> TaskStatus:
+    def turn_by(self, angle: float, force: float = 1000, stopping_threshold: float = 0.15, num_attempts: int = 200,
+                stop_on_collision: bool = True) -> TaskStatus:
         """
         Turn the avatar by an angle.
 
@@ -761,10 +771,13 @@ class StickyMittenAvatarController(FloorplanController):
 
         - `success` (The avatar turned by the angle.)
         - `too_long` (The avatar made more attempts to turn than `num_attempts`.)
+        - `collided_with_something_heavy` (if `stop_on_collision == True`)
+        - `collided_with_environment` (if `stop_on_collision == True`)
 
         :param angle: The angle to turn to in degrees. If > 0, turn clockwise; if < 0, turn counterclockwise.
         :param force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param stopping_threshold: Stop when the avatar is within this many degrees of the target.
+        :param stop_on_collision: If True, stop turning when the avatar collides with a large object (mass > 90) or the environment (e.g. a wall).
         :param num_attempts: The avatar will apply more angular force this many times to complete the turn before giving up.
 
         :return: A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
@@ -776,7 +789,7 @@ class StickyMittenAvatarController(FloorplanController):
         # Get a point to look at.
         p1 = np.array(self._avatar.frame.get_position()) + (p1 * 1000)
         return self.turn_to(target=TDWUtils.array_to_vector3(p1), force=force, stopping_threshold=stopping_threshold,
-                            num_attempts=num_attempts)
+                            num_attempts=num_attempts, stop_on_collision=stop_on_collision)
 
     def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80,
               turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35,
@@ -797,7 +810,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param turn_stopping_threshold: Stop when the avatar is within this many degrees of the target.
         :param move_force: The force at which the avatar will move. More force = faster, but might overshoot the target.
         :param move_stopping_threshold: Stop within this distance of the target.
-        :param stop_on_collision: If True, stop moving when the object collides with a large object (mass > 90) or the environment (e.g. a wall).
+        :param stop_on_collision: If True, stop moving when the avatar collides with a large object (mass > 90) or the environment (e.g. a wall).
         :param turn: If True, try turning to face the target before moving.
         :param num_attempts: The avatar will apply more force this many times to complete the turn before giving up.
 
@@ -811,14 +824,9 @@ class StickyMittenAvatarController(FloorplanController):
 
             # Check if the root object of the avatar collided with anything large. If so, stop movement.
             if stop_on_collision:
-                if self._avatar.base_id in self._avatar.collisions:
-                    for o_id in self._avatar.collisions[self._avatar.base_id]:
-                        collidee_mass = self.static_object_info[o_id].mass
-                        if collidee_mass >= 90:
-                            return TaskStatus.collided_with_something_heavy
-                # If the avatar's body collided with the environment (e.g. a wall), stop movement.
-                if self._avatar.base_id in self._avatar.env_collisions:
-                    return TaskStatus.collided_with_environment
+                stop_status = self._is_avatar_collision()
+                if stop_status != TaskStatus.success:
+                    return stop_status
 
             p = np.array(self._avatar.frame.get_position())
             d_from_initial = np.linalg.norm(initial_position - p)
@@ -850,7 +858,7 @@ class StickyMittenAvatarController(FloorplanController):
             # Turn to the target.
             status = self.turn_to(target=TDWUtils.array_to_vector3(target), force=turn_force,
                                   stopping_threshold=turn_stopping_threshold, num_attempts=num_attempts,
-                                  sub_action=True)
+                                  sub_action=True, stop_on_collision=stop_on_collision)
             if status != TaskStatus.success:
                 self._stop_avatar()
                 return status
@@ -907,7 +915,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param distance: The distance that the avatar will travel. If < 0, the avatar will move backwards.
         :param move_force: The force at which the avatar will move. More force = faster, but might overshoot the target.
         :param move_stopping_threshold: Stop within this distance of the target.
-        :param stop_on_collision: If True, stop moving when the object collides with a large object (mass > 90) or the environment (e.g. a wall).
+        :param stop_on_collision: If True, stop moving when the avatar collides with a large object (mass > 90) or the environment (e.g. a wall).
         :param num_attempts: The avatar will apply more force this many times to complete the turn before giving up.
 
         :return: A `TaskStatus` indicating whether the avatar moved forward by the distance and if not, why.
@@ -1557,3 +1565,18 @@ class StickyMittenAvatarController(FloorplanController):
             num_frames += 1
 
         self._end_task(sub_action=True)
+
+    def _is_avatar_collision(self) -> TaskStatus:
+        """
+        :return: A TaskStatus: `success` if the avatar didn't collide with the environment or a large object.
+        """
+
+        if self._avatar.base_id in self._avatar.collisions:
+            for o_id in self._avatar.collisions[self._avatar.base_id]:
+                collidee_mass = self.static_object_info[o_id].mass
+                if collidee_mass >= 90:
+                    return TaskStatus.collided_with_something_heavy
+        # If the avatar's body collided with the environment (e.g. a wall), stop movement.
+        if self._avatar.base_id in self._avatar.env_collisions:
+            return TaskStatus.collided_with_environment
+        return TaskStatus.success
