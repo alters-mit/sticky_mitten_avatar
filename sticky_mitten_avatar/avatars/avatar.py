@@ -717,14 +717,6 @@ class Avatar(ABC):
 
         raise Exception()
 
-    @abstractmethod
-    def _get_roll_wrist_sticky_mitten_profile(self) -> dict:
-        """
-        :return: The StickyMittenProfile required for beginning to roll a wrist.
-        """
-
-        raise Exception()
-
     def _get_mass(self) -> float:
         """
         :return: The mass of the avatar.
@@ -796,21 +788,6 @@ class Avatar(ABC):
 
         # The profile for the moving arm.
         move = self._get_reset_arm_sticky_mitten_profile()
-        # The profile for the stopping arm.
-        fixed = self._get_default_sticky_mitten_profile()
-
-        return self._get_sticky_mitten_profile(left=move if arm == Arm.left else fixed,
-                                               right=move if arm == Arm.right else fixed)
-
-    def get_roll_wrist_sticky_mitten_profile(self, arm: Arm) -> dict:
-        """
-        :param arm: The arm that is resetting.
-
-        :return: A `set_sticky_mitten_profile` command for beginning to roll a wrist.
-        """
-
-        # The profile for the moving arm.
-        move = self._get_roll_wrist_sticky_mitten_profile()
         # The profile for the stopping arm.
         fixed = self._get_default_sticky_mitten_profile()
 

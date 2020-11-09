@@ -1285,34 +1285,6 @@ class StickyMittenAvatarController(FloorplanController):
         point = np.array(raycast.get_point())
         return raycast.get_hit() and raycast.get_object_id() is not None and raycast.get_object_id() == object_id, point
 
-    def _roll_wrist(self, arm: Arm, angle: float, precision: float = 0.02) -> None:
-        """
-        Roll the wrist to a target angle.
-
-        :param arm: The arm.
-        :param angle: The target angle.
-        :param precision: Precision of the movement (the threshold at which the angle is considered equal).
-        """
-
-        # Begin rotation.
-        self.communicate([self._avatar.get_roll_wrist_sticky_mitten_profile(arm=arm),
-                          {"$type": "bend_arm_joint_to",
-                           "angle": angle,
-                           "joint": f"wrist_{arm.name}",
-                           "axis": "roll",
-                           "avatar_id": self._avatar.id}])
-        # Wait for the motion to finish.
-        a0 = self._avatar.frame.get_angles_left()[-2] if arm == Arm.left else \
-            self._avatar.frame.get_angles_right()[-2]
-        done_twisting_wrist = False
-        while not done_twisting_wrist:
-            self.communicate([])
-            # Get the angle of the wrist.
-            a1 = self._avatar.frame.get_angles_left()[-2] if arm == Arm.left else \
-                self._avatar.frame.get_angles_right()[-2]
-            done_twisting_wrist = np.abs(a1 - a0) < precision
-            a0 = a1
-
     def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
         """
         Get commands to initialize the scene before adding avatars.

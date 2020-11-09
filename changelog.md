@@ -13,9 +13,10 @@
 
 ### Backend
 
+- Removed unused code for rolling wrist.
 - Fixed: `tests/collision_test.py` doesn't work.
 - Fixed: `tests/composite_object_test.py` doesn't work.
-- Fixed: `tests/ik_unit_tests.py` doesn
+- Fixed: `tests/ik_unit_tests.py` doesn't work.
 
 ## 0.8.3
 
