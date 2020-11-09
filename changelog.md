@@ -10,6 +10,8 @@
   - Parameter `stop_on_collision` in `go_to()` is used for turning as well as movement (previously, was only for movement).
 - `FrameData`:
   - Fixed: Crash during an sub-action due to non-existant camera matrices data.
+- Documentation:
+  - Fixed: Various code examples in the API documentation have errors or are incomplete code snippets. Code examples now have correct syntax, variable names, etc. and can be run without needing to add additional lines of code.
 
 ### Backend
 

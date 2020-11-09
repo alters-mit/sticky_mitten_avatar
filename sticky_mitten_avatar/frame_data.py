@@ -61,6 +61,11 @@ class FrameData:
     - `object_transforms` The dictionary of object [transform data](transform.md). Key = the object ID.
 
     ```python
+    from sticky_mitten_avatar import StickyMittenAvatarController
+
+    c = StickyMittenAvatarController()
+    c.init_scene(scene="2a", layout=1)
+
     for object_id in c.frame.object_transforms:
         print(c.frame.object_transforms[object_id].position)
     ```
@@ -70,16 +75,26 @@ class FrameData:
     - `avatar_transform` The [transform data](transform.md) of the avatar.
 
     ```python
+    from sticky_mitten_avatar import StickyMittenAvatarController
+
+    c = StickyMittenAvatarController()
+    c.init_scene(scene="2a", layout=1)
+
     avatar_position = c.frame.avatar_transform.position
     ```
 
     - `avatar_body_part_transforms` The [transform data](transform.md) of each body part of the avatar. Key = body part ID.
 
     ```python
+    from sticky_mitten_avatar import StickyMittenAvatarController
+
+    c = StickyMittenAvatarController()
+    c.init_scene(scene="2a", layout=1)
+
     # Get the position and segmentation color of each body part.
     for body_part_id in c.frame.avatar_body_part_transforms:
         position = c.frame.avatar_body_part_transforms[body_part_id]
-        segmentation_color = c.static_avatar_data[body_part_id].segmentation_color
+        segmentation_color = c.static_avatar_info[body_part_id].segmentation_color
     ```
 
     - `held_objects` A dictionary of IDs of objects held in each mitten. Key = arm:

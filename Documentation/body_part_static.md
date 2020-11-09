@@ -11,8 +11,8 @@ c = StickyMittenAvatarController(launch_build=False)
 c.init_scene(scene="2a", layout=1, room=1)
 
 # Print each body part ID and segmentation color.
-for body_part_id in c.static_avatar_data:
-    body_part = c.static_avatar_data[body_part_id]
+for body_part_id in c.static_avatar_info:
+    body_part = c.static_avatar_info[body_part_id]
     print(body_part_id, body_part.segmentation_color)
 ```
 

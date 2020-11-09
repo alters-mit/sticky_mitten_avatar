@@ -94,6 +94,11 @@ class StickyMittenAvatarController(FloorplanController):
     - `frame` Dynamic data for all of the most recent frame (i.e. the frame after doing an action such as `reach_for_target()`). [Read this](frame_data.md) for a full API.
 
     ```python
+    from sticky_mitten_avatar import StickyMittenAvatarController
+
+    c = StickyMittenAvatarController()
+    c.init_scene(scene="2a", layout=1)
+
     # Get the segmentation colors and depth map from the most recent frame.
     id_pass = c.frame.id_pass
     depth_pass = c.frame.depth_pass
@@ -103,9 +108,14 @@ class StickyMittenAvatarController(FloorplanController):
     - `static_object_info`: Static info for all objects in the scene. [Read this](static_object_info.md) for a full API.
 
     ```python
+    from sticky_mitten_avatar import StickyMittenAvatarController
+
+    c = StickyMittenAvatarController()
+    c.init_scene(scene="2a", layout=1)
+
     # Print each object ID and segmentation color.
     for object_id in c.static_object_info:
-        object_info = c.static_object_info(object_id)
+        object_info = c.static_object_info[object_id]
         print(object_id, object_info.segmentation_color)
     ```
 
@@ -113,6 +123,11 @@ class StickyMittenAvatarController(FloorplanController):
       Value = The object ID. See `static_object_info` for a dictionary mapped to object ID with additional data.
 
     ```python
+    from sticky_mitten_avatar import StickyMittenAvatarController
+
+    c = StickyMittenAvatarController()
+    c.init_scene(scene="2a", layout=1)
+
     for hashable_color in c.segmentation_color_to_id:
         object_id = c.segmentation_color_to_id[hashable_color]
     ```
@@ -122,10 +137,15 @@ class StickyMittenAvatarController(FloorplanController):
     - `static_avatar_info` Static info for the avatar's body parts. [Read this](body_part_static.md) for a full API. Key = body part ID.
 
     ```python
+    from sticky_mitten_avatar import StickyMittenAvatarController
+
+    c = StickyMittenAvatarController()
+    c.init_scene(scene="2a", layout=1)
+
     # Print each body part ID and segmentation color.
-    for body_part_id in c.static_avatar_data:
-        body_part = c.static_avatar_data[body_part_id]
-        print(body_part_id, body_part.segmentation_color).
+    for body_part_id in c.static_avatar_info:
+        body_part = c.static_avatar_info[body_part_id]
+        print(body_part_id, body_part.segmentation_color)
     ```
 
     - `occupancy_map` A numpy array of positions in the scene and whether they are occupied.
@@ -143,6 +163,9 @@ class StickyMittenAvatarController(FloorplanController):
        Convert from the coordinates in the array to an actual position using `get_occupancy_position()`.
 
     ```python
+    from sticky_mitten_avatar import StickyMittenAvatarController
+
+    c = StickyMittenAvatarController()
     c.init_scene(scene="2a", layout=1)
 
     print(c.occupancy_map[37][16]) # 0 (occupied)

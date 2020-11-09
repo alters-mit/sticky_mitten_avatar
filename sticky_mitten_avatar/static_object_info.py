@@ -14,12 +14,12 @@ class StaticObjectInfo:
     ```python
     from sticky_mitten_avatar import StickyMittenAvatarController
 
-    c = StickyMittenAvatarController(launch_build=False)
-    c.init_scene(scene="2a", layout=1, room=1)
+    c = StickyMittenAvatarController()
+    c.init_scene(scene="2a", layout=1)
 
     # Print each object ID and segmentation color.
     for object_id in c.static_object_info:
-        object_info = c.static_object_info(object_id)
+        object_info = c.static_object_info[object_id]
         print(object_id, object_info.segmentation_color)
     ```
 
