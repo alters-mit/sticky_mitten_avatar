@@ -118,6 +118,12 @@ Utility scripts are located in `util/`
 - Update the TDW build to match the TDW version.
 - [Read this.](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/debug_tdw.md)
 - If the stacktrace appears to lead to an error not handled in this repo or the `tdw` repo, create a GitHub issue and we'll address it as soon as possible.
+- If you see this error, your Internet connection is probably not working:
+```
+line 35, in get_major_release
+    return v.split(".")[1].strip()
+IndexError: list index out of range
+```
 
 ### "I can't launch in the simulation in a Docker container"
 
