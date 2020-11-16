@@ -816,7 +816,8 @@ class StickyMittenAvatarController(FloorplanController):
 
     def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80,
               turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35,
-              stop_on_collision: bool = True, turn: bool = True, num_attempts: int = 200) -> TaskStatus:
+              stop_on_collision: bool = True, turn: bool = True, num_attempts: int = 200,
+              direction: int = 1) -> TaskStatus:
         """
         Move the avatar to a target position or object.
 
@@ -836,6 +837,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param stop_on_collision: If True, stop moving when the avatar collides with a large object (mass > 90) or the environment (e.g. a wall).
         :param turn: If True, try turning to face the target before moving.
         :param num_attempts: The avatar will apply more force this many times to complete the turn before giving up.
+        :param direction: The direction of the force. This should always be 1 (it is sometimes set to -1 in the backend code).
 
         :return:  A `TaskStatus` indicating whether the avatar arrived at the target and if not, why.
         """
@@ -894,7 +896,7 @@ class StickyMittenAvatarController(FloorplanController):
                                "rotate": False,
                                "translate": True},
                               {"$type": "move_avatar_forward_by",
-                               "magnitude": move_force,
+                               "magnitude": move_force * direction,
                                "avatar_id": self._avatar.id},
                               {"$type": "set_avatar_drag",
                                "drag": 0.1,
@@ -947,7 +949,8 @@ class StickyMittenAvatarController(FloorplanController):
         # The target is at `distance` away from the avatar's position along the avatar's forward directional vector.
         target = np.array(self._avatar.frame.get_position()) + (np.array(self._avatar.frame.get_forward()) * distance)
         return self.go_to(target=target, move_force=move_force, move_stopping_threshold=move_stopping_threshold,
-                          stop_on_collision=stop_on_collision, turn=False, num_attempts=num_attempts)
+                          stop_on_collision=stop_on_collision, turn=False, num_attempts=num_attempts,
+                          direction=1 if distance > 0 else -1)
 
     def put_in_container(self, object_id: int, container_id: int, arm: Arm) -> TaskStatus:
         """

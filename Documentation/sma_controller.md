@@ -302,7 +302,7 @@ _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and
 
 #### go_to
 
-**`def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80, turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35, stop_on_collision: bool = True, turn: bool = True, num_attempts: int = 200) -> TaskStatus`**
+**`def go_to(self, target: Union[Dict[str, float], int], turn_force: float = 1000, move_force: float = 80, turn_stopping_threshold: float = 0.15, move_stopping_threshold: float = 0.35, stop_on_collision: bool = True, turn: bool = True, num_attempts: int = 200, direction: int = 1) -> TaskStatus`**
 
 Move the avatar to a target position or object.
 
@@ -325,6 +325,7 @@ Possible [return values](task_status.md):
 | stop_on_collision | If True, stop moving when the avatar collides with a large object (mass > 90) or the environment (e.g. a wall). |
 | turn | If True, try turning to face the target before moving. |
 | num_attempts | The avatar will apply more force this many times to complete the turn before giving up. |
+| direction | The direction of the force. This should always be 1 (it is sometimes set to -1 in the backend code). |
 
 _Returns:_   A `TaskStatus` indicating whether the avatar arrived at the target and if not, why.
 
