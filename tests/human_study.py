@@ -13,8 +13,7 @@ class HumanStudy(StickyMittenAvatarController):
 
     def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
         commands = super()._get_scene_init_commands(scene=scene, layout=layout, room=room)
-        commands.extend([{"$type": "send_keyboard", "frequency": "always"},
-                         {"$type": "set_floorplan_roof", "show": False}])
+        commands.append({"$type": "send_keyboard", "frequency": "always"})
         return commands
 
     def run(self) -> None:
@@ -38,7 +37,7 @@ class HumanStudy(StickyMittenAvatarController):
         self.end_action()
 
     def move(self, direction: float) -> None:
-        print(self.move_forward_by(0.8 * direction))
+        print(self.move_forward_by(0.5 * direction))
         self.end_action()
 
     def end_action(self) -> None:
