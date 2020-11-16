@@ -32,7 +32,7 @@ class HumanStudy(StickyMittenAvatarController):
                         self.move()
 
     def turn(self, angle: float) -> None:
-        self.turn_by(angle, stop_on_collision=False)
+        self.turn_by(angle)
         self.end_action()
 
     def turn_left(self) -> None:
@@ -42,7 +42,7 @@ class HumanStudy(StickyMittenAvatarController):
         self.turn(15)
 
     def move(self) -> None:
-        self.move_forward_by(0.8, stop_on_collision=False)
+        self.move_forward_by(0.8)
         self.end_action()
 
     def end_action(self) -> None:
