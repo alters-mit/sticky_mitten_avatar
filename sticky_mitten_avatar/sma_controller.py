@@ -1,3 +1,4 @@
+import pickle
 from csv import DictReader
 from json import loads
 from pathlib import Path
@@ -236,6 +237,11 @@ class StickyMittenAvatarController(FloorplanController):
 
         self.segmentation_color_to_id: Dict[int, int] = dict()
 
+        data_path = resource_filename(__name__, "test_dataset.pkl")
+        with open(data_path, 'rb') as f:
+            self.data = pickle.load(f)[0]
+        self.goal_object = self.data['goal_object']
+
         super().__init__(port=port, launch_build=launch_build)
 
         # Set image encoding to .jpg
@@ -316,6 +322,10 @@ class StickyMittenAvatarController(FloorplanController):
         self.static_object_info: Dict[int, StaticObjectInfo] = dict()
         self.segmentation_color_to_id: Dict[int, int] = dict()
         self._cam_commands: Optional[list] = None
+
+        scene = self.data['scene']['scene']
+        layout = self.data['scene']['layout']
+        room = self.data['scene']['room']
 
         # Initialize the scene.
         resp = self.communicate(self._get_scene_init_commands(scene=scene, layout=layout, room=room))
@@ -1323,7 +1333,6 @@ class StickyMittenAvatarController(FloorplanController):
             commands = [{"$type": "load_scene",
                          "scene_name": "ProcGenScene"},
                         TDWUtils.create_empty_room(12, 12)]
-            avatar_position = TDWUtils.VECTOR3_ZERO
         else:
             commands = self.get_scene_init_commands(scene=scene, layout=layout, audio=True)
 
@@ -1348,25 +1357,12 @@ class StickyMittenAvatarController(FloorplanController):
                 if len(placeable_positions) > 0:
                     rooms[i] = placeable_positions
 
-            # Add 0-1 containers per room.
-            for room_key in list(rooms.keys()):
-                # Maybe don't add a container in this room.
-                if random.random() < 0.25:
-                    continue
-
-                proc_gen_positions = rooms[room_key][:]
-                random.shuffle(proc_gen_positions)
-                # Get a random position in the room.
-                ix, iy = random.choice(rooms[room_key])
-
-                # Get the (x, z) coordinates for this position.
-                # The y coordinate is in `ys_map`.
+            for c in self.data['container']:
+                ix, iy = c['ixy']
                 x, z = self.get_occupancy_position(ix, iy)
                 container_name = random.choice(StaticObjectInfo.CONTAINERS)
-                container_id, container_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
-                                                                    rotation={"x": 0,
-                                                                              "y": random.uniform(-179, 179),
-                                                                              "z": z},
+                container_id, container_commands = self._add_object(position=c['position'],
+                                                                    rotation=c['rotation'],
                                                                     scale=CONTAINER_SCALE,
                                                                     audio=self._default_audio_values[
                                                                         container_name],
@@ -1387,38 +1383,27 @@ class StickyMittenAvatarController(FloorplanController):
                     target_objects[row["name"]] = float(row["scale"])
             target_object_names = list(target_objects.keys())
 
-            # Load a list of visual materials for target objects.
-            target_object_materials = TARGET_OBJECT_MATERIALS_PATH.read_text(encoding="utf-8").split("\n")
-
-            # Get all positions in the room and shuffle the order.
-            target_room_positions = random.choice(list(rooms.values()))
-            random.shuffle(target_room_positions)
             # Add the objects.
-            for i in range(random.randint(8, 12)):
-                ix, iy = random.choice(target_room_positions)
-                # Get the (x, z) coordinates for this position.
-                # The y coordinate is in `ys_map`.
+            for o in self.data['target_object']:
+                ix, iy = o['ixy']
                 x, z = self.get_occupancy_position(ix, iy)
                 target_object_name = random.choice(target_object_names)
                 # Set custom object info for the target objects.
                 audio = ObjectInfo(name=target_object_name, mass=TARGET_OBJECT_MASS, material=AudioMaterial.ceramic,
                                    resonance=0.6, amp=0.01, library="models_core.json", bounciness=0.5)
                 scale = target_objects[target_object_name]
-                object_id, object_commands = self._add_object(position={"x": x, "y": ys_map[ix][iy], "z": z},
-                                                              rotation={"x": 0, "y": random.uniform(-179, 179),
-                                                                        "z": z},
+                object_id, object_commands = self._add_object(position=o['position'],
+                                                              rotation=o['rotation'],
                                                               scale={"x": scale, "y": scale, "z": scale},
                                                               audio=audio,
                                                               model_name=target_object_name)
                 self._target_object_ids.append(object_id)
                 commands.extend(object_commands)
 
-                # Set a random visual material for each target object.
-                visual_material = random.choice(target_object_materials)
                 substructure = AudioInitData.LIBRARIES["models_core.json"].get_record(target_object_name). \
                     substructure
                 commands.extend(TDWUtils.set_visual_material(substructure=substructure,
-                                                             material=visual_material,
+                                                             material=o['visual_material'],
                                                              object_id=object_id,
                                                              c=self))
 
@@ -1431,13 +1416,6 @@ class StickyMittenAvatarController(FloorplanController):
             self.goal_positions = dict()
             for k in goal_positions:
                 self.goal_positions[int(k)] = goal_positions[k]
-
-            # Set the initial position of the avatar.
-            rooms = loads(SPAWN_POSITIONS_PATH.read_text())[scene[0]][str(layout)]
-            if room == -1:
-                room = random.randint(0, len(rooms) - 1)
-            assert 0 <= room < len(rooms), f"Invalid room: {room}"
-            avatar_position = rooms[room]
 
         # Create the avatar.
         commands.extend(TDWUtils.create_avatar(avatar_type="A_StickyMitten_Baby", avatar_id="a"))
@@ -1466,7 +1444,7 @@ class StickyMittenAvatarController(FloorplanController):
                           "sensor_name": "FollowCamera"},
                          {"$type": "teleport_avatar_to",
                           "avatar_id": "a",
-                          "position": avatar_position}])
+                          "position": self.data['avatar_position']}])
         # Set all sides of both mittens to be sticky.
         for sub_mitten in ["palm", "back", "side"]:
             for is_left in [True, False]:
@@ -1575,3 +1553,11 @@ class StickyMittenAvatarController(FloorplanController):
         if self._avatar.base_id in self._avatar.env_collisions:
             return TaskStatus.collided_with_environment
         return TaskStatus.success
+
+    def is_at_goal(self) -> bool:
+        for q in self.goal_positions[self.data['scene']['room']][self.goal_object]:
+            p = np.array([q[0], 0, q[2]])
+            if np.linalg.norm(self.frame.avatar_transform.position - p) <= 1.25:
+                return True
+        return False
+    
