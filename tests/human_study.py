@@ -44,9 +44,7 @@ class HumanStudy(StickyMittenAvatarController):
     def end_action(self) -> None:
         self.num_actions += 1
         if self.get_challenge_status():
-            print(f"Number of actions to transport 1 object: {self.num_actions}")
-            print(f"Estimated number of actions to transport all objects: "
-                  f"{self.num_actions * (len(self._target_object_ids) + 2)}")
+            print(f"Number of actions: {self.num_actions}")
             self.end()
 
     def end(self) -> None:

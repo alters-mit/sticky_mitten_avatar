@@ -1582,7 +1582,6 @@ class StickyMittenAvatarController(FloorplanController):
                             print(f"Dropped off {self.held}")
                             self.transported.append(self.held)
                             self.held = None
-                            return True
                         # We're done!
                         if len(self.transported) == len(self._target_object_ids):
                             print("DONE!")
