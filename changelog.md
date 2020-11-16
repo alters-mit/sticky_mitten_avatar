@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.5
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - Fixed: Exception if the `target_object` parameter of `add_overhead_camera()` is set to None.
+
 ## 0.8.4
 
 ### Frontend
