@@ -195,7 +195,7 @@ class StickyMittenAvatarController(FloorplanController):
     _STOP_DRAG = 1000
 
     def __init__(self, port: int = 1071, launch_build: bool = True, demo: bool = False, id_pass: bool = True,
-                 screen_width: int = 256, screen_height: int = 256, debug: bool = False):
+                 screen_width: int = 256, screen_height: int = 256, debug: bool = False, dataset_id: int = 0):
         """
         :param port: The port number.
         :param launch_build: If True, automatically launch the build. If False, you will need to launch the build yourself (for example, from a Docker container).
@@ -239,7 +239,7 @@ class StickyMittenAvatarController(FloorplanController):
 
         data_path = resource_filename(__name__, "test_dataset.pkl")
         with open(data_path, 'rb') as f:
-            self.data = pickle.load(f)[0]
+            self.data = pickle.load(f)[dataset_id]
         self.goal_object = self.data['goal_object']
 
         self.transported: List[int] = list()
@@ -1425,11 +1425,13 @@ class StickyMittenAvatarController(FloorplanController):
             for k in goal_positions:
                 self.goal_positions[int(k)] = goal_positions[k]
 
-        for p in self.goal_positions[1]["bed"]:
-            x, z = self.get_occupancy_position(p[0], p[1])
-            commands.append({"$type": "add_position_marker",
-                             "position": {"x": x, "y": 1, "z": z},
-                             "scale": 0.3})
+        for room in self.goal_positions:
+            if self.goal_object in self.goal_positions[room]:
+                for p in self.goal_positions[room][self.goal_object]:
+                    x, z = self.get_occupancy_position(p[0], p[1])
+                    commands.append({"$type": "add_position_marker",
+                                     "position": {"x": x, "y": 1, "z": z},
+                                     "scale": 0.3})
 
         # Create the avatar.
         commands.extend(TDWUtils.create_avatar(avatar_type="A_StickyMitten_Baby", avatar_id="a"))
@@ -1569,20 +1571,22 @@ class StickyMittenAvatarController(FloorplanController):
         return TaskStatus.success
 
     def get_challenge_status(self) -> bool:
-        for q in self.goal_positions[1][self.goal_object]:
-            x, z = self.get_occupancy_position(q[0], q[1])
-            p = np.array([x, 0, z])
-            if np.linalg.norm(self.frame.avatar_transform.position - p) <= 1.25:
-                # Drop off the object.
-                if self.held is not None:
-                    print(f"Dropped off {self.held}")
-                    self.transported.append(self.held)
-                    self.held = None
-                    return True
-                # We're done!
-                if len(self.transported) == len(self._target_object_ids):
-                    print("DONE!")
-                    return True
+        for room in self.goal_positions:
+            if self.goal_object in self.goal_positions[room]:
+                for q in self.goal_positions[room][self.goal_object]:
+                    x, z = self.get_occupancy_position(q[0], q[1])
+                    p = np.array([x, 0, z])
+                    if np.linalg.norm(self.frame.avatar_transform.position - p) <= 1.25:
+                        # Drop off the object.
+                        if self.held is not None:
+                            print(f"Dropped off {self.held}")
+                            self.transported.append(self.held)
+                            self.held = None
+                            return True
+                        # We're done!
+                        if len(self.transported) == len(self._target_object_ids):
+                            print("DONE!")
+                            return True
         if self.held:
             return False
         for t in self._target_object_ids:

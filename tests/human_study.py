@@ -5,9 +5,9 @@ from sticky_mitten_avatar.util import get_data
 
 
 class HumanStudy(StickyMittenAvatarController):
-    def __init__(self, port: int = 1071, screen_width: int = 256, screen_height: int = 256):
-        super().__init__(port=port, launch_build=True, id_pass=False,
-                         screen_width=screen_width, screen_height=screen_height)
+    def __init__(self, port: int = 1071, screen_width: int = 256, screen_height: int = 256, dataset_id: int = 0):
+        super().__init__(port=port, launch_build=False, id_pass=False,
+                         screen_width=screen_width, screen_height=screen_height, dataset_id=dataset_id)
         self.num_actions = 0
         self.done = False
 
@@ -18,6 +18,7 @@ class HumanStudy(StickyMittenAvatarController):
 
     def run(self) -> None:
         self.init_scene()
+        print(self.goal_object, self.goal_positions)
         while not self.done:
             resp = self.communicate([])
             keyboard = get_data(resp=resp, d_type=Keyboard)
@@ -33,11 +34,11 @@ class HumanStudy(StickyMittenAvatarController):
                         self.move(-1)
 
     def turn(self, angle: float) -> None:
-        print(self.turn_by(angle))
+        self.turn_by(angle)
         self.end_action()
 
     def move(self, direction: float) -> None:
-        print(self.move_forward_by(0.5 * direction))
+        self.move_forward_by(0.5 * direction)
         self.end_action()
 
     def end_action(self) -> None:
@@ -54,5 +55,5 @@ class HumanStudy(StickyMittenAvatarController):
 
 
 if __name__ == "__main__":
-    c = HumanStudy()
+    c = HumanStudy(dataset_id=0)
     c.run()
