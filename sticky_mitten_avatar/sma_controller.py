@@ -1420,6 +1420,12 @@ class StickyMittenAvatarController(FloorplanController):
             for k in goal_positions:
                 self.goal_positions[int(k)] = goal_positions[k]
 
+        for p in self.goal_positions[1]["bed"]:
+            x, z = self.get_occupancy_position(p[0], p[1])
+            commands.append({"$type": "add_position_marker",
+                             "position": {"x": x, "y": 1, "z": z},
+                             "scale": 0.3})
+
         # Create the avatar.
         commands.extend(TDWUtils.create_avatar(avatar_type="A_StickyMitten_Baby", avatar_id="a"))
 
@@ -1559,14 +1565,15 @@ class StickyMittenAvatarController(FloorplanController):
 
     def get_challenge_status(self) -> bool:
         for q in self.goal_positions[1][self.goal_object]:
-            print(q)
-            p = np.array([q[0], 0, q[1]])
+            x, z = self.get_occupancy_position(q[0], q[1])
+            p = np.array([x, 0, z])
             if np.linalg.norm(self.frame.avatar_transform.position - p) <= 1.25:
                 # Drop off the object.
                 if self.held is not None:
                     print(f"Dropped off {self.held}")
                     self.transported.append(self.held)
                     self.held = None
+                    return True
                 # We're done!
                 if len(self.transported) == len(self._target_object_ids):
                     print("DONE!")

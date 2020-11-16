@@ -1,39 +1,39 @@
-from time import sleep
-import keyboard
-from sticky_mitten_avatar import StickyMittenAvatarController, Arm
+from typing import List
+from tdw.output_data import Keyboard
+from sticky_mitten_avatar import StickyMittenAvatarController
+from sticky_mitten_avatar.util import get_data
 
 
 class HumanStudy(StickyMittenAvatarController):
     def __init__(self, port: int = 1071, screen_width: int = 256, screen_height: int = 256):
         super().__init__(port=port, launch_build=False, id_pass=False,
                          screen_width=screen_width, screen_height=screen_height)
-        self.key_down = False
-        self.action_done = True
         self.num_actions = 0
-
         self.done = False
 
-    def init_scene(self, scene: str = None, layout: int = None, room: int = -1) -> None:
-        super().init_scene(scene=scene, layout=layout, room=room)
-        keyboard.on_press_key("esc", lambda e: self.end())
-        keyboard.on_press_key("left", lambda e: self.turn_left())
-        keyboard.on_press_key("right", lambda e: self.turn_right())
-        keyboard.on_press_key("up", lambda e: self.move())
-        keyboard.on_release(callback=lambda e: self.set_ready())
+    def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
+        commands = super()._get_scene_init_commands(scene=scene, layout=layout, room=room)
+        commands.extend([{"$type": "send_keyboard", "frequency": "always"},
+                         {"$type": "set_floorplan_roof", "show": False}])
+        return commands
 
-    def reset_arms(self) -> None:
-        self.reset_arm(Arm.left, precision=0.2, sub_action=True)
-        self.reset_arm(Arm.right, precision=0.2, sub_action=True)
+    def run(self) -> None:
+        self.init_scene()
+        while not self.done:
+            resp = self.communicate([])
+            keyboard = get_data(resp=resp, d_type=Keyboard)
+            if keyboard is not None:
+                for i in range(keyboard.get_num_pressed()):
+                    if keyboard.get_pressed(i) == "RightArrow":
+                        self.turn_right()
+                    elif keyboard.get_pressed(i) == "LeftArrow":
+                        self.turn_left()
+                    elif keyboard.get_pressed(i) == "UpArrow":
+                        self.move()
 
     def turn(self, angle: float) -> None:
-        if not self.action_done or self.key_down:
-            return
-        self.key_down = True
-        self.action_done = False
-        self.reset_arms()
-        self.turn_by(angle)
+        self.turn_by(angle, stop_on_collision=False)
         self.end_action()
-        self.action_done = True
 
     def turn_left(self) -> None:
         self.turn(-15)
@@ -42,31 +42,22 @@ class HumanStudy(StickyMittenAvatarController):
         self.turn(15)
 
     def move(self) -> None:
-        if not self.action_done or self.key_down:
-            return
-        self.key_down = True
-        self.action_done = False
-        self.reset_arms()
-        self.move_forward_by(0.8)
+        self.move_forward_by(0.8, stop_on_collision=False)
         self.end_action()
-        self.action_done = True
 
     def end_action(self) -> None:
         self.num_actions += 1
         if self.get_challenge_status():
-            print(self.num_actions)
+            print(f"Number of actions to transport 1 object: {self.num_actions}")
+            print(f"Estimated number of actions to transport all objects: "
+                  f"{self.num_actions * (len(self._target_object_ids) + 2)}")
             self.end()
 
     def end(self) -> None:
         super().end()
         self.done = True
 
-    def set_ready(self) -> None:
-        self.key_down = False
-
 
 if __name__ == "__main__":
     c = HumanStudy()
-    c.init_scene()
-    while not c.done:
-        sleep(0.05)
+    c.run()
