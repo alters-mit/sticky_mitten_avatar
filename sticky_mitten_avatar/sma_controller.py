@@ -242,6 +242,9 @@ class StickyMittenAvatarController(FloorplanController):
             self.data = pickle.load(f)[0]
         self.goal_object = self.data['goal_object']
 
+        self.transported: List[int] = list()
+        self.held: Optional[int] = None
+
         super().__init__(port=port, launch_build=launch_build)
 
         # Set image encoding to .jpg
@@ -1554,10 +1557,27 @@ class StickyMittenAvatarController(FloorplanController):
             return TaskStatus.collided_with_environment
         return TaskStatus.success
 
-    def is_at_goal(self) -> bool:
-        for q in self.goal_positions[self.data['scene']['room']][self.goal_object]:
-            p = np.array([q[0], 0, q[2]])
+    def get_challenge_status(self) -> bool:
+        for q in self.goal_positions[1][self.goal_object]:
+            print(q)
+            p = np.array([q[0], 0, q[1]])
             if np.linalg.norm(self.frame.avatar_transform.position - p) <= 1.25:
-                return True
+                # Drop off the object.
+                if self.held is not None:
+                    print(f"Dropped off {self.held}")
+                    self.transported.append(self.held)
+                    self.held = None
+                # We're done!
+                if len(self.transported) == len(self._target_object_ids):
+                    print("DONE!")
+                    return True
+        if self.held:
+            return False
+        for t in self._target_object_ids:
+            if t in self.transported:
+                continue
+            if np.linalg.norm(self.frame.avatar_transform.position - self.frame.object_transforms[t].position) <= 1.25:
+                self.held = t
+                print(f"Picked up {t}")
+                break
         return False
-    
