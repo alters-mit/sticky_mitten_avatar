@@ -1182,6 +1182,8 @@ class StickyMittenAvatarController(FloorplanController):
                                        "object_id": target_object,
                                        "avatar_id": cam_id,
                                        "use_centroid": True}]
+        else:
+            self._cam_commands = list()
         self._cam_commands.append({"$type": "enable_image_sensor",
                                    "enable": False,
                                    "sensor_name": "SensorContainer",
