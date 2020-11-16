@@ -18,20 +18,24 @@ class HumanStudy(StickyMittenAvatarController):
 
     def run(self) -> None:
         self.init_scene()
-        print(self.goal_object, self.goal_positions)
+        print(f"Goal: {self.goal_object}")
         while not self.done:
             resp = self.communicate([])
             keyboard = get_data(resp=resp, d_type=Keyboard)
             if keyboard is not None:
-                for i in range(keyboard.get_num_pressed()):
-                    if keyboard.get_pressed(i) == "RightArrow":
+                for i in range(keyboard.get_num_held()):
+                    if keyboard.get_held(i) == "RightArrow":
                         self.turn(15)
-                    elif keyboard.get_pressed(i) == "LeftArrow":
+                        break
+                    elif keyboard.get_held(i) == "LeftArrow":
                         self.turn(-15)
-                    elif keyboard.get_pressed(i) == "UpArrow":
+                        break
+                    elif keyboard.get_held(i) == "UpArrow":
                         self.move(1)
-                    elif keyboard.get_pressed(i) == "DownArrow":
+                        break
+                    elif keyboard.get_held(i) == "DownArrow":
                         self.move(-1)
+                        break
 
     def turn(self, angle: float) -> None:
         self.turn_by(angle)

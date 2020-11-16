@@ -239,7 +239,10 @@ class StickyMittenAvatarController(FloorplanController):
 
         data_path = resource_filename(__name__, "test_dataset.pkl")
         with open(data_path, 'rb') as f:
-            self.data = pickle.load(f)[dataset_id]
+            q = pickle.load(f)
+            for qq in q:
+                print(qq)
+            self.data = q[dataset_id]
         self.goal_object = self.data['goal_object']
 
         self.transported: List[int] = list()
