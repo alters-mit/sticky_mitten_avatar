@@ -6,6 +6,7 @@
 
 - `StickyMittenAvatarController`:
   - Fixed: Exception if the `target_object` parameter of `add_overhead_camera()` is set to None.
+  - Fixed: `move_forward_by()` doesn't move backwards if `distance < 0`.
 
 ## 0.8.4
 
