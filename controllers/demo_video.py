@@ -194,7 +194,7 @@ class DemoVideo(StickyMittenAvatarController):
 
         return TaskStatus.success if success else TaskStatus.failed_to_pick_up, object_id
 
-    def top_down(self) -> None:
+    def navigation(self) -> None:
         self.init_scene(scene="2a", layout=1, room=3, target_objects_room=4)
 
         container_id: Optional[int] = None
@@ -238,7 +238,7 @@ class DemoVideo(StickyMittenAvatarController):
             self._go_to_and_lift(object_id=target_object_id, arm=object_arm, stopping_distance=0.3)
             self.put_in_container(object_id=target_object_id, container_id=container_id, arm=object_arm)
         self.end()
-
+        
 
 if __name__ == "__main__":
-    DemoVideo().top_down()
+    DemoVideo().navigation()
