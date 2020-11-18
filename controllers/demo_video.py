@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 from typing import Union, List, Optional, Tuple
 from tdw.tdw_utils import TDWUtils
@@ -18,9 +19,14 @@ class DemoVideo(StickyMittenAvatarController):
         super().__init__(port=port, launch_build=launch_build, demo=True, id_pass=False, screen_width=1024,
                          screen_height=1024, debug=False)
         self.cam_id = "c"
-        self.cam_y = 4.75
+
+        self.cam_absolute_y = 4.75
+        self.cam_relative_x = -1.3
+        self.cam_relative_z = 0.75
+        self.cam_fov = 40
+
         self.image_count = 0
-        self.path = np.array([[0.1, 0.66], [0.4, 0.46], [4.3, 0.13], [4.35, -1.1], [4.3, -1.4]])
+        self.output_directory = ""
 
     def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1,
                                  target_objects_room: int = -1) -> List[dict]:
@@ -37,16 +43,25 @@ class DemoVideo(StickyMittenAvatarController):
         commands.extend(nav_obstacle_commands)
 
         # Create the 3rd-person camera.
-        commands.extend(TDWUtils.create_avatar(position={"x": 0, "y": self.cam_y, "z": 0},
+        commands.extend(TDWUtils.create_avatar(position={"x": 0, "y": self.cam_absolute_y, "z": 0},
                                                avatar_id=self.cam_id))
         # Set the field of view of the 3rd-person camera.
         # Enable the follow camera.
+        # Hide the roof.
         commands.extend([{"$type": "set_field_of_view",
-                          "field_of_view": 40,
+                          "field_of_view": self.cam_fov,
                           "avatar_id": self.cam_id},
                          {"$type": "enable_image_sensor",
                           "enable": True,
                           "sensor_name": "FollowCamera",
+                          "avatar_id": "a"},
+                         {"$type": "set_floorplan_roof",
+                          "show": False},
+                         {"$type": "set_pass_masks",
+                          "pass_masks": ["_img"],
+                          "avatar_id": self.cam_id},
+                         {"$type": "set_pass_masks",
+                          "pass_masks": ["_img"],
                           "avatar_id": "a"}])
 
         # Enable image capture.
@@ -55,7 +70,6 @@ class DemoVideo(StickyMittenAvatarController):
                                "avatar_id": self.cam_id},
                               {"$type": "send_images",
                                "frequency": "once"}]
-
         return commands
 
     def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
@@ -64,9 +78,9 @@ class DemoVideo(StickyMittenAvatarController):
         # Make the camera follow the avatar.
         if self._avatar is not None:
             avatar_position = TDWUtils.array_to_vector3(self._avatar.frame.get_position())
-            avatar_position["y"] = self.cam_y
-            avatar_position["x"] += -1.3
-            avatar_position["z"] += 0.75
+            avatar_position["y"] = self.cam_absolute_y
+            avatar_position["x"] += self.cam_relative_x
+            avatar_position["z"] += self.cam_relative_z
             self._avatar_commands.extend([{"$type": "teleport_avatar_to",
                                            "position": avatar_position,
                                            "avatar_id": self.cam_id}])
@@ -78,8 +92,9 @@ class DemoVideo(StickyMittenAvatarController):
                 any_images = True
                 images = Images(resp[i])
                 TDWUtils.save_images(images=images, filename=TDWUtils.zero_padding(self.image_count, width=5),
-                                     output_directory=f"D:/sticky_mitten_demo_video_images/{images.get_avatar_id()}/"
-                                                      f"{images.get_sensor_name()}")
+                                     output_directory=str(Path(self.output_directory).
+                                                          joinpath(images.get_avatar_id(),
+                                                                   images.get_sensor_name()).resolve()))
         if any_images:
             self.image_count += 1
         return resp
@@ -194,40 +209,33 @@ class DemoVideo(StickyMittenAvatarController):
 
         return TaskStatus.success if success else TaskStatus.failed_to_pick_up, object_id
 
+    def _get_container_id(self) -> int:
+        """
+        :return: The ID of a random container.
+        """
+
+        for object_id in self.static_object_info:
+            if self.static_object_info[object_id].container:
+                return int(object_id)
+        raise Exception("No container found. Re-run this controller.")
+
     def navigation(self) -> None:
+        self.output_directory = "D:/sticky_mitten_avatar_demo/navigation"
         self.init_scene(scene="2a", layout=1, room=3, target_objects_room=4)
 
-        container_id: Optional[int] = None
-        while container_id is None:
-            for object_id in self.static_object_info:
-                if self.static_object_info[object_id].container:
-                    container_id = object_id
-                    break
-        assert container_id is not None, "No container found. Re-run this controller."
-        container_id = int(container_id)
+        # Teleport a container to a nearby position.
+        container_id = self._get_container_id()
         container_position = {"x": 0.1, "y": 0, "z": 2.1}
-
-        # Set up image capture and hide the roof.
-        # Move a target object to the end of the path.
-        self.communicate([{"$type": "set_floorplan_roof",
-                           "show": False},
-                          {"$type": "set_pass_masks",
-                           "pass_masks": ["_img"],
-                           "avatar_id": self.cam_id},
-                          {"$type": "set_pass_masks",
-                           "pass_masks": ["_img"],
-                           "avatar_id": "a"},
-                          {"$type": "teleport_object",
-                           "id": container_id,
-                           "position": container_position}])
+        self.communicate({"$type": "teleport_object",
+                          "id": container_id,
+                          "position": container_position})
         self.go_to(target={"x": -1.35, "y": 0, "z": 2.3})
         self.turn_to(target=container_id)
         self._go_to_and_lift(object_id=container_id, stopping_distance=0.3)
 
         # Go to each point on the path.
-        for p in self.path:
-            waypoint = {"x": float(p[0]), "y": 0, "z": float(p[1])}
-            self.go_to(target=waypoint)
+        for p in [[0.1, 0, 0.66], [0.4, 0, 0.46], [4.3, 0, 0.13], [4.35, 0, -1.1], [4.3, 0, -1.4]]:
+            self.go_to(target=TDWUtils.array_to_vector3(p))
         if len(self.frame.held_objects[Arm.left]) > 0:
             object_arm = Arm.right
         else:
@@ -238,7 +246,27 @@ class DemoVideo(StickyMittenAvatarController):
             self._go_to_and_lift(object_id=target_object_id, arm=object_arm, stopping_distance=0.3)
             self.put_in_container(object_id=target_object_id, container_id=container_id, arm=object_arm)
         self.end()
-        
+
+    def collisions(self) -> None:
+        self.output_directory = "D:/sticky_mitten_avatar_demo/collisions"
+        self.init_scene(scene="2a", layout=1, room=4, target_objects_room=4)
+        container_id = self._get_container_id()
+        self.communicate({"$type": "teleport_object",
+                          "id": container_id,
+                          "position": {"x": 6.03, "y": 0, "z": -1.49}})
+
+        # Send the avatar to bad destinations before finally picking up the container.
+        for position in [[8.26, 0, -5.32], [9.12, 0, -3.1], [5.67, 0, -0.46]]:
+            self.go_to(target=TDWUtils.array_to_vector3(position))
+            # Back up a bit.
+            self.move_forward_by(distance=-0.5)
+        # Go to the container and pick it up.
+        self._go_to_and_lift(object_id=container_id, stopping_distance=0.3)
+        self.move_forward_by(1)
+        self.end()
+
 
 if __name__ == "__main__":
-    DemoVideo().navigation()
+    c = DemoVideo()
+    c.collisions()
+    # c.navigation()

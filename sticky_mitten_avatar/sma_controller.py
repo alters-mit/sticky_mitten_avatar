@@ -698,7 +698,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param stopping_threshold: Stop when the avatar is within this many degrees of the target.
         :param num_attempts: The avatar will apply more angular force this many times to complete the turn before giving up.
-        :param stop_on_collision: If True, stop turning when the avatar collides with a large object (mass > 90) or the environment (e.g. a wall).
+        :param stop_on_collision: If True, stop turning when the avatar collides with a large object (mass >= 30) or the environment (e.g. a wall).
         :param sub_action: If True, this is a sub-action and is being called from another API call. Sub-actions won't render images. Frontend users should always set this to False (the default value).
 
         :return: A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
@@ -802,7 +802,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param angle: The angle to turn to in degrees. If > 0, turn clockwise; if < 0, turn counterclockwise.
         :param force: The force at which the avatar will turn. More force = faster, but might overshoot the target.
         :param stopping_threshold: Stop when the avatar is within this many degrees of the target.
-        :param stop_on_collision: If True, stop turning when the avatar collides with a large object (mass > 90) or the environment (e.g. a wall).
+        :param stop_on_collision: If True, stop turning when the avatar collides with a large object (mass >= 30) or the environment (e.g. a wall).
         :param num_attempts: The avatar will apply more angular force this many times to complete the turn before giving up.
 
         :return: A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
@@ -1581,7 +1581,7 @@ class StickyMittenAvatarController(FloorplanController):
         if self._avatar.base_id in self._avatar.collisions:
             for o_id in self._avatar.collisions[self._avatar.base_id]:
                 collidee_mass = self.static_object_info[o_id].mass
-                if collidee_mass >= 90:
+                if collidee_mass >= 30:
                     return TaskStatus.collided_with_something_heavy
         # If the avatar's body collided with the environment (e.g. a wall), stop movement.
         if self._avatar.base_id in self._avatar.env_collisions:
