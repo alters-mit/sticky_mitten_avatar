@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Dict, List, TypeVar, Type, Optional
 from tdw.output_data import OutputData, Transforms, Rigidbodies, Bounds, Images, SegmentationColors, Volumes, Raycast, \
-    CompositeObjects, CameraMatrices, Environments, Overlap, Version
+    CompositeObjects, CameraMatrices, Environments, Overlap, Version, NavMeshPath
 
 
 # The size of each occupancy grid cell.
@@ -20,7 +20,8 @@ _OUTPUT_IDS: Dict[Type[OutputData], str] = {Transforms: "tran",
                                             CameraMatrices: "cama",
                                             Environments: "envi",
                                             Overlap: "over",
-                                            Version: "vers"}
+                                            Version: "vers",
+                                            NavMeshPath: "path"}
 # Global forward directional vector.
 FORWARD = np.array([0, 0, 1])
 # The mass of a target object.

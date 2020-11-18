@@ -266,7 +266,7 @@ class StickyMittenAvatarController(FloorplanController):
                 print(f"Your installed version of tdw ({python_version}) doesn't match the version of the build "
                       f"{build_version}. This might cause errors!")
 
-    def init_scene(self, scene: str = None, layout: int = None, room: int = -1) -> None:
+    def init_scene(self, scene: str = None, layout: int = None, room: int = -1, target_objects_room: int = -1) -> None:
         """
         Initialize a scene, populate it with objects, and add the avatar.
 
@@ -307,6 +307,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param scene: The name of an interior floorplan scene. If None, the controller will load a simple empty room. Each number (1, 2, etc.) has a different shape, different rooms, etc. Each letter (a, b, c) is a cosmetically distinct variant with the same floorplan.
         :param layout: The furniture layout of the floorplan. Each number (0, 1, 2) will populate the floorplan with different furniture in different positions. If None, the controller will load a simple empty room.
         :param room: The index of the room that the avatar will spawn in the center of. If `scene` or `layout` is None, the avatar will spawn in at (0, 0, 0). If `room == -1` the room will be chosen randomly.
+        :param target_objects_room: The index of the room that target objects will spawn in. If -1, the room is chosen randomly. Unless you're generating demo images or video, this should always be -1.
         """
 
         # Clear all static info.
@@ -318,7 +319,8 @@ class StickyMittenAvatarController(FloorplanController):
         self._cam_commands: Optional[list] = None
 
         # Initialize the scene.
-        resp = self.communicate(self._get_scene_init_commands(scene=scene, layout=layout, room=room))
+        resp = self.communicate(self._get_scene_init_commands(scene=scene, layout=layout, room=room,
+                                                              target_objects_room=target_objects_room))
         self._avatar = Baby(debug=self._debug, resp=resp)
         # Cache the avatar.
         self.static_avatar_info = self._avatar.body_parts_static
@@ -1313,13 +1315,15 @@ class StickyMittenAvatarController(FloorplanController):
         point = np.array(raycast.get_point())
         return raycast.get_hit() and raycast.get_object_id() is not None and raycast.get_object_id() == object_id, point
 
-    def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
+    def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1,
+                                 target_objects_room: int = -1) -> List[dict]:
         """
         Get commands to initialize the scene before adding avatars.
 
         :param scene: The name of the scene. Can be None.
         :param layout: The layout index. Can be None.
         :param room: The room number. If -1, the room is chosen randomly.
+        :param target_objects_room: The room of the target objects. If -1, the room is chosen randomly.
 
         :return: A list of commands to initialize the scene. Override this function for a different "scene recipe".
         """
@@ -1396,7 +1400,10 @@ class StickyMittenAvatarController(FloorplanController):
             target_object_materials = TARGET_OBJECT_MATERIALS_PATH.read_text(encoding="utf-8").split("\n")
 
             # Get all positions in the room and shuffle the order.
-            target_room_positions = random.choice(list(rooms.values()))
+            if target_objects_room == -1:
+                target_room_positions = random.choice(list(rooms.values()))
+            else:
+                target_room_positions = list(rooms[target_objects_room])
             random.shuffle(target_room_positions)
             # Add the objects.
             for i in range(random.randint(8, 12)):
