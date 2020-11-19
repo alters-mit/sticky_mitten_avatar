@@ -188,7 +188,7 @@ _These functions should be sent at the start of the simulation. They advance the
 
 #### init_scene
 
-**`def init_scene(self, scene: str = None, layout: int = None, room: int = -1) -> None`**
+**`def init_scene(self, scene: str = None, layout: int = None, room: int = -1, target_objects_room: int = -1) -> None`**
 
 Initialize a scene, populate it with objects, and add the avatar.
 
@@ -231,6 +231,7 @@ You can safely call `init_scene()` more than once to reset the simulation.
 | scene | The name of an interior floorplan scene. If None, the controller will load a simple empty room. Each number (1, 2, etc.) has a different shape, different rooms, etc. Each letter (a, b, c) is a cosmetically distinct variant with the same floorplan. |
 | layout | The furniture layout of the floorplan. Each number (0, 1, 2) will populate the floorplan with different furniture in different positions. If None, the controller will load a simple empty room. |
 | room | The index of the room that the avatar will spawn in the center of. If `scene` or `layout` is None, the avatar will spawn in at (0, 0, 0). If `room == -1` the room will be chosen randomly. |
+| target_objects_room | The index of the room that target objects will spawn in. If -1, the room is chosen randomly. Unless you're generating demo images or video, this should always be -1. |
 
 #### add_overhead_camera
 
@@ -271,7 +272,7 @@ Possible [return values](task_status.md):
 | force | The force at which the avatar will turn. More force = faster, but might overshoot the target. |
 | stopping_threshold | Stop when the avatar is within this many degrees of the target. |
 | num_attempts | The avatar will apply more angular force this many times to complete the turn before giving up. |
-| stop_on_collision | If True, stop turning when the avatar collides with a large object (mass > 90) or the environment (e.g. a wall). |
+| stop_on_collision | If True, stop turning when the avatar collides with a large object (mass >= 30) or the environment (e.g. a wall). |
 | sub_action | If True, this is a sub-action and is being called from another API call. Sub-actions won't render images. Frontend users should always set this to False (the default value). |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and if not, why.
@@ -295,7 +296,7 @@ Possible [return values](task_status.md):
 | angle | The angle to turn to in degrees. If > 0, turn clockwise; if < 0, turn counterclockwise. |
 | force | The force at which the avatar will turn. More force = faster, but might overshoot the target. |
 | stopping_threshold | Stop when the avatar is within this many degrees of the target. |
-| stop_on_collision | If True, stop turning when the avatar collides with a large object (mass > 90) or the environment (e.g. a wall). |
+| stop_on_collision | If True, stop turning when the avatar collides with a large object (mass >= 30) or the environment (e.g. a wall). |
 | num_attempts | The avatar will apply more angular force this many times to complete the turn before giving up. |
 
 _Returns:_  A `TaskStatus` indicating whether the avatar turned successfully and if not, why.

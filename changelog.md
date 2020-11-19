@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.0
+
+### Frontend
+
+- `StickyMittenAvatarController`:
+  - `go_to()` and `move_forward_by()` will stop when the avatar collides with an object with a mass >= 30 (was 90).
+  - Added optional parameter `target_objects_room` to `init_scene()`.
+
 ## 0.8.5
 
 ### Frontend
