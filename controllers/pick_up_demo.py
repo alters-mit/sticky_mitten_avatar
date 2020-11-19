@@ -10,9 +10,6 @@ class PickUpDemo(DemoController):
 
     def run(self) -> None:
         self.init_scene(scene="2c", layout=1, room=1, target_objects_room=1)
-        self.communicate({"$type": "set_screen_size",
-                          "width": 128,
-                          "height": 128})
         container_id: Optional[int] = None
         for object_id in self.static_object_info:
             if self.static_object_info[object_id].container:
