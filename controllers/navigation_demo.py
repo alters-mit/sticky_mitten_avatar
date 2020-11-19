@@ -77,11 +77,14 @@ class NavigationDemo(DemoController):
         """
 
         self._lift_arm(arm=self._container_arm)
-        self.go_to(target=self._target_object_ids[object_index], move_stopping_threshold=0.4)
-        self.put_in_container_simple(object_id=self._target_object_ids[object_index],
-                                     container_id=self._container_ids[container_index])
-        self.reset_arm(arm=self._object_arm)
-        self.reset_arm(arm=self._container_arm)
+        self._go_to_and_lift(object_id=self._target_object_ids[object_index], stopping_distance=0.4,
+                             arm=self._object_arm)
+        if self._container_ids[container_index] not in self.frame.held_objects[self._container_arm]:
+            self._go_to_and_lift(object_id=self._container_ids[container_index],
+                                 arm=self._container_arm, stopping_distance=0.4)
+        self.put_in_container(object_id=self._target_object_ids[object_index],
+                              container_id=self._container_ids[container_index],
+                              arm=self._object_arm)
         self.move_forward_by(-0.5)
         self._go_to_and_lift(object_id=self._container_ids[container_index],
                              arm=self._container_arm, stopping_distance=0.4)

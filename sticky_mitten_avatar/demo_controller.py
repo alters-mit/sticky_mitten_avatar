@@ -232,7 +232,7 @@ class DemoController(StickyMittenAvatarController):
                 return int(object_id)
         raise Exception("No container found. Re-run this controller.")
 
-    def put_in_container_simple(self, object_id: int, container_id: int) -> TaskStatus:
+    def put_in_container_simple(self, object_id: int, container_id: int, object_arm: Arm) -> TaskStatus:
         """
         Try to put an object in a container.
 
@@ -299,10 +299,6 @@ class DemoController(StickyMittenAvatarController):
                                       {"$type": "teleport_object",
                                        "position": TDWUtils.array_to_vector3(new_container_position),
                                        "id": container_id,
-                                       "physics": True},
-                                      {"$type": "teleport_object",
-                                       "position": TDWUtils.array_to_vector3(new_object_position),
-                                       "id": object_id,
                                        "physics": True}])
         self._end_task(sub_action=True)
         self._wait_for_objects_to_stop(object_ids=[container_id, object_id])

@@ -1022,7 +1022,6 @@ class StickyMittenAvatarController(FloorplanController):
 
         # Let the container fall to the ground.
         self.drop(arm=container_arm, sub_action=True)
-        self.reset_arm(arm=container_arm, sub_action=True)
 
         # Try to nudge the container to be directly in front of the avatar.
         new_container_position = self.frame.avatar_transform.position + np.array([-0.215 if arm == Arm.right else 0.215,
@@ -1085,7 +1084,7 @@ class StickyMittenAvatarController(FloorplanController):
         self._wait_for_objects_to_stop(object_ids=[object_id])
 
         # Pick up the container again.
-        return self.grasp_object(object_id=container_id, arm=container_arm, check_if_possible=False)
+        return TaskStatus.success
 
     def rotate_camera_by(self, pitch: float = 0, yaw: float = 0) -> None:
         """
