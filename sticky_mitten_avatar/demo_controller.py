@@ -7,69 +7,60 @@ from sticky_mitten_avatar import StickyMittenAvatarController, Arm
 from sticky_mitten_avatar.task_status import TaskStatus
 
 
-class DemoVideo(StickyMittenAvatarController):
-    """
-    Use this controller to create a demo video.
-    This uses many low-level TDW functions and commands and is NOT meant to be an example of an average use-case.
-    """
-
+class DemoController(StickyMittenAvatarController):
     _D_THETA_GRASP = 15
 
-    def __init__(self, port: int = 1071, launch_build: bool = True):
+    def __init__(self, port: int = 1071, launch_build: bool = True, output_directory: str = ""):
         super().__init__(port=port, launch_build=launch_build, demo=True, id_pass=False, screen_width=1024,
                          screen_height=1024, debug=False)
         self.cam_id = "c"
 
+        # The absolute y value of the overhead camera.
         self.cam_absolute_y = 4.75
+        # The x value of the overhead camera position relative to the Sticky Mitten Avatar.
         self.cam_relative_x = -1.3
+        # The z value of the overhead camera position relative to the Sticky Mitten Avatar.
         self.cam_relative_z = 0.75
+        # The overhead camera field of view.
         self.cam_fov = 40
+        # Adjust the FollowCamera position by this delta.
+        self.follow_camera_move_by = {"x": 0, "y": 0, "z": 0}
 
         self.image_count = 0
-        self.output_directory = ""
+        self.output_directory = output_directory
+        p = Path(self.output_directory)
+        if not p.exists():
+            p.mkdir(parents=True)
 
-    def _get_scene_init_commands(self, scene: str = None, layout: int = None, room: int = -1,
-                                 target_objects_room: int = -1) -> List[dict]:
-        commands = super()._get_scene_init_commands(scene=scene, layout=layout, room=room,
-                                                    target_objects_room=target_objects_room)
-        # Make NavMesh obstacles.
-        nav_obstacle_commands = []
+    def get_scene_init_commands(self, scene: str, layout: int, audio: bool) -> List[dict]:
+        commands = super().get_scene_init_commands(scene=scene, layout=layout, audio=audio)
+
+        # Rugs seem to induce physics instability, so let's remove them...
         for cmd in commands:
-            if cmd["$type"] == "set_kinematic_state" and not cmd["is_kinematic"]:
-                nav_obstacle_commands.append({"$type": "make_nav_mesh_obstacle",
-                                              "id": cmd["id"],
-                                              "carve_type": "stationary",
-                                              "scale": 0.5})
-        commands.extend(nav_obstacle_commands)
-
+            if cmd["$type"] == "add_object" and "rug" in cmd["name"]:
+                commands.append({"$type": "destroy_object",
+                                 "id": cmd["id"]})
         # Create the 3rd-person camera.
         commands.extend(TDWUtils.create_avatar(position={"x": 0, "y": self.cam_absolute_y, "z": 0},
                                                avatar_id=self.cam_id))
         # Set the field of view of the 3rd-person camera.
-        # Enable the follow camera.
         # Hide the roof.
         commands.extend([{"$type": "set_field_of_view",
                           "field_of_view": self.cam_fov,
                           "avatar_id": self.cam_id},
-                         {"$type": "enable_image_sensor",
-                          "enable": True,
-                          "sensor_name": "FollowCamera",
-                          "avatar_id": "a"},
                          {"$type": "set_floorplan_roof",
                           "show": False},
                          {"$type": "set_pass_masks",
                           "pass_masks": ["_img"],
-                          "avatar_id": self.cam_id},
-                         {"$type": "set_pass_masks",
-                          "pass_masks": ["_img"],
-                          "avatar_id": "a"}])
-
+                          "avatar_id": self.cam_id}])
+        # The overhead camera will always track the avatar.
         # Enable image capture.
         self._cam_commands = [{"$type": "look_at_avatar",
                                "target_avatar_id": "a",
                                "avatar_id": self.cam_id},
                               {"$type": "send_images",
                                "frequency": "once"}]
+
         return commands
 
     def communicate(self, commands: Union[dict, List[dict]]) -> List[bytes]:
@@ -99,6 +90,28 @@ class DemoVideo(StickyMittenAvatarController):
             self.image_count += 1
         return resp
 
+    def _get_avatar_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
+        commands = super()._get_avatar_init_commands(scene=scene, layout=layout, room=room)
+
+        # Enable the FollowCamera and enable _img capture only.
+        commands.extend([{"$type": "enable_image_sensor",
+                          "enable": True,
+                          "sensor_name": "FollowCamera",
+                          "avatar_id": "a"},
+                         {"$type": "set_pass_masks",
+                          "pass_masks": ["_img"],
+                          "avatar_id": "a"},
+                         {"$type": "translate_sensor_container_by",
+                          "move_by": self.follow_camera_move_by,
+                          "sensor_name": "FollowCamera",
+                          "avatar_id": "a"},
+                         {"$type": "look_at_avatar",
+                          "target_avatar_id": "a",
+                          "use_centroid": True,
+                          "sensor_name": "FollowCamera",
+                          "avatar_id": "a"}])
+        return commands
+
     def _lift_arm(self, arm: Arm) -> None:
         """
         Lift the arm up.
@@ -111,7 +124,7 @@ class DemoVideo(StickyMittenAvatarController):
                               check_if_possible=False,
                               stop_on_mitten_collision=False)
 
-    def grasp_and_lift(self, object_id: int, arm: Optional[Arm] = None) -> bool:
+    def _grasp_and_lift(self, object_id: int, arm: Optional[Arm] = None) -> bool:
         """
         Repeatedly try to grasp a nearby object. If the object was grasped, lift it up.
 
@@ -205,7 +218,7 @@ class DemoVideo(StickyMittenAvatarController):
             else:
                 break
         # Pick up the object.
-        success = self.grasp_and_lift(object_id=object_id, arm=arm)
+        success = self._grasp_and_lift(object_id=object_id, arm=arm)
 
         return TaskStatus.success if success else TaskStatus.failed_to_pick_up, object_id
 
@@ -218,55 +231,3 @@ class DemoVideo(StickyMittenAvatarController):
             if self.static_object_info[object_id].container:
                 return int(object_id)
         raise Exception("No container found. Re-run this controller.")
-
-    def navigation(self) -> None:
-        self.output_directory = "D:/sticky_mitten_avatar_demo/navigation"
-        self.init_scene(scene="2a", layout=1, room=3, target_objects_room=4)
-
-        # Teleport a container to a nearby position.
-        container_id = self._get_container_id()
-        container_position = {"x": 0.1, "y": 0, "z": 2.1}
-        self.communicate({"$type": "teleport_object",
-                          "id": container_id,
-                          "position": container_position})
-        self.go_to(target={"x": -1.35, "y": 0, "z": 2.3})
-        self.turn_to(target=container_id)
-        self._go_to_and_lift(object_id=container_id, stopping_distance=0.3)
-
-        # Go to each point on the path.
-        for p in [[0.1, 0, 0.66], [0.4, 0, 0.46], [4.3, 0, 0.13], [4.35, 0, -1.1], [4.3, 0, -1.4]]:
-            self.go_to(target=TDWUtils.array_to_vector3(p))
-        if len(self.frame.held_objects[Arm.left]) > 0:
-            object_arm = Arm.right
-        else:
-            object_arm = Arm.left
-
-        # Put objects in the container.
-        for target_object_id in self._target_object_ids[:2]:
-            self._go_to_and_lift(object_id=target_object_id, arm=object_arm, stopping_distance=0.3)
-            self.put_in_container(object_id=target_object_id, container_id=container_id, arm=object_arm)
-        self.end()
-
-    def collisions(self) -> None:
-        self.output_directory = "D:/sticky_mitten_avatar_demo/collisions"
-        self.init_scene(scene="2a", layout=1, room=4, target_objects_room=4)
-        container_id = self._get_container_id()
-        self.communicate({"$type": "teleport_object",
-                          "id": container_id,
-                          "position": {"x": 6.03, "y": 0, "z": -1.49}})
-
-        # Send the avatar to bad destinations before finally picking up the container.
-        for position in [[8.26, 0, -5.32], [9.12, 0, -3.1], [5.67, 0, -0.46]]:
-            self.go_to(target=TDWUtils.array_to_vector3(position))
-            # Back up a bit.
-            self.move_forward_by(distance=-0.5)
-        # Go to the container and pick it up.
-        self._go_to_and_lift(object_id=container_id, stopping_distance=0.3)
-        self.move_forward_by(1)
-        self.end()
-
-
-if __name__ == "__main__":
-    c = DemoVideo()
-    c.collisions()
-    # c.navigation()

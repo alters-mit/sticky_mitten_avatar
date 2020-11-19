@@ -1021,8 +1021,8 @@ class StickyMittenAvatarController(FloorplanController):
                               sub_action=True)
 
         # Let the container fall to the ground.
-        self.drop(arm=container_arm)
-        self.reset_arm(arm=container_arm)
+        self.drop(arm=container_arm, sub_action=True)
+        self.reset_arm(arm=container_arm, sub_action=True)
 
         # Try to nudge the container to be directly in front of the avatar.
         new_container_position = self.frame.avatar_transform.position + np.array([-0.215 if arm == Arm.right else 0.215,
@@ -1055,17 +1055,15 @@ class StickyMittenAvatarController(FloorplanController):
                               check_if_possible=False,
                               stop_on_mitten_collision=False,
                               sub_action=True)
-        aim_position = self.frame.object_transforms[container_id].position
-        aim_position[1] = 0.3
         self.reach_for_target(arm=arm,
-                              target={"x": 0, "y": 0.306, "z": 0.392},
+                              target={"x": 0, "y": 0.306, "z": 0.35},
                               stop_on_mitten_collision=False,
                               check_if_possible=False,
                               sub_action=True)
 
         # Drop the object.
         self.drop(arm=arm, reset_arm=False, sub_action=True)
-
+        self._wait_for_objects_to_stop(object_ids=[object_id])
         # Lift the arm away.
         self.reach_for_target(target={"x": 0.25 if arm == Arm.right else -0.25, "y": 0.6, "z": 0.3},
                               arm=arm,
@@ -1074,7 +1072,6 @@ class StickyMittenAvatarController(FloorplanController):
                               sub_action=True)
 
         self.reset_arm(arm=arm, sub_action=True)
-        self._wait_for_objects_to_stop(object_ids=[object_id])
 
         if object_id not in self._get_objects_in_container(container_id=container_id):
             self._end_task()
@@ -1084,28 +1081,6 @@ class StickyMittenAvatarController(FloorplanController):
         self._avatar_commands.append({"$type": "add_fixed_joint",
                                       "id": object_id,
                                       "parent_id": container_id})
-
-        self.reset_arm(arm=container_arm, sub_action=True)
-
-        # Move the container and its objects in front of the mitten.
-        mitten_id = self._avatar.mitten_ids[container_arm]
-        new_container_position = self.frame.avatar_body_part_transforms[mitten_id].position + self.frame.\
-            avatar_transform.forward * 0.3
-        delta_position = new_container_position - self.frame.object_transforms[container_id].position
-        teleport_commands = [{"$type": "teleport_object",
-                              "id": container_id,
-                              "position": TDWUtils.array_to_vector3(new_container_position),
-                              "physics": True}]
-        for overlap_id in overlap_ids:
-            if overlap_id not in self.frame.object_transforms:
-                continue
-            teleport_position = self.frame.object_transforms[overlap_id].position + delta_position
-            teleport_position[1] += 0.03
-            teleport_commands.append({"$type": "teleport_object",
-                                      "id": overlap_id,
-                                      "position": TDWUtils.array_to_vector3(teleport_position),
-                                      "physics": True})
-        self.communicate(teleport_commands)
 
         self._wait_for_objects_to_stop(object_ids=[object_id])
 
@@ -1388,11 +1363,7 @@ class StickyMittenAvatarController(FloorplanController):
                 self.occupancy_map[ix][iy] = 0
 
             # Pick a room to add target objects.
-            target_objects: Dict[str, float] = dict()
-            with open(str(TARGET_OBJECTS_PATH.resolve())) as csvfile:
-                reader = DictReader(csvfile)
-                for row in reader:
-                    target_objects[row["name"]] = float(row["scale"])
+            target_objects = self._get_target_object_scales()
             target_object_names = list(target_objects.keys())
 
             # Load a list of visual materials for target objects.
@@ -1446,6 +1417,19 @@ class StickyMittenAvatarController(FloorplanController):
         # Create the avatar and get output data.
         commands.extend(self._get_avatar_init_commands(scene=scene, layout=layout, room=room))
         return commands
+
+    @staticmethod
+    def _get_target_object_scales() -> Dict[str, float]:
+        """
+        :return: The scales of all target objects, as stored in the csv file.
+        """
+
+        target_objects: Dict[str, float] = dict()
+        with open(str(TARGET_OBJECTS_PATH.resolve())) as csvfile:
+            reader = DictReader(csvfile)
+            for row in reader:
+                target_objects[row["name"]] = float(row["scale"])
+        return target_objects
 
     def _get_avatar_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
         """
