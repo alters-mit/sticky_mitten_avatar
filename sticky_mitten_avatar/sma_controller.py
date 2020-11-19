@@ -1332,7 +1332,6 @@ class StickyMittenAvatarController(FloorplanController):
             commands = [{"$type": "load_scene",
                          "scene_name": "ProcGenScene"},
                         TDWUtils.create_empty_room(12, 12)]
-            avatar_position = TDWUtils.VECTOR3_ZERO
         else:
             commands = self.get_scene_init_commands(scene=scene, layout=layout, audio=True)
 
@@ -1444,6 +1443,25 @@ class StickyMittenAvatarController(FloorplanController):
             for k in goal_positions:
                 self.goal_positions[int(k)] = goal_positions[k]
 
+        # Create the avatar and get output data.
+        commands.extend(self._get_avatar_init_commands(scene=scene, layout=layout, room=room))
+        return commands
+
+    def _get_avatar_init_commands(self, scene: str = None, layout: int = None, room: int = -1) -> List[dict]:
+        """
+        Initialize the avatar and request output data.
+        This is in a separate function from `_get_scene_init_commands()` to allow for custom scene setups.
+
+        :param scene: The name of the scene. Can be None.
+        :param layout: The layout index. Can be None.
+        :param room: The room number. If -1, the room is chosen randomly.
+
+        :return: A list of commands to initialize the avatar and request output data.
+        """
+
+        if scene is None or layout is None:
+            avatar_position = TDWUtils.VECTOR3_ZERO
+        else:
             # Set the initial position of the avatar.
             rooms = loads(SPAWN_POSITIONS_PATH.read_text())[scene[0]][str(layout)]
             if room == -1:
@@ -1451,6 +1469,7 @@ class StickyMittenAvatarController(FloorplanController):
             assert 0 <= room < len(rooms), f"Invalid room: {room}"
             avatar_position = rooms[room]
 
+        commands: List[dict] = list()
         # Create the avatar.
         commands.extend(TDWUtils.create_avatar(avatar_type="A_StickyMitten_Baby", avatar_id="a"))
 
@@ -1504,7 +1523,6 @@ class StickyMittenAvatarController(FloorplanController):
                           "frequency": "once"},
                          {"$type": "send_bounds",
                           "frequency": "once"}])
-
         return commands
 
     def _get_avatar_status(self) -> TaskStatus:
