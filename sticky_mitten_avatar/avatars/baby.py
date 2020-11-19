@@ -89,20 +89,20 @@ class Baby(Avatar):
                      rotation=[0, 0, 0])])
 
     def _get_default_sticky_mitten_profile(self) -> dict:
-        return {"shoulder_pitch": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 10},
-                "shoulder_yaw": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 10},
-                "shoulder_roll": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 10},
-                "elbow": {"mass": 2, "damper": 555, "force": 150, "angular_drag": 10},
-                "wrist_roll": {"mass": 1.5, "damper": 530, "force": 150, "angular_drag": 10},
-                "wrist_pitch": {"mass": 1.5, "damper": 505, "force": 125, "angular_drag": 10}}
+        return {"shoulder_pitch": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 1},
+                "shoulder_yaw": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 1},
+                "shoulder_roll": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 1},
+                "elbow": {"mass": 2, "damper": 555, "force": 150, "angular_drag": 1},
+                "wrist_roll": {"mass": 1.5, "damper": 530, "force": 150, "angular_drag": 1},
+                "wrist_pitch": {"mass": 1.5, "damper": 505, "force": 125, "angular_drag": 1}}
 
     def _get_movement_sticky_mitten_profile(self) -> dict:
-        return {"shoulder_pitch": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 100},
-                "shoulder_yaw": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 100},
-                "shoulder_roll": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 100},
-                "elbow": {"mass": 2, "damper": 555, "force": 150, "angular_drag": 100},
-                "wrist_roll": {"mass": 1.5, "damper": 530, "force": 150, "angular_drag": 100},
-                "wrist_pitch": {"mass": 1.5, "damper": 505, "force": 125, "angular_drag": 100}}
+        return {"shoulder_pitch": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 1},
+                "shoulder_yaw": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 1},
+                "shoulder_roll": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 1},
+                "elbow": {"mass": 2, "damper": 555, "force": 150, "angular_drag": 1},
+                "wrist_roll": {"mass": 1.5, "damper": 530, "force": 150, "angular_drag": 1},
+                "wrist_pitch": {"mass": 1.5, "damper": 505, "force": 125, "angular_drag": 1}}
 
     def _get_rotation_sticky_mitten_profile(self) -> dict:
         return {"shoulder_pitch": {"mass": 3, "damper": 555, "force": 150, "angular_drag": 1},
@@ -121,12 +121,12 @@ class Baby(Avatar):
                 "wrist_pitch": {"mass": 1.5, "damper": 50, "force": 345, "angular_drag": 1}}
 
     def _get_reset_arm_sticky_mitten_profile(self) -> dict:
-        return {"shoulder_pitch": {"mass": 3, "damper": 75, "force": 250, "angular_drag": 10},
-                "shoulder_yaw": {"mass": 3, "damper": 75, "force": 250, "angular_drag": 10},
-                "shoulder_roll": {"mass": 3, "damper": 75, "force": 250, "angular_drag": 10},
-                "elbow": {"mass": 2, "damper": 75, "force": 250, "angular_drag": 10},
-                "wrist_roll": {"mass": 1.5, "damper": 75, "force": 250, "angular_drag": 10},
-                "wrist_pitch": {"mass": 1.5, "damper": 75, "force": 225, "angular_drag": 10}}
+        return {"shoulder_pitch": {"mass": 3, "damper": 75, "force": 250, "angular_drag": 1},
+                "shoulder_yaw": {"mass": 3, "damper": 75, "force": 250, "angular_drag": 1},
+                "shoulder_roll": {"mass": 3, "damper": 75, "force": 250, "angular_drag": 1},
+                "elbow": {"mass": 2, "damper": 75, "force": 250, "angular_drag": 1},
+                "wrist_roll": {"mass": 1.5, "damper": 75, "force": 250, "angular_drag": 1},
+                "wrist_pitch": {"mass": 1.5, "damper": 75, "force": 225, "angular_drag": 1}}
 
     def _get_mass(self) -> float:
         return 80

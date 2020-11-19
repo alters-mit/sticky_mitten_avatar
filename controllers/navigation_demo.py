@@ -89,7 +89,7 @@ class NavigationDemo(DemoController):
         self.drop(arm=self._container_arm)
         self.move_forward_by(-0.5)
         self._go_to_and_lift(object_id=self._container_ids[container_index],
-                             arm=self._container_arm, stopping_distance=0.3)
+                             arm=self._container_arm, stopping_distance=0.4)
         self.move_forward_by(-0.5)
 
     def run(self) -> None:
