@@ -1148,7 +1148,7 @@ class StickyMittenAvatarController(FloorplanController):
         :param cam_id: The ID of the camera.
         :param target_object: Always point the camera at this object or avatar.
         :param position: The position of the camera.
-        :param images: Image capture behavior. Choices: `"cam"` (only this camera captures images); `"all"` (avatars currently in the scene and this camera capture images); `"avatars"` (only the avatars currently in the scene capture images)
+        :param images: Image rendering behavior. Choices: `"cam"` (only this camera renders images); `"all"` (the avatar and this camera render images); `"avatar"` (only the avatar renders images).
         """
 
         self._start_task()
@@ -1174,23 +1174,24 @@ class StickyMittenAvatarController(FloorplanController):
                                        "use_centroid": True}]
         else:
             self._cam_commands = list()
-        if images != "avatars":
-            commands.append({"$type": "set_pass_masks",
-                             "pass_masks": ["_img"],
-                             "avatar_id": cam_id})
         if images == "cam":
             # Disable avatar cameras.
-            commands.append({"$type": "enable_image_sensor",
-                             "enable": False,
-                             "sensor_name": "SensorContainer",
-                             "avatar_id": self._avatar.id})
-
-            commands.append({"$type": "send_images",
-                             "ids": [cam_id],
-                             "frequency": "always"})
+            commands.extend([{"$type": "set_pass_masks",
+                              "pass_masks": ["_img"],
+                              "avatar_id": cam_id},
+                             {"$type": "enable_image_sensor",
+                              "enable": False,
+                              "sensor_name": "SensorContainer",
+                              "avatar_id": self._avatar.id},
+                             {"$type": "send_images",
+                              "ids": [cam_id],
+                              "frequency": "always"}])
         elif images == "all":
-            commands.append({"$type": "send_images",
-                             "frequency": "always"})
+            commands.extend([{"$type": "set_pass_masks",
+                              "pass_masks": ["_img"],
+                              "avatar_id": cam_id},
+                             {"$type": "send_images",
+                              "frequency": "always"}])
         self._avatar_commands.extend(commands)
         self._end_task()
 

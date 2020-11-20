@@ -5,8 +5,12 @@
 ### Frontend
 
 - `StickyMittenAvatarController`:
+  - Renamed option `avatars` in `add_overhead_camera()` to `avatar`.
   - Fixed: Exception if the `target_object` parameter of `add_overhead_camera()` is set to None.
   - Fixed: `move_forward_by()` doesn't move backwards if `distance < 0`.
+  - Fixed: `add_overhead_camera()` always disables the avatar's camera.
+- `FrameData`:
+  - Fixed: If there is an overhead camera in the scene, the image passes might be those rendered by the overhead camera (now, they are always the passes rendered by the avatar).
 
 ## 0.8.4
 

@@ -243,7 +243,7 @@ Add an overhead third-person camera to the scene. This is meant only for demo or
 | cam_id | The ID of the camera. |
 | target_object | Always point the camera at this object or avatar. |
 | position | The position of the camera. |
-| images | Image capture behavior. Choices: `"cam"` (only this camera captures images); `"all"` (avatars currently in the scene and this camera capture images); `"avatars"` (only the avatars currently in the scene capture images) |
+| images | Image rendering behavior. Choices: `"cam"` (only this camera renders images); `"all"` (the avatar and this camera render images); `"avatar"` (only the avatar renders images). |
 
 ***
 
