@@ -988,7 +988,10 @@ class StickyMittenAvatarController(FloorplanController):
         :return: A `TaskStatus` indicating whether the avatar put the object in the container and if not, why.
         """
 
+        self._start_task()
+
         if not self.static_object_info[container_id].container:
+            self._end_task()
             return TaskStatus.not_a_container
 
         container_id = int(container_id)
@@ -997,9 +1000,9 @@ class StickyMittenAvatarController(FloorplanController):
 
         # A "full" container has too many objects such that physics might glitch.
         overlap_ids = self._get_objects_in_container(container_id=container_id)
-        '''if len(overlap_ids) > 3:
+        if len(overlap_ids) > 3:
             self._end_task()
-            return TaskStatus.full_container'''
+            return TaskStatus.full_container
 
         # Grasp the object.
         if object_id not in self.frame.held_objects[arm]:
@@ -1043,7 +1046,7 @@ class StickyMittenAvatarController(FloorplanController):
                            "translate": False}])
 
         self._wait_for_objects_to_stop(object_ids=[container_id])
-        self._end_task()
+        self._end_task(enable_sensor=False)
 
         # Lift the arm away.
         self.reach_for_target(target={"x": 0.25 if arm == Arm.right else -0.25, "y": 0.6, "z": 0.3},
@@ -1056,8 +1059,6 @@ class StickyMittenAvatarController(FloorplanController):
                               target={"x": 0, "y": 0.306, "z": 0.392},
                               stop_on_mitten_collision=False,
                               check_if_possible=False)
-
-        self._end_task(enable_sensor=False)
 
         # Drop the object.
         self.drop(arm=arm, reset_arm=False)
@@ -1072,26 +1073,19 @@ class StickyMittenAvatarController(FloorplanController):
         self._wait_for_objects_to_stop(object_ids=[object_id])
 
         if object_id not in self._get_objects_in_container(container_id=container_id):
-            print(self._get_objects_in_container(container_id=container_id))
+            self._end_task()
             return TaskStatus.not_in_container
 
         # Connect the object to the container.
-        '''self.communicate({"$type": "add_fixed_joint",
-                          "id": object_id,
-                          "parent_id": container_id})'''
-        position = {'x': float(20 + random.randint(0, 10)), 
-                    'y': float(0.),
-                    'z': float(20 + random.randint(0, 10))}
-            
-        self.communicate([{"$type": "teleport_object",
-               "position": position,
-               "id": object_id,
-               "physics": True}])
+        self._avatar_commands.append({"$type": "add_fixed_joint",
+                                      "id": object_id,
+                                      "parent_id": container_id})
+
         self.reset_arm(arm=container_arm)
 
         # Move the container and its objects in front of the mitten.
         mitten_id = self._avatar.mitten_ids[container_arm]
-        new_container_position = self.frame.avatar_body_part_transforms[mitten_id].position + self.frame.\
+        new_container_position = self.frame.avatar_body_part_transforms[mitten_id].position + self.frame. \
             avatar_transform.forward * 0.3
         delta_position = new_container_position - self.frame.object_transforms[container_id].position
         teleport_commands = [{"$type": "teleport_object",
@@ -1107,7 +1101,6 @@ class StickyMittenAvatarController(FloorplanController):
                                       "id": overlap_id,
                                       "position": TDWUtils.array_to_vector3(teleport_position),
                                       "physics": True})
-
         self.communicate(teleport_commands)
 
         self._wait_for_objects_to_stop(object_ids=[object_id])
