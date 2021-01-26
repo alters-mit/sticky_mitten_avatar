@@ -198,8 +198,13 @@ class FrameData:
             if image is None:
                 continue
             p = output_directory.joinpath(f"{prefix}_{pass_name}.{ext}")
-            with p.open("wb") as f:
-                f.write(image)
+            # The depth passes aren't png files, so we need to convert them.
+            if pass_name == "depth":
+                Image.fromarray(np.flip(np.reshape(image, (256, 256, 3)))).save(str(p.resolve()))
+            # Every other pass can be saved directly to disk.
+            else:
+                with p.open("wb") as f:
+                    f.write(image)
 
     def get_pil_images(self) -> dict:
         """

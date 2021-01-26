@@ -1,5 +1,9 @@
 # Sticky Mitten Avatar API
 
+#### This repo has been deprecated. See the  [Magnebot API](https://github.com/alters-mit/magnebot) for the updated API.
+
+***
+
 A high-level API for [TDW's](https://github.com/threedworld-mit/tdw/) [Sticky Mitten Avatar](https://github.com/threedworld-mit/tdw/blob/master/Documentation/misc_frontend/sticky_mitten_avatar.md). Try to gather objects and put them at a target goal area as fast as possible!
 
 <img src="social.jpg" style="zoom:50%;" />
@@ -10,7 +14,7 @@ A high-level API for [TDW's](https://github.com/threedworld-mit/tdw/) [Sticky Mi
 
 ## Installation
 
-1. [Install TDW](https://github.com/threedworld-mit/tdw/). Make sure you are using the latest version.
+1. [Install TDW](https://github.com/threedworld-mit/tdw/). Make sure you are using v1.7.16
 2. Clone this repo.
 3. `cd path/to/sticky_mitten_avatar` (replace `path/to` with the actual path).
 4. Install the local `sticky_mitten_avatar` pip module:

@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='sticky_mitten_avatar',
-    version="0.8.5",
+    version="0.9.0",
     description='High-level API for the Sticky Mitten Avatar in TDW.',
     long_description='High-level API for the Sticky Mitten Avatar in TDW.',
     url='https://github.com/alters-mit/sticky_mitten_avatar',
@@ -20,5 +20,5 @@ setup(
     ],
     keywords='unity simulation tdw',
     packages=find_packages(),
-    install_requires=['tdw', 'numpy', 'ikpy', 'matplotlib', 'pillow'],
+    install_requires=['tdw==1.7.16.1', 'numpy', 'ikpy', 'matplotlib', 'pillow'],
 )

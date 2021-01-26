@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.0
+
+- **Deprecated this repo. See: https://github.com/alters-mit/magnebot**
+- Fixed depth maps.
+
 ## 0.8.5
 
 ### Frontend
